@@ -494,16 +494,36 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ==========================================================================
      3. DOM ELEMENTS
      ========================================================================== */
-  // View Containers & View Switchers
+  // Dedicated View Containers (4 Views, Zero Article Popups)
   const homeView = document.getElementById('homeView');
+  const articlesView = document.getElementById('articlesView');
+  const articleDetailView = document.getElementById('articleDetailView');
   const coursesView = document.getElementById('coursesView');
+
+  // Navigation Links
   const navHome = document.getElementById('navHome');
+  const navArticles = document.getElementById('navArticles');
   const navCourses = document.getElementById('navCourses');
   const logoLink = document.getElementById('logoLink');
+  const ctaExpeditionBtn = document.getElementById('ctaExpeditionBtn');
+  const homeBrowseAllArticlesBtn = document.getElementById('homeBrowseAllArticlesBtn');
+
+  // Breadcrumbs & View Back Buttons
+  const articlesBackToHomeBtn = document.getElementById('articlesBackToHomeBtn');
+  const articleDetailBackBtn = document.getElementById('articleDetailBackBtn');
+  const bcHomeBtn = document.getElementById('bcHomeBtn');
+  const bcArticlesBtn = document.getElementById('bcArticlesBtn');
+  const bcCurrentTitle = document.getElementById('bcCurrentTitle');
   const coursesBackBtn = document.getElementById('coursesBackBtn');
+
+  // Reading Progress & Detail Container
+  const readingProgressBar = document.getElementById('readingProgressBar');
+  const articlePageContainer = document.getElementById('articlePageContainer');
+
+  // Drawer Navigation Links
   const drawerHomeBtn = document.getElementById('drawerHomeBtn');
-  const drawerCoursesBtn = document.getElementById('drawerCoursesBtn');
   const drawerArticlesBtn = document.getElementById('drawerArticlesBtn');
+  const drawerCoursesBtn = document.getElementById('drawerCoursesBtn');
   const directWhatsAppGeneralBtn = document.getElementById('directWhatsAppGeneralBtn');
 
   // Categories & Sub-Bar
@@ -529,12 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchClearBtn = document.getElementById('searchClearBtn');
   const quickTagChips = document.querySelectorAll('.quick-tag-chip');
 
-  // Article Reader Modal
-  const articleModal = document.getElementById('articleModal');
-  const closeArticleModalBtn = document.getElementById('closeArticleModalBtn');
-  const articleReaderContent = document.getElementById('articleReaderContent');
-
-  // Course Modal
+  // Course Modal (Kept for WhatsApp course syllabus)
   const courseModal = document.getElementById('courseModal');
   const closeCourseModalBtn = document.getElementById('closeCourseModalBtn');
   const courseModalInner = document.getElementById('courseModalInner');
@@ -627,17 +642,17 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      // Click on entire card opens modal
+      // Click on entire card navigates to dedicated article reader page
       card.addEventListener('click', () => {
-        openArticleModal(art.id);
+        window.location.hash = '#article/' + art.id;
       });
 
-      // Click directly on Read Story button opens modal
+      // Click directly on Read Story button
       const readBtn = card.querySelector('.read-btn-pill');
       if (readBtn) {
         readBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          openArticleModal(art.id);
+          window.location.hash = '#article/' + art.id;
         });
       }
 
@@ -645,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
       card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          openArticleModal(art.id);
+          window.location.hash = '#article/' + art.id;
         }
       });
 
@@ -696,12 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ==========================================================================
      6. CATEGORY NAVIGATION & SUB-CATEGORY BAR (100% RELIABLE)
      ========================================================================== */
-  function setCategoryFilter(cat, shouldScroll = true) {
-    // If user is currently on Courses view, switch back to Home view first
-    if (coursesView && !coursesView.classList.contains('hidden-view')) {
-      showHomeView();
-    }
-
+  function setCategoryFilter(cat, shouldNavigate = false) {
     currentCategoryFilter = cat;
 
     // Filter pills
@@ -743,11 +753,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     showToast(catLabels[cat] || `Category: ${cat}`);
 
-    if (shouldScroll) {
-      const artSection = document.getElementById('articleSection');
-      if (artSection) {
-        artSection.scrollIntoView({ behavior: 'smooth' });
-      }
+    if (shouldNavigate) {
+      window.location.hash = (cat === 'all') ? '#articles' : '#category/' + cat;
     }
   }
 
@@ -797,7 +804,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const cat = btn.getAttribute('data-category');
-      setCategoryFilter(cat, true);
+      window.location.hash = '#category/' + cat;
+      closeCategoryMenus();
     });
   });
 
@@ -806,30 +814,16 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const cat = btn.getAttribute('data-category');
-      setCategoryFilter(cat, true);
-      categorySubBar.classList.remove('open');
-      categoryDropdown.classList.remove('show');
-      navCategory.classList.remove('open-active');
+      window.location.hash = '#category/' + cat;
+      closeCategoryMenus();
     });
   });
 
-  // Category Showcase Cards & Direct Article Opening
+  // Category Showcase Cards
   document.querySelectorAll('.category-card').forEach(card => {
     card.addEventListener('click', (e) => {
       const cat = card.getAttribute('data-category');
-      const openArtAttr = e.target.closest('[data-open-article]')?.getAttribute('data-open-article');
-      const targetArtId = openArtAttr || (
-        cat === 'nature' ? 'art-10' :
-        cat === 'animals' ? 'art-1' :
-        cat === 'ocean' ? 'art-4' :
-        'art-2'
-      );
-
-      setCategoryFilter(cat, true);
-      // Open the journal in reader modal for instant reading
-      setTimeout(() => {
-        openArticleModal(targetArtId);
-      }, 200);
+      window.location.hash = '#category/' + cat;
     });
   });
 
@@ -837,7 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.footer-cat-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const cat = btn.getAttribute('data-category');
-      setCategoryFilter(cat, true);
+      window.location.hash = '#category/' + cat;
     });
   });
 
@@ -845,7 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.drawer-cat-link').forEach(link => {
     link.addEventListener('click', () => {
       const cat = link.getAttribute('data-category');
-      setCategoryFilter(cat, true);
+      window.location.hash = '#category/' + cat;
       closeMobileDrawer();
     });
   });
@@ -866,7 +860,7 @@ document.addEventListener('DOMContentLoaded', () => {
   filterPills.forEach(pill => {
     pill.addEventListener('click', () => {
       const cat = pill.getAttribute('data-filter');
-      setCategoryFilter(cat, false);
+      window.location.hash = (cat === 'all') ? '#articles' : '#category/' + cat;
     });
   });
 
@@ -875,136 +869,216 @@ document.addEventListener('DOMContentLoaded', () => {
     resetFiltersBtn.addEventListener('click', () => {
       searchQuery = '';
       liveSearchInput.value = '';
-      setCategoryFilter('all', false);
+      window.location.hash = '#articles';
     });
   }
 
   /* ==========================================================================
-     7. ARTICLE READER MODAL (RICH, FAST, ILLUSTRATED, 100% RELIABLE)
+     7. DEDICATED ARTICLE READER PAGE (ZERO MODAL POPUPS, SOCIAL SHARE, PROGRESS)
      ========================================================================== */
-  function openArticleModal(articleId) {
+  function renderArticleDetailPage(articleId) {
     const art = ARTICLES_DATABASE.find(a => a.id === articleId) || ARTICLES_DATABASE[0];
-    const isLiked = !!likedArticles[art.id];
+    const isBookmarked = !!likedArticles[art.id];
 
-    // Reset scroll position of inner content to top before populating
-    if (articleReaderContent) {
-      articleReaderContent.scrollTop = 0;
+    if (bcCurrentTitle) {
+      bcCurrentTitle.textContent = art.title;
     }
 
-    articleReaderContent.innerHTML = `
-      <img src="${art.image}" alt="${art.title}" class="article-hero-cover" onerror="this.src='https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&w=1200&q=80'">
+    document.title = `${art.title} — Terra Nova Wildlife Expedition Journals`;
 
-      <div class="article-meta-header">
-        <div class="article-tags-row">
-          <span class="article-tag">${art.categoryPill}</span>
-          <span class="article-read-time">⏱ ${art.readTime}</span>
+    const currentUrl = window.location.origin + window.location.pathname + '#article/' + art.id;
+    const encodedUrl = encodeURIComponent(currentUrl);
+    const shareTitleText = `"${art.title}" — Terra Nova Wildlife Expedition Journal`;
+    const encodedTitle = encodeURIComponent(shareTitleText);
+
+    // Live Social URLs
+    const waShareUrl = `https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`;
+    const fbShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+    const twShareUrl = `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`;
+
+    // Up Next recommendations (3 other articles)
+    const nextArticles = ARTICLES_DATABASE.filter(a => a.id !== art.id).slice(0, 3);
+
+    if (!articlePageContainer) return;
+
+    articlePageContainer.innerHTML = `
+      <header class="article-page-header">
+        <div class="article-meta-badges">
+          <span class="article-page-category-pill">${art.categoryPill}</span>
+          <span class="article-page-read-time">⏱ ${art.readTime}</span>
+          <span class="article-page-date">📅 ${art.date}</span>
+        </div>
+        <h1 class="article-page-headline">${art.title}</h1>
+        <p class="article-page-lead">${art.excerpt}</p>
+      </header>
+
+      <div class="article-author-share-bar">
+        <div class="author-bio-inline">
+          <img src="${art.author.avatar}" alt="${art.author.name}" class="author-avatar-img">
+          <div>
+            <h4 class="author-name-text">${art.author.name}</h4>
+            <p class="author-title-text">${art.author.role} • 📍 ${art.location}</p>
+          </div>
         </div>
 
-        <h1 class="article-headline">${art.title}</h1>
-
-        <div class="article-author-card">
-          <div class="author-left">
-            <img src="${art.author.avatar}" alt="${art.author.name}">
-            <div>
-              <strong>${art.author.name}</strong>
-              <span>${art.author.role}</span>
-            </div>
-          </div>
-          <span class="article-location-pill">📍 ${art.location} • ${art.date}</span>
+        <div class="article-share-group">
+          <span class="share-label">Share:</span>
+          <a href="${waShareUrl}" target="_blank" rel="noopener noreferrer" class="share-btn share-whatsapp" title="Share on WhatsApp">
+            <span>💬 WhatsApp</span>
+          </a>
+          <a href="${fbShareUrl}" target="_blank" rel="noopener noreferrer" class="share-btn share-facebook" title="Share on Facebook">
+            <span>📘 Facebook</span>
+          </a>
+          <a href="${twShareUrl}" target="_blank" rel="noopener noreferrer" class="share-btn share-twitter" title="Share on X">
+            <span>🐦 X / Twitter</span>
+          </a>
+          <button type="button" class="share-btn share-copy" id="pageShareCopyBtn" title="Copy Link">
+            <span>📋 Copy Link</span>
+          </button>
+          <button type="button" class="share-btn" id="pageBookmarkBtn" style="background: ${isBookmarked ? 'rgba(52, 211, 153, 0.2)' : 'rgba(255,255,255,0.08)'}; border-color: ${isBookmarked ? '#34d399' : 'rgba(255,255,255,0.18)'}; color: ${isBookmarked ? '#34d399' : '#fff'};">
+            <span>${isBookmarked ? '❤️ Bookmarked' : '🤍 Bookmark'}</span>
+          </button>
         </div>
       </div>
 
-      <div class="article-body">
+      <div class="article-hero-cover-page">
+        <img src="${art.image}" alt="${art.title}" onerror="this.src='https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&w=1200&q=80'">
+        <div class="hero-caption-bar">
+          <span>📍 ${art.location}</span>
+          <span class="caption-camera-meta">📷 Optical Telemetry: Raw Wildlife Sensor Capture</span>
+        </div>
+      </div>
+
+      <div class="article-page-body-content">
         ${art.fullContent}
       </div>
 
-      <div class="article-actions-bar">
-        <button class="action-btn ${isLiked ? 'liked' : ''}" id="modalLikeActionBtn" type="button">
-          <span>${isLiked ? '❤️ Bookmarked' : '🤍 Add to Reading List'}</span>
-        </button>
+      <section class="article-bottom-section">
+        <div class="bottom-share-box">
+          <h3>Share This Wildlife Field Journal</h3>
+          <p>Help spread awareness for conservation and habitat protection by sharing this report with friends, researchers, and wildlife lovers.</p>
+          <div class="bottom-share-buttons">
+            <a href="${waShareUrl}" target="_blank" rel="noopener noreferrer" class="share-btn share-whatsapp">
+              <span>💬 Share via WhatsApp</span>
+            </a>
+            <a href="${fbShareUrl}" target="_blank" rel="noopener noreferrer" class="share-btn share-facebook">
+              <span>📘 Share on Facebook</span>
+            </a>
+            <a href="${twShareUrl}" target="_blank" rel="noopener noreferrer" class="share-btn share-twitter">
+              <span>🐦 Post to X</span>
+            </a>
+            <button type="button" class="share-btn share-copy" id="pageBottomCopyBtn">
+              <span>📋 Copy Article Link</span>
+            </button>
+          </div>
+        </div>
 
-        <button class="action-btn" id="modalShareActionBtn" type="button">
-          <span>🔗 Share Article</span>
-        </button>
-      </div>
+        <div class="next-articles-section">
+          <h3 class="next-articles-title">🌿 Up Next in Terra Nova Field Journals</h3>
+          <div class="next-articles-grid" id="nextArticlesGrid">
+            ${nextArticles.map(na => `
+              <div class="article-card next-article-card" role="button" tabindex="0" data-article-id="${na.id}">
+                <div class="card-img-wrapper">
+                  <img src="${na.image}" alt="${na.title}" class="card-img" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&w=800&q=80'">
+                  <span class="card-category-badge">${na.categoryPill}</span>
+                  <span class="card-read-time">⏱ ${na.readTime}</span>
+                </div>
+                <div class="card-content">
+                  <div class="card-location-row">
+                    <span>📍 ${na.location.split(',')[0]}</span>
+                    <span>${na.date.split(',')[1] || na.date}</span>
+                  </div>
+                  <h4 class="card-title" style="font-size: 1.05rem;">${na.title}</h4>
+                  <div class="card-footer">
+                    <div class="card-author-row">
+                      <img src="${na.author.avatar}" alt="${na.author.name}" class="card-author-avatar">
+                      <span class="card-author-name">${na.author.name}</span>
+                    </div>
+                    <button type="button" class="read-btn-pill" data-article-id="${na.id}">Read Story →</button>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </section>
     `;
 
-    // Modal Like
-    const likeBtn = document.getElementById('modalLikeActionBtn');
-    if (likeBtn) {
-      likeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
+    // Copy to clipboard handlers
+    const copyHandler = () => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(currentUrl).then(() => {
+          showToast('📋 Article link copied to clipboard!');
+        }).catch(() => {
+          prompt('Copy this link:', currentUrl);
+        });
+      } else {
+        prompt('Copy this link:', currentUrl);
+      }
+    };
+
+    const topCopyBtn = document.getElementById('pageShareCopyBtn');
+    if (topCopyBtn) topCopyBtn.addEventListener('click', copyHandler);
+
+    const bottomCopyBtn = document.getElementById('pageBottomCopyBtn');
+    if (bottomCopyBtn) bottomCopyBtn.addEventListener('click', copyHandler);
+
+    // Bookmark handler
+    const bookmarkBtn = document.getElementById('pageBookmarkBtn');
+    if (bookmarkBtn) {
+      bookmarkBtn.addEventListener('click', () => {
         if (likedArticles[art.id]) {
           delete likedArticles[art.id];
-          likeBtn.classList.remove('liked');
-          likeBtn.innerHTML = '<span>🤍 Add to Reading List</span>';
+          bookmarkBtn.innerHTML = '<span>🤍 Bookmark</span>';
+          bookmarkBtn.style.background = 'rgba(255,255,255,0.08)';
+          bookmarkBtn.style.borderColor = 'rgba(255,255,255,0.18)';
+          bookmarkBtn.style.color = '#fff';
           showToast('Removed from reading list');
         } else {
           likedArticles[art.id] = true;
-          likeBtn.classList.add('liked');
-          likeBtn.innerHTML = '<span>❤️ Bookmarked in Reading List</span>';
-          showToast('Saved to your reading list!');
+          bookmarkBtn.innerHTML = '<span>❤️ Bookmarked</span>';
+          bookmarkBtn.style.background = 'rgba(52, 211, 153, 0.2)';
+          bookmarkBtn.style.borderColor = '#34d399';
+          bookmarkBtn.style.color = '#34d399';
+          showToast('❤️ Saved to your reading list!');
         }
         localStorage.setItem('terra_nova_article_likes', JSON.stringify(likedArticles));
       });
     }
 
-    // Modal Share
-    const shareBtn = document.getElementById('modalShareActionBtn');
-    if (shareBtn) {
-      shareBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(window.location.href);
-          showToast('🔗 Article link copied to clipboard!');
+    // Up-next card navigation
+    document.querySelectorAll('.next-article-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = card.getAttribute('data-article-id');
+        if (id) {
+          window.location.hash = '#article/' + id;
         }
       });
+    });
+
+    if (readingProgressBar) {
+      readingProgressBar.style.width = '0%';
     }
+  }
 
-    // Explicitly make modal visible with flex and active class
-    articleModal.classList.add('active');
-    articleModal.style.display = 'flex';
-    articleModal.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
-
-    // Double-check scrollTop is 0
-    requestAnimationFrame(() => {
-      if (articleReaderContent) {
-        articleReaderContent.scrollTop = 0;
+  // Reading Progress scroll tracker
+  window.addEventListener('scroll', () => {
+    if (articleDetailView && !articleDetailView.classList.contains('hidden-view')) {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      if (readingProgressBar) {
+        readingProgressBar.style.width = Math.min(100, Math.max(0, progress)) + '%';
       }
-    });
+    }
+  }, { passive: true });
 
-    showToast(`📖 Opening: ${art.title.substring(0, 32)}...`);
-  }
-
-  function closeArticleModal() {
-    articleModal.classList.remove('active');
-    articleModal.style.display = 'none';
-    articleModal.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
-  }
-
-  if (closeArticleModalBtn) {
-    closeArticleModalBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      closeArticleModal();
-    });
-  }
-
-  if (articleModal) {
-    articleModal.addEventListener('click', (e) => {
-      if (e.target === articleModal) {
-        closeArticleModal();
-      }
-    });
-  }
-
-  // Hero Featured Story Click
+  // Hero Featured Story Triggers
   const heroFeaturedBtn = document.getElementById('heroFeaturedBtn');
   if (heroFeaturedBtn) {
     heroFeaturedBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      openArticleModal('art-1');
+      window.location.hash = '#article/art-1';
     });
   }
 
@@ -1012,48 +1086,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (featuredHeroCard) {
     featuredHeroCard.addEventListener('click', (e) => {
       e.preventDefault();
-      openArticleModal('art-1');
+      window.location.hash = '#article/art-1';
     });
   }
 
-  // Event delegation on articlesGrid for click reliability
-  if (articlesGrid) {
-    articlesGrid.addEventListener('click', (e) => {
-      const card = e.target.closest('.article-card');
-      if (card) {
-        const id = card.getAttribute('data-article-id');
-        if (id) {
-          openArticleModal(id);
-        }
-      }
-    });
-  }
-
-  // Global document click delegation for all article opening triggers
-  document.addEventListener('click', (e) => {
-    // If clicked on category card or browse button, don't trigger article modal
-    if (e.target.closest('#heroCategoriesBtn') || e.target.closest('#navCategory') || e.target.closest('.sub-bar-btn')) {
-      return;
-    }
-
-    // Any button or element with explicit data-open-article or data-article-id (outside of grid)
-    const openTrigger = e.target.closest('[data-open-article]');
-    if (openTrigger) {
-      e.preventDefault();
-      const artId = openTrigger.getAttribute('data-open-article');
-      if (artId) {
-        openArticleModal(artId);
-        return;
-      }
-    }
-  });
-
-  // ESC key listener to close active modals
+  // ESC key listener to close course modal
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (articleModal && (articleModal.classList.contains('active') || articleModal.style.display === 'flex')) {
-        closeArticleModal();
-      }
       if (courseModal && (courseModal.classList.contains('active') || courseModal.style.display === 'flex')) {
         closeCourseModal();
       }
@@ -1262,13 +1301,40 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     9. VIEW NAVIGATION CONTROLLER (Home vs Dedicated Courses View)
+     9. SPA HASH ROUTER & VIEW NAVIGATION CONTROLLER
      ========================================================================== */
-  function showHomeView(targetSection = null) {
+  function closeCategoryMenus() {
+    if (categorySubBar) categorySubBar.classList.remove('open');
+    if (categoryDropdown) categoryDropdown.classList.remove('show');
+    if (navCategory) {
+      navCategory.classList.remove('open-active');
+      navCategory.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function hideAllViews() {
+    if (homeView) homeView.classList.add('hidden-view');
+    if (articlesView) articlesView.classList.add('hidden-view');
+    if (articleDetailView) articleDetailView.classList.add('hidden-view');
     if (coursesView) coursesView.classList.add('hidden-view');
-    if (homeView) homeView.classList.remove('hidden-view');
-    if (navHome) navHome.classList.add('active');
+  }
+
+  function updateNavLinks(activeKey) {
+    if (navHome) navHome.classList.remove('active');
+    if (navArticles) navArticles.classList.remove('active');
     if (navCourses) navCourses.classList.remove('active');
+
+    if (activeKey === 'home' && navHome) navHome.classList.add('active');
+    if (activeKey === 'articles' && navArticles) navArticles.classList.add('active');
+    if (activeKey === 'courses' && navCourses) navCourses.classList.add('active');
+  }
+
+  function showHomeView(targetSection = null) {
+    hideAllViews();
+    if (homeView) homeView.classList.remove('hidden-view');
+    updateNavLinks('home');
+    closeCategoryMenus();
+    closeMobileDrawer();
 
     if (targetSection) {
       targetSection.scrollIntoView({ behavior: 'smooth' });
@@ -1277,61 +1343,128 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function showCoursesView() {
-    if (homeView) homeView.classList.add('hidden-view');
-    if (coursesView) coursesView.classList.remove('hidden-view');
-    if (navCourses) navCourses.classList.add('active');
-    if (navHome) navHome.classList.remove('active');
-
-    // Close any open drawers or popups
-    if (categorySubBar) categorySubBar.classList.remove('open');
-    if (categoryDropdown) categoryDropdown.classList.remove('show');
-    if (navCategory) {
-      navCategory.classList.remove('open-active');
-      navCategory.setAttribute('aria-expanded', 'false');
-    }
+  function showArticlesView(cat = 'all') {
+    hideAllViews();
+    if (articlesView) articlesView.classList.remove('hidden-view');
+    updateNavLinks('articles');
+    closeCategoryMenus();
     closeMobileDrawer();
 
+    setCategoryFilter(cat, false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showArticleDetailView(articleId) {
+    hideAllViews();
+    if (articleDetailView) articleDetailView.classList.remove('hidden-view');
+    updateNavLinks('articles');
+    closeCategoryMenus();
+    closeMobileDrawer();
+
+    renderArticleDetailPage(articleId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showCoursesView() {
+    hideAllViews();
+    if (coursesView) coursesView.classList.remove('hidden-view');
+    updateNavLinks('courses');
+    closeCategoryMenus();
+    closeMobileDrawer();
+
+    renderCourses();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     showToast('🎓 Terra Nova Wildlife Academy Masterclasses');
   }
 
-  // Navigation Click Listeners
-  if (navHome) navHome.addEventListener('click', () => showHomeView());
+  // Global Hash Router Dispatcher
+  function handleRoute() {
+    const hash = window.location.hash.replace(/^#\/?/, '').trim();
+
+    if (!hash || hash === 'home') {
+      showHomeView();
+    } else if (hash === 'articles') {
+      showArticlesView('all');
+    } else if (hash.startsWith('category/')) {
+      const cat = hash.split('/')[1] || 'all';
+      showArticlesView(cat);
+    } else if (hash.startsWith('article/')) {
+      const artId = hash.split('/')[1] || 'art-1';
+      showArticleDetailView(artId);
+    } else if (hash === 'courses') {
+      showCoursesView();
+    } else {
+      showHomeView();
+    }
+  }
+
+  window.addEventListener('hashchange', handleRoute);
+
+  // Navigation Click Listeners (Switch hash)
+  if (navHome) navHome.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.location.hash = '#home';
+  });
   if (logoLink) {
     logoLink.addEventListener('click', (e) => {
       e.preventDefault();
-      showHomeView();
+      window.location.hash = '#home';
     });
   }
-  if (navCourses) navCourses.addEventListener('click', showCoursesView);
-  if (coursesBackBtn) coursesBackBtn.addEventListener('click', () => showHomeView());
-  // Read Journals CTA Button (Opens Premier Expedition Journal Directly!)
-  const ctaExpeditionBtn = document.getElementById('ctaExpeditionBtn');
+  if (navArticles) {
+    navArticles.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.hash = '#articles';
+    });
+  }
+  if (navCourses) {
+    navCourses.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.hash = '#courses';
+    });
+  }
+
+  // "Read Journals" CTA Button in Header (Opens Featured Expedition Article)
   if (ctaExpeditionBtn) {
     ctaExpeditionBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      showHomeView();
-      const artSection = document.getElementById('articleSection');
-      if (artSection) {
-        artSection.scrollIntoView({ behavior: 'smooth' });
-      }
-      openArticleModal('art-1');
+      window.location.hash = '#article/art-1';
       showToast('📖 Opening Featured Expedition Journal: Bengal Tiger');
     });
   }
 
-  // Header Nav "Articles" Link
-  const navArticles = document.getElementById('navArticles');
-  if (navArticles) {
-    navArticles.addEventListener('click', (e) => {
+  // Home Browse All Articles Banner Button
+  if (homeBrowseAllArticlesBtn) {
+    homeBrowseAllArticlesBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      showHomeView();
-      const artSection = document.getElementById('articleSection');
-      if (artSection) {
-        artSection.scrollIntoView({ behavior: 'smooth' });
-      }
-      showToast('📖 Exploring All Wildlife Journals');
+      window.location.hash = '#articles';
+    });
+  }
+
+  // Breadcrumbs & Back Buttons
+  if (articlesBackToHomeBtn) {
+    articlesBackToHomeBtn.addEventListener('click', () => {
+      window.location.hash = '#home';
+    });
+  }
+  if (articleDetailBackBtn) {
+    articleDetailBackBtn.addEventListener('click', () => {
+      window.location.hash = '#articles';
+    });
+  }
+  if (bcHomeBtn) {
+    bcHomeBtn.addEventListener('click', () => {
+      window.location.hash = '#home';
+    });
+  }
+  if (bcArticlesBtn) {
+    bcArticlesBtn.addEventListener('click', () => {
+      window.location.hash = '#articles';
+    });
+  }
+  if (coursesBackBtn) {
+    coursesBackBtn.addEventListener('click', () => {
+      window.location.hash = '#home';
     });
   }
 
@@ -1339,20 +1472,19 @@ document.addEventListener('DOMContentLoaded', () => {
   if (drawerHomeBtn) {
     drawerHomeBtn.addEventListener('click', () => {
       closeMobileDrawer();
-      showHomeView();
-    });
-  }
-  if (drawerCoursesBtn) {
-    drawerCoursesBtn.addEventListener('click', () => {
-      closeMobileDrawer();
-      showCoursesView();
+      window.location.hash = '#home';
     });
   }
   if (drawerArticlesBtn) {
     drawerArticlesBtn.addEventListener('click', () => {
       closeMobileDrawer();
-      const artSection = document.getElementById('articleSection');
-      showHomeView(artSection);
+      window.location.hash = '#articles';
+    });
+  }
+  if (drawerCoursesBtn) {
+    drawerCoursesBtn.addEventListener('click', () => {
+      closeMobileDrawer();
+      window.location.hash = '#courses';
     });
   }
 
@@ -1369,7 +1501,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Footer Masterclass Links
   document.querySelectorAll('.footer-course-link').forEach(btn => {
     btn.addEventListener('click', () => {
-      showCoursesView();
+      window.location.hash = '#courses';
       const courseId = btn.getAttribute('data-course-id');
       const course = COURSES_DATABASE.find(c => c.id === courseId);
       if (course) {
@@ -1390,6 +1522,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   liveSearchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value;
+    if (window.location.hash !== '#articles' && !window.location.hash.startsWith('#category/')) {
+      window.location.hash = '#articles';
+    }
     renderArticles();
   });
 
@@ -1405,9 +1540,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const tag = chip.getAttribute('data-search');
       liveSearchInput.value = tag;
       searchQuery = tag;
+      window.location.hash = '#articles';
       renderArticles();
-      const artSection = document.getElementById('articleSection');
-      if (artSection) artSection.scrollIntoView({ behavior: 'smooth' });
     });
   });
 
@@ -1461,21 +1595,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Keyboard Escape listener for modals
+  // Keyboard Escape listener for course modal & drawers
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      closeArticleModal();
       closeCourseModal();
       closeMobileDrawer();
-      categorySubBar.classList.remove('open');
-      categoryDropdown.classList.remove('show');
-      navCategory.classList.remove('open-active');
+      closeCategoryMenus();
     }
   });
 
   /* ==========================================================================
-     INITIALIZATION
+     INITIALIZATION & INITIAL ROUTE RESOLUTION
      ========================================================================== */
   renderArticles();
   renderCourses();
+  handleRoute();
 });
