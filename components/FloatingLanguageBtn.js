@@ -28,15 +28,8 @@ export default function FloatingLanguageBtn() {
         >
           हिन्दी
         </button>
-        <button
-          type="button"
-          className={`floating-lang-choice ${lang === 'hinglish' ? 'active' : ''}`}
-          onClick={() => setLanguage('hinglish')}
-          title="Hinglish me badlein"
-        >
-          Hinglish
-        </button>
       </div>
     </div>
+
   );
 }

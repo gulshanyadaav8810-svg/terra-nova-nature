@@ -2882,9 +2882,10 @@ button {
 
 .mobile-lang-pills {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.45rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
 }
+
 
 .mobile-lang-pill {
   display: flex;

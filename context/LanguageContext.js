@@ -31,9 +31,12 @@ export function LanguageProvider({ children }) {
   useEffect(() => {
     try {
       const savedLang = localStorage.getItem(STORAGE_KEY);
-      if (savedLang && (savedLang === 'en' || savedLang === 'hi' || savedLang === 'hinglish')) {
-        setLangState(savedLang);
-        document.documentElement.lang = savedLang === 'hi' ? 'hi' : 'en';
+      if (savedLang === 'hi') {
+        setLangState('hi');
+        document.documentElement.lang = 'hi';
+      } else {
+        setLangState('en');
+        document.documentElement.lang = 'en';
       }
     } catch (e) {
       console.warn('LocalStorage error:', e);
@@ -42,7 +45,7 @@ export function LanguageProvider({ children }) {
   }, []);
 
   const setLanguage = (newLang) => {
-    if (newLang === 'en' || newLang === 'hi' || newLang === 'hinglish') {
+    if (newLang === 'en' || newLang === 'hi') {
       setLangState(newLang);
       try {
         localStorage.setItem(STORAGE_KEY, newLang);
@@ -52,6 +55,7 @@ export function LanguageProvider({ children }) {
       }
     }
   };
+
 
   // Translation helper function
   const t = (key, fallback = '') => {
