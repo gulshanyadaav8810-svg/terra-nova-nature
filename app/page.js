@@ -1,14 +1,19 @@
+'use client';
+
 import Link from 'next/link';
 import { ARTICLES, getTrendingArticles } from '@/lib/articles';
 import { CATEGORIES } from '@/lib/categories';
 import { COURSES } from '@/lib/courses';
 import ArticleCard from '@/components/ArticleCard';
 import ReviewsMarquee from '@/components/ReviewsMarquee';
+import { useLanguage } from '@/context/LanguageContext';
 import { ArrowRight, Camera } from 'lucide-react';
 
 export default function HomePage() {
+  const { t, getCategoryData, getCourseData, getArticleData } = useLanguage();
   const trendingArticles = getTrendingArticles();
   const latestArticles = ARTICLES.slice(0, 6);
+  const featuredArticle = getArticleData(ARTICLES[0]);
 
   return (
     <main>
@@ -18,40 +23,40 @@ export default function HomePage() {
           <div className="hero-content">
             <div className="hero-pill-badge">
               <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#059669' }}></span>
-              <span>2026 GLOBAL WILDLIFE EXPEDITIONS</span>
+              <span>{t('heroBadge')}</span>
             </div>
 
             <h1 className="hero-title">
-              Documenting Earth’s <span className="highlight-emerald">Wildest Frontiers</span> & Apex Predators
+              {t('heroTitle1')} <span className="highlight-emerald">{t('heroTitleHighlight')}</span> {t('heroTitle2')}
             </h1>
 
             <p className="hero-description">
-              Immerse yourself in authentic field notes, ultra-telephoto tracking, ancient canopy biomes, and pristine marine reefs documented by accredited field naturalists.
+              {t('heroDesc')}
             </p>
 
             <div className="hero-cta-row">
               <Link href="/articles" className="btn-primary" id="heroBrowseJournalsBtn">
-                <span>Browse All Journals</span>
+                <span>{t('heroBrowseJournals')}</span>
                 <ArrowRight size={17} />
               </Link>
               <Link href="/courses" className="btn-secondary" id="heroAcademyBtn">
                 <Camera size={17} />
-                <span>Wilderness Academy</span>
+                <span>{t('heroAcademy')}</span>
               </Link>
             </div>
 
             <div className="hero-stats-row">
               <div className="hero-stat-item">
-                <span className="stat-number">150+</span>
-                <span className="stat-label">Field Journals</span>
+                <span className="stat-number">{t('heroStatJournals')}</span>
+                <span className="stat-label">{t('heroStatJournalsLabel')}</span>
               </div>
               <div className="hero-stat-item">
-                <span className="stat-number">4</span>
-                <span className="stat-label">Earth Biomes</span>
+                <span className="stat-number">{t('heroStatBiomes')}</span>
+                <span className="stat-label">{t('heroStatBiomesLabel')}</span>
               </div>
               <div className="hero-stat-item">
-                <span className="stat-number">100%</span>
-                <span className="stat-label">Ethical Tracking</span>
+                <span className="stat-number">{t('heroStatEthical')}</span>
+                <span className="stat-label">{t('heroStatEthicalLabel')}</span>
               </div>
             </div>
           </div>
@@ -60,24 +65,24 @@ export default function HomePage() {
           <div className="hero-media-wrapper">
             <div className="hero-main-card">
               <img
-                src="https://images.unsplash.com/photo-1534177616072-ef7dc120449d?auto=format&fit=crop&w=1200&q=80"
-                alt="Bengal Tiger in Ranthambore"
+                src={featuredArticle.image}
+                alt={featuredArticle.title}
                 className="hero-main-img"
               />
               <div className="hero-card-overlay">
-                <span className="hero-card-badge">🦁 FEATURED EXPEDITION</span>
-                <h3 className="hero-card-title">Shadows of the Bengal Tiger: Stalking the Monsoon Forest</h3>
+                <span className="hero-card-badge">{t('featuredExpedition')}</span>
+                <h3 className="hero-card-title">{featuredArticle.title}</h3>
                 <div className="hero-card-meta">
-                  <span>Ranthambore, India</span>
+                  <span>{featuredArticle.location.split(',')[0]}</span>
                   <span>•</span>
-                  <span>7 Min Read</span>
+                  <span>{featuredArticle.readTime}</span>
                 </div>
                 <Link
                   href="/article/art-1"
                   className="btn-primary"
                   style={{ alignSelf: 'flex-start', marginTop: '1rem', padding: '0.6rem 1.2rem', fontSize: '0.875rem' }}
                 >
-                  Read Expedition Journal
+                  {t('readExpeditionJournal')}
                 </Link>
               </div>
             </div>
@@ -85,8 +90,8 @@ export default function HomePage() {
             <div className="floating-expedition-tag">
               <div className="floating-dot" />
               <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase' }}>Live Status</div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>Monsoon Tracking Season</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase' }}>{t('liveStatus')}</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>{t('monsoonSeason')}</div>
               </div>
             </div>
           </div>
@@ -99,22 +104,25 @@ export default function HomePage() {
           <div className="category-ribbon-label">
             <span className="ribbon-label-icon">🏷️</span>
             <div>
-              <div className="ribbon-label-text">Explore By Category</div>
-              <div className="ribbon-label-sub">4 Global Wildlife Biomes</div>
+              <div className="ribbon-label-text">{t('exploreByCategory')}</div>
+              <div className="ribbon-label-sub">{t('fourGlobalBiomes')}</div>
             </div>
           </div>
           <div className="category-ribbon-pills">
-            {CATEGORIES.map((cat) => (
-              <Link
-                key={cat.slug}
-                href={`/category/${cat.slug}`}
-                className={`category-ribbon-pill cat-ribbon-${cat.key}`}
-              >
-                <span className="ribbon-cat-icon">{cat.icon}</span>
-                <span className="ribbon-cat-name">{cat.name.split('&')[0].trim()}</span>
-                <span className="ribbon-cat-badge">{cat.count} Journals</span>
-              </Link>
-            ))}
+            {CATEGORIES.map((cat) => {
+              const catData = getCategoryData(cat);
+              return (
+                <Link
+                  key={cat.slug}
+                  href={`/category/${cat.slug}`}
+                  className={`category-ribbon-pill cat-ribbon-${cat.key}`}
+                >
+                  <span className="ribbon-cat-icon">{cat.icon}</span>
+                  <span className="ribbon-cat-name">{catData.name.split('&')[0].trim()}</span>
+                  <span className="ribbon-cat-badge">{cat.count} {t('journalsCount')}</span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -124,48 +132,51 @@ export default function HomePage() {
         <div className="section-header-centered">
           <div className="section-badge-pill">
             <span>🏷️</span>
-            <span>HABITAT CATEGORIES</span>
+            <span>{t('habitatCategoriesBadge')}</span>
           </div>
-          <h2 className="section-main-title">Explore by Habitat Category</h2>
+          <h2 className="section-main-title">{t('exploreByHabitatCategory')}</h2>
           <div className="section-title-underline" />
           <p className="section-subtitle">
-            Select a specialized ecosystem category below to discover dedicated wildlife research journals, camera traps, and field notes.
+            {t('exploreByHabitatCategoryDesc')}
           </p>
           <div style={{ marginTop: '0.75rem' }}>
-            <span className="mobile-scroll-hint">Swipe ← → to view all 4 categories</span>
+            <span className="mobile-scroll-hint">{t('swipeHint')}</span>
           </div>
         </div>
 
         <div className="categories-grid">
-          {CATEGORIES.map((cat, idx) => (
-            <Link key={cat.slug} href={`/category/${cat.slug}`} className={`category-card cat-theme-${cat.key}`}>
-              <div className="category-card-thumb">
-                <img
-                  src={cat.heroImage}
-                  alt={cat.name}
-                  className="category-card-img"
-                  loading="lazy"
-                />
-                <div className={`category-icon-pill cat-pill-${cat.key}`}>
-                  <span>{cat.icon}</span>
-                  <span>CATEGORY 0{idx + 1}</span>
+          {CATEGORIES.map((cat, idx) => {
+            const catData = getCategoryData(cat);
+            return (
+              <Link key={cat.slug} href={`/category/${cat.slug}`} className={`category-card cat-theme-${cat.key}`}>
+                <div className="category-card-thumb">
+                  <img
+                    src={cat.heroImage}
+                    alt={catData.name}
+                    className="category-card-img"
+                    loading="lazy"
+                  />
+                  <div className={`category-icon-pill cat-pill-${cat.key}`}>
+                    <span>{cat.icon}</span>
+                    <span>{t('categoryIndex')} 0{idx + 1}</span>
+                  </div>
+                  <div className="category-count-badge">
+                    {cat.count} {t('journalsCount')}
+                  </div>
                 </div>
-                <div className="category-count-badge">
-                  {cat.count} Journals
-                </div>
-              </div>
 
-              <div className="category-card-body">
-                <span className="category-body-tag">BIOME • {cat.shortName.toUpperCase()}</span>
-                <h3 className="category-title">{cat.name}</h3>
-                <p className="category-card-desc">{cat.description}</p>
-                <div className="category-card-footer">
-                  <span>Browse {cat.shortName} ({cat.count})</span>
-                  <ArrowRight size={15} />
+                <div className="category-card-body">
+                  <span className="category-body-tag">BIOME • {catData.shortName.toUpperCase()}</span>
+                  <h3 className="category-title">{catData.name}</h3>
+                  <p className="category-card-desc">{catData.description}</p>
+                  <div className="category-card-footer">
+                    <span>{t('browseCategory')} {catData.shortName} ({cat.count})</span>
+                    <ArrowRight size={15} />
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </section>
 
@@ -174,15 +185,15 @@ export default function HomePage() {
         <div className="section-header-centered">
           <div className="section-badge-pill">
             <span>📖</span>
-            <span>VERIFIED FIELD RESEARCH</span>
+            <span>{t('verifiedResearchBadge')}</span>
           </div>
-          <h2 className="section-main-title">Latest Field Journals</h2>
+          <h2 className="section-main-title">{t('latestFieldJournals')}</h2>
           <div className="section-title-underline" />
           <p className="section-subtitle">
-            Recent eyewitness expeditions across wild apex predators, ancient forest canopies, marine reefs, and alpine peaks.
+            {t('latestFieldJournalsDesc')}
           </p>
           <div style={{ marginTop: '0.75rem' }}>
-            <span className="mobile-scroll-hint">Swipe ← → to view all journals</span>
+            <span className="mobile-scroll-hint">{t('swipeHintJournals')}</span>
           </div>
         </div>
 
@@ -194,7 +205,7 @@ export default function HomePage() {
 
         <div style={{ textAlign: 'center', marginTop: '3rem' }}>
           <Link href="/articles" className="btn-secondary">
-            <span>View All Field Journals ({ARTICLES.length})</span>
+            <span>{t('viewAllJournals')} ({ARTICLES.length})</span>
             <ArrowRight size={16} />
           </Link>
         </div>
@@ -208,61 +219,64 @@ export default function HomePage() {
         <div className="section-header-centered">
           <div className="section-badge-pill">
             <span>🎓</span>
-            <span>FIELD TRAINING ACADEMY</span>
+            <span>{t('academyBadge')}</span>
           </div>
-          <h2 className="section-main-title">Wilderness Masterclasses</h2>
+          <h2 className="section-main-title">{t('masterclassesTitle')}</h2>
           <div className="section-title-underline" />
           <p className="section-subtitle">
-            Learn master tracking, long telephoto stabilization, and canopy rigging directly from veteran naturalists.
+            {t('masterclassesDesc')}
           </p>
           <div style={{ marginTop: '0.75rem' }}>
-            <span className="mobile-scroll-hint">Swipe ← →</span>
+            <span className="mobile-scroll-hint">{t('swipeHintShort')}</span>
           </div>
         </div>
 
         <div className="courses-grid">
-          {COURSES.slice(0, 2).map((course) => (
-            <div key={course.id} className="course-card">
-              <div className="course-card-thumb">
-                <img
-                  src={course.thumbnail}
-                  alt={course.title}
-                  className="course-img"
-                  loading="lazy"
-                />
-                <span className="course-badge-level">{course.level}</span>
-              </div>
-
-              <div className="course-card-body">
-                <span className="course-instructor">{course.instructor}</span>
-                <h3 className="course-card-title">{course.title}</h3>
-                <p className="course-card-desc">{course.desc}</p>
-
-                <div className="course-syllabus-preview">
-                  <div className="syllabus-heading">Curriculum Modules</div>
-                  <ul className="syllabus-items">
-                    {course.syllabus.slice(0, 3).map((item, i) => (
-                      <li key={i}>{item}</li>
-                    ))}
-                  </ul>
+          {COURSES.slice(0, 2).map((course) => {
+            const courseData = getCourseData(course);
+            return (
+              <div key={course.id} className="course-card">
+                <div className="course-card-thumb">
+                  <img
+                    src={course.thumbnail}
+                    alt={courseData.title}
+                    className="course-img"
+                    loading="lazy"
+                  />
+                  <span className="course-badge-level">{courseData.level}</span>
                 </div>
 
-                <div className="course-meta-footer">
-                  <div className="course-duration-box">
-                    <span>⏱ {course.duration}</span> • <span>{course.modulesCount}</span>
+                <div className="course-card-body">
+                  <span className="course-instructor">{course.instructor}</span>
+                  <h3 className="course-card-title">{courseData.title}</h3>
+                  <p className="course-card-desc">{courseData.desc}</p>
+
+                  <div className="course-syllabus-preview">
+                    <div className="syllabus-heading">{t('curriculumModules')}</div>
+                    <ul className="syllabus-items">
+                      {courseData.syllabus.slice(0, 3).map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
                   </div>
-                  <Link href="/courses" className="btn-primary" style={{ padding: '0.55rem 1.15rem', fontSize: '0.85rem' }}>
-                    View Syllabus
-                  </Link>
+
+                  <div className="course-meta-footer">
+                    <div className="course-duration-box">
+                      <span>⏱ {courseData.duration}</span> • <span>{courseData.modulesCount}</span>
+                    </div>
+                    <Link href="/courses" className="btn-primary" style={{ padding: '0.55rem 1.15rem', fontSize: '0.85rem' }}>
+                      {t('viewSyllabus')}
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div style={{ textAlign: 'center', marginTop: '3rem' }}>
           <Link href="/courses" className="btn-secondary">
-            <span>Explore All 4 Masterclasses</span>
+            <span>{t('exploreAllMasterclasses')}</span>
             <ArrowRight size={16} />
           </Link>
         </div>
@@ -270,3 +284,4 @@ export default function HomePage() {
     </main>
   );
 }
+

@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CATEGORIES } from '@/lib/categories';
+import { useLanguage } from '@/context/LanguageContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { Leaf, ChevronDown, Menu, X, Search, ArrowRight } from 'lucide-react';
 
 export default function Navbar() {
@@ -11,6 +13,7 @@ export default function Navbar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const dropdownRef = useRef(null);
   const pathname = usePathname();
+  const { t, getCategoryData } = useLanguage();
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -55,7 +58,7 @@ export default function Navbar() {
                   className={`nav-link ${pathname === '/' ? 'active' : ''}`}
                   id="navHome"
                 >
-                  Home
+                  {t('home')}
                 </Link>
               </li>
 
@@ -71,25 +74,28 @@ export default function Navbar() {
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   aria-expanded={dropdownOpen}
                 >
-                  <span>Categories</span>
+                  <span>{t('categories')}</span>
                   <ChevronDown size={16} className="dropdown-chevron" />
                 </button>
 
                 <div className="category-dropdown-menu">
-                  {CATEGORIES.map((cat) => (
-                    <Link
-                      key={cat.slug}
-                      href={`/category/${cat.slug}`}
-                      className="dropdown-cat-card"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <div className="cat-card-icon-box">{cat.icon}</div>
-                      <div>
-                        <span className="cat-card-title">{cat.name}</span>
-                        <span className="cat-card-desc">{cat.description}</span>
-                      </div>
-                    </Link>
-                  ))}
+                  {CATEGORIES.map((cat) => {
+                    const catData = getCategoryData(cat);
+                    return (
+                      <Link
+                        key={cat.slug}
+                        href={`/category/${cat.slug}`}
+                        className="dropdown-cat-card"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <div className="cat-card-icon-box">{cat.icon}</div>
+                        <div>
+                          <span className="cat-card-title">{catData.name}</span>
+                          <span className="cat-card-desc">{catData.description}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </li>
 
@@ -99,7 +105,7 @@ export default function Navbar() {
                   className={`nav-link ${pathname.startsWith('/articles') || pathname.startsWith('/article/') ? 'active' : ''}`}
                   id="navArticles"
                 >
-                  Field Journals
+                  {t('fieldJournals')}
                 </Link>
               </li>
 
@@ -109,7 +115,7 @@ export default function Navbar() {
                   className={`nav-link ${pathname === '/courses' ? 'active' : ''}`}
                   id="navCourses"
                 >
-                  Wilderness Academy
+                  {t('wildernessAcademy')}
                 </Link>
               </li>
             </ul>
@@ -117,10 +123,13 @@ export default function Navbar() {
 
           {/* Right Action Buttons */}
           <div className="header-actions">
+            {/* Language Switcher Dropdown */}
+            <LanguageSwitcher />
+
             <Link
               href="/articles"
               className="header-search-btn"
-              title="Search Field Journals"
+              title={t('searchJournals')}
               id="headerSearchBtn"
             >
               <Search size={18} />
@@ -131,7 +140,7 @@ export default function Navbar() {
               className="cta-header-btn"
               id="ctaExpeditionBtn"
             >
-              <span>Explore Featured</span>
+              <span>{t('exploreFeatured')}</span>
               <ArrowRight size={16} />
             </Link>
 
@@ -177,43 +186,51 @@ export default function Navbar() {
             </button>
           </div>
 
+          {/* Mobile Language Switcher */}
+          <div style={{ margin: '0.75rem 0 1rem 0' }}>
+            <LanguageSwitcher isMobile={true} />
+          </div>
+
           <nav className="drawer-links-nav">
             <Link href="/" className="drawer-link">
-              <span>Home</span>
+              <span>{t('home')}</span>
             </Link>
             <Link href="/articles" className="drawer-link">
-              <span>All Field Journals</span>
+              <span>{t('allFieldJournals')}</span>
             </Link>
             <Link href="/courses" className="drawer-link">
-              <span>Wilderness Academy</span>
+              <span>{t('wildernessAcademy')}</span>
             </Link>
           </nav>
 
           {/* Categories in Drawer */}
           <div>
             <div style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--brand-primary)', marginBottom: '0.75rem' }}>
-              Explore 4 Habitats
+              {t('exploreHabitats')}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {CATEGORIES.map((cat) => (
-                <Link
-                  key={cat.slug}
-                  href={`/category/${cat.slug}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.65rem',
-                    padding: '0.65rem',
-                    borderRadius: '8px',
-                    background: 'var(--bg-surface-secondary)',
-                    fontWeight: 700,
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  <span>{cat.icon}</span>
-                  <span>{cat.name}</span>
-                </Link>
-              ))}
+              {CATEGORIES.map((cat) => {
+                const catData = getCategoryData(cat);
+                return (
+                  <Link
+                    key={cat.slug}
+                    href={`/category/${cat.slug}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.65rem',
+                      padding: '0.65rem',
+                      borderRadius: '8px',
+                      background: 'var(--bg-surface-secondary)',
+                      fontWeight: 700,
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    <span>{cat.icon}</span>
+                    <span>{catData.name}</span>
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
@@ -223,7 +240,7 @@ export default function Navbar() {
               className="btn-primary"
               style={{ width: '100%', textAlign: 'center' }}
             >
-              Read Bengal Tiger Journal
+              {t('readExpeditionJournal')}
             </Link>
           </div>
         </div>
@@ -231,3 +248,4 @@ export default function Navbar() {
     </>
   );
 }
+

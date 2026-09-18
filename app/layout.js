@@ -1,6 +1,8 @@
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { LanguageProvider } from '@/context/LanguageContext';
+import FloatingLanguageBtn from '@/components/FloatingLanguageBtn';
 
 export const metadata = {
   title: 'Nature1 — Wildlife Expeditions, Nature Journals & Wilderness Academy',
@@ -12,10 +14,14 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <Navbar />
-        {children}
-        <Footer />
+        <LanguageProvider>
+          <Navbar />
+          {children}
+          <Footer />
+          <FloatingLanguageBtn />
+        </LanguageProvider>
       </body>
     </html>
   );
 }
+

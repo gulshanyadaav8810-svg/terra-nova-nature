@@ -5,11 +5,13 @@ import Link from 'next/link';
 import { ARTICLES } from '@/lib/articles';
 import { CATEGORIES } from '@/lib/categories';
 import ArticleCard from '@/components/ArticleCard';
+import { useLanguage } from '@/context/LanguageContext';
 import { Search, ArrowLeft } from 'lucide-react';
 
 export default function ArticlesArchivePage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const { t, getCategoryData } = useLanguage();
 
   const filteredArticles = useMemo(() => {
     return ARTICLES.filter((art) => {
@@ -40,25 +42,25 @@ export default function ArticlesArchivePage() {
             style={{ display: 'inline-flex', marginBottom: '1.25rem' }}
           >
             <ArrowLeft size={16} />
-            <span>Back to Home</span>
+            <span>{t('backToHome')}</span>
           </Link>
 
           <div className="section-badge-pill" style={{ marginBottom: '0.65rem' }}>
             <span>📖</span>
-            <span>EXPEDITION ARCHIVE</span>
+            <span>{t('expeditionArchiveBadge')}</span>
           </div>
           <h1 className="articles-archive-title">
-            All Wildlife & Nature Field Journals
+            {t('allJournalsTitle')}
           </h1>
           <div className="section-title-underline" style={{ margin: '0.6rem 0 1rem 0' }} />
           <p className="section-subtitle">
-            Search and filter by Earth’s 4 distinct habitat categories, key predators, and expedition regions.
+            {t('archiveSubtitle')}
           </p>
         </div>
 
         {/* Filter Bar with Clear Category Label */}
         <div className="filter-category-header">
-          <span className="filter-category-title">🏷️ Select a Category to Filter:</span>
+          <span className="filter-category-title">🏷️ {t('selectCategoryToFilter')}</span>
         </div>
 
         <div className="filter-bar-wrapper">
@@ -69,18 +71,21 @@ export default function ArticlesArchivePage() {
               className={`filter-btn-pill ${activeCategory === 'all' ? 'active' : ''}`}
               onClick={() => setActiveCategory('all')}
             >
-              All Categories ({ARTICLES.length})
+              {t('allCategories')} ({ARTICLES.length})
             </button>
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.slug}
-                type="button"
-                className={`filter-btn-pill filter-pill-${cat.key} ${activeCategory === cat.key ? 'active' : ''}`}
-                onClick={() => setActiveCategory(cat.key)}
-              >
-                <span>{cat.icon}</span> {cat.name} ({cat.count})
-              </button>
-            ))}
+            {CATEGORIES.map((cat) => {
+              const catData = getCategoryData(cat);
+              return (
+                <button
+                  key={cat.slug}
+                  type="button"
+                  className={`filter-btn-pill filter-pill-${cat.key} ${activeCategory === cat.key ? 'active' : ''}`}
+                  onClick={() => setActiveCategory(cat.key)}
+                >
+                  <span>{cat.icon}</span> {catData.name} ({cat.count})
+                </button>
+              );
+            })}
           </div>
 
           {/* Search Input Box */}
@@ -88,7 +93,7 @@ export default function ArticlesArchivePage() {
             <Search size={17} color="var(--text-muted)" style={{ flexShrink: 0 }} />
             <input
               type="text"
-              placeholder="Search animals, biomes, regions..."
+              placeholder={t('searchPlaceholder')}
               className="search-input-field"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -108,10 +113,10 @@ export default function ArticlesArchivePage() {
         {/* Counter */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            Showing {filteredArticles.length} of {ARTICLES.length} Journals
+            {t('showingJournals')} {filteredArticles.length} {t('ofJournals')} {ARTICLES.length} {t('journalsCount')}
             {activeCategory !== 'all' && (
               <span style={{ color: 'var(--brand-primary)', marginLeft: '0.4rem' }}>
-                in {CATEGORIES.find(c => c.key === activeCategory)?.name}
+                {t('inCategory')} {getCategoryData(CATEGORIES.find(c => c.key === activeCategory))?.name}
               </span>
             )}
           </span>
@@ -121,7 +126,7 @@ export default function ArticlesArchivePage() {
               onClick={() => { setActiveCategory('all'); setSearchTerm(''); }}
               style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--brand-primary)', cursor: 'pointer' }}
             >
-              Reset Filters
+              {t('resetFilters')}
             </button>
           )}
         </div>
@@ -137,17 +142,17 @@ export default function ArticlesArchivePage() {
           <div className="empty-results-box">
             <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🔍</div>
             <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-              No Field Journals Found
+              {t('noJournalsFound')}
             </h3>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-              No expedition reports matched your query "{searchTerm}". Try clearing search or choosing another habitat category.
+              {t('noJournalsDesc')}
             </p>
             <button
               type="button"
               className="btn-primary"
               onClick={() => { setActiveCategory('all'); setSearchTerm(''); }}
             >
-              Clear All Filters
+              {t('clearAllFilters')}
             </button>
           </div>
         )}
@@ -155,3 +160,4 @@ export default function ArticlesArchivePage() {
     </main>
   );
 }
+
