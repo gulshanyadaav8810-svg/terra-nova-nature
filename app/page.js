@@ -101,6 +101,9 @@ export default function HomePage() {
           <p className="section-subtitle">
             Dive into specialized ecosystems across the planet, from high-altitude granite peaks to 45-meter coral abysses.
           </p>
+          <div style={{ marginTop: '0.65rem' }}>
+            <span className="mobile-scroll-hint">Swipe ← →</span>
+          </div>
         </div>
 
         <div className="categories-grid">
@@ -141,6 +144,9 @@ export default function HomePage() {
             <p className="section-subtitle">
               Eyewitness reports from the world’s most secluded wilderness reserves.
             </p>
+            <div style={{ marginTop: '0.5rem' }}>
+              <span className="mobile-scroll-hint">Swipe ← →</span>
+            </div>
           </div>
           <Link href="/articles" className="btn-secondary" style={{ padding: '0.65rem 1.25rem', fontSize: '0.875rem' }}>
             <span>View All Journals ({ARTICLES.length})</span>
@@ -166,6 +172,9 @@ export default function HomePage() {
           <p className="section-subtitle">
             Learn master tracking, long telephoto stabilization, and canopy rigging directly from veteran naturalists.
           </p>
+          <div style={{ marginTop: '0.65rem' }}>
+            <span className="mobile-scroll-hint">Swipe ← →</span>
+          </div>
         </div>
 
         <div className="courses-grid">

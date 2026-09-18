@@ -402,6 +402,27 @@ button {
   border: 1px solid var(--brand-border);
 }
 
+.mobile-scroll-hint {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-scroll-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.725rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--brand-primary);
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-full);
+  }
+}
+
 /* ==========================================================================
    HOMEPAGE HERO SECTION (Light Theme Luxury & Mobile Safe)
    ========================================================================== */
@@ -2112,7 +2133,7 @@ button {
     padding: 2.5rem 1rem;
   }
   .section-header-centered {
-    margin-bottom: 2rem;
+    margin-bottom: 1.75rem;
   }
   .section-main-title {
     font-size: 1.85rem;
@@ -2121,18 +2142,72 @@ button {
     font-size: 0.95rem;
   }
 
-  /* Grid Layouts Mobile - 1 Column with Zero Side Bleed */
-  .categories-grid {
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-  }
-  .articles-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
+  /* Horizontal Swipe Carousels on Mobile (Right-to-Left & Left-to-Right Swipeable) */
+  .categories-grid,
+  .articles-grid,
   .courses-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 1rem !important;
+    padding: 0.5rem 0.25rem 1.25rem !important;
+    margin-left: -1rem !important;
+    margin-right: -1rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    scroll-padding-left: 1rem !important;
+    scrollbar-width: thin;
+    scrollbar-color: var(--brand-primary) #e2e8f0;
+  }
+
+  /* Custom visible horizontal scrollbar track so user knows it's swipeable */
+  .categories-grid::-webkit-scrollbar,
+  .articles-grid::-webkit-scrollbar,
+  .courses-grid::-webkit-scrollbar {
+    height: 4px;
+    display: block;
+  }
+  .categories-grid::-webkit-scrollbar-track,
+  .articles-grid::-webkit-scrollbar-track,
+  .courses-grid::-webkit-scrollbar-track {
+    background: #e2e8f0;
+    border-radius: 9999px;
+  }
+  .categories-grid::-webkit-scrollbar-thumb,
+  .articles-grid::-webkit-scrollbar-thumb,
+  .courses-grid::-webkit-scrollbar-thumb {
+    background: var(--brand-primary);
+    border-radius: 9999px;
+  }
+
+  /* Category card in mobile horizontal slider */
+  .category-card {
+    flex: 0 0 78% !important;
+    min-width: 260px !important;
+    max-width: 300px !important;
+    scroll-snap-align: start !important;
+    scroll-snap-stop: always !important;
+  }
+
+  /* Article card in mobile horizontal slider */
+  .article-card {
+    flex: 0 0 82% !important;
+    min-width: 270px !important;
+    max-width: 320px !important;
+    scroll-snap-align: start !important;
+    scroll-snap-stop: always !important;
+  }
+
+  /* Course card in mobile horizontal slider */
+  .course-card {
+    flex: 0 0 85% !important;
+    min-width: 280px !important;
+    max-width: 330px !important;
+    scroll-snap-align: start !important;
+    scroll-snap-stop: always !important;
   }
 
   .category-card-thumb,
