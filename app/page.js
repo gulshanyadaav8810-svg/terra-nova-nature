@@ -4,7 +4,7 @@ import { CATEGORIES } from '@/lib/categories';
 import { COURSES } from '@/lib/courses';
 import ArticleCard from '@/components/ArticleCard';
 import ReviewsMarquee from '@/components/ReviewsMarquee';
-import { ArrowRight, Shield, Camera } from 'lucide-react';
+import { ArrowRight, Camera } from 'lucide-react';
 
 export default function HomePage() {
   const trendingArticles = getTrendingArticles();
@@ -93,22 +93,52 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 2. FOUR HABITAT EXPLORER CARDS */}
+      {/* 1.5 PROMINENT CATEGORY NAVIGATION RIBBON */}
+      <div className="category-quick-ribbon-wrapper">
+        <div className="category-quick-ribbon">
+          <div className="category-ribbon-label">
+            <span className="ribbon-label-icon">🏷️</span>
+            <div>
+              <div className="ribbon-label-text">Explore By Category</div>
+              <div className="ribbon-label-sub">4 Global Wildlife Biomes</div>
+            </div>
+          </div>
+          <div className="category-ribbon-pills">
+            {CATEGORIES.map((cat) => (
+              <Link
+                key={cat.slug}
+                href={`/category/${cat.slug}`}
+                className={`category-ribbon-pill cat-ribbon-${cat.key}`}
+              >
+                <span className="ribbon-cat-icon">{cat.icon}</span>
+                <span className="ribbon-cat-name">{cat.name.split('&')[0].trim()}</span>
+                <span className="ribbon-cat-badge">{cat.count} Journals</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 2. FOUR HABITAT CATEGORY CARDS */}
       <section className="section-container" style={{ paddingTop: '1rem' }}>
         <div className="section-header-centered">
-          <span className="section-eyebrow">Explore 4 Unique Biomes</span>
-          <h2 className="section-main-title">Curated Wildlife Habitats</h2>
+          <div className="section-badge-pill">
+            <span>🏷️</span>
+            <span>HABITAT BIOME DIRECTORY</span>
+          </div>
+          <h2 className="section-main-title">Earth’s 4 Wildlife Categories</h2>
+          <div className="section-title-underline" />
           <p className="section-subtitle">
-            Dive into specialized ecosystems across the planet, from high-altitude granite peaks to 45-meter coral abysses.
+            Select a specialized ecosystem category below to discover dedicated wildlife research journals, camera traps, and field notes.
           </p>
-          <div style={{ marginTop: '0.65rem' }}>
-            <span className="mobile-scroll-hint">Swipe ← →</span>
+          <div style={{ marginTop: '0.75rem' }}>
+            <span className="mobile-scroll-hint">Swipe ← → to view all 4 categories</span>
           </div>
         </div>
 
         <div className="categories-grid">
-          {CATEGORIES.map((cat) => (
-            <Link key={cat.slug} href={`/category/${cat.slug}`} className="category-card">
+          {CATEGORIES.map((cat, idx) => (
+            <Link key={cat.slug} href={`/category/${cat.slug}`} className={`category-card cat-theme-${cat.key}`}>
               <div className="category-card-thumb">
                 <img
                   src={cat.heroImage}
@@ -116,17 +146,21 @@ export default function HomePage() {
                   className="category-card-img"
                   loading="lazy"
                 />
-                <div className="category-icon-pill">
+                <div className={`category-icon-pill cat-pill-${cat.key}`}>
                   <span>{cat.icon}</span>
-                  <span>{cat.shortName}</span>
+                  <span>CATEGORY 0{idx + 1}</span>
+                </div>
+                <div className="category-count-badge">
+                  {cat.count} Journals
                 </div>
               </div>
 
               <div className="category-card-body">
+                <span className="category-body-tag">BIOME CATEGORY</span>
                 <h3 className="category-title">{cat.name}</h3>
                 <p className="category-card-desc">{cat.description}</p>
                 <div className="category-card-footer">
-                  <span>Explore Habitat</span>
+                  <span>Browse {cat.shortName} ({cat.count})</span>
                   <ArrowRight size={15} />
                 </div>
               </div>
@@ -139,13 +173,19 @@ export default function HomePage() {
       <section className="section-container">
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <span className="section-eyebrow">Field Research & Tracking</span>
-            <h2 className="section-main-title" style={{ marginBottom: '0.25rem' }}>Latest Expedition Journals</h2>
+            <div className="section-badge-pill" style={{ marginBottom: '0.65rem' }}>
+              <span>📖</span>
+              <span>VERIFIED FIELD RESEARCH</span>
+            </div>
+            <h2 className="section-main-title" style={{ marginBottom: '0.35rem' }}>
+              Latest Field Journals by Category
+            </h2>
+            <div className="section-title-underline" style={{ margin: '0.5rem 0 1rem 0' }} />
             <p className="section-subtitle">
-              Eyewitness reports from the world’s most secluded wilderness reserves.
+              Recent eyewitness expeditions categorized by wild apex predators, forest canopies, marine reefs, and alpine peaks.
             </p>
             <div style={{ marginTop: '0.5rem' }}>
-              <span className="mobile-scroll-hint">Swipe ← →</span>
+              <span className="mobile-scroll-hint">Swipe ← → to view all journals</span>
             </div>
           </div>
           <Link href="/articles" className="btn-secondary" style={{ padding: '0.65rem 1.25rem', fontSize: '0.875rem' }}>
@@ -165,14 +205,18 @@ export default function HomePage() {
       <ReviewsMarquee />
 
       {/* 5. WILDERNESS ACADEMY SPOTLIGHT */}
-      <section className="section-container">
+      <section className="section-container" style={{ paddingBottom: '5rem' }}>
         <div className="section-header-centered">
-          <span className="section-eyebrow">Professional Field Training</span>
+          <div className="section-badge-pill">
+            <span>🎓</span>
+            <span>FIELD TRAINING ACADEMY</span>
+          </div>
           <h2 className="section-main-title">Wilderness Masterclasses</h2>
+          <div className="section-title-underline" />
           <p className="section-subtitle">
             Learn master tracking, long telephoto stabilization, and canopy rigging directly from veteran naturalists.
           </p>
-          <div style={{ marginTop: '0.65rem' }}>
+          <div style={{ marginTop: '0.75rem' }}>
             <span className="mobile-scroll-hint">Swipe ← →</span>
           </div>
         </div>
@@ -221,47 +265,6 @@ export default function HomePage() {
           <Link href="/courses" className="btn-secondary">
             <span>Explore All 4 Masterclasses</span>
             <ArrowRight size={16} />
-          </Link>
-        </div>
-      </section>
-
-      {/* 6. ETHICAL CONSERVATION PLEDGE CALLOUT */}
-      <section className="section-container" style={{ paddingBottom: '5rem' }}>
-        <div style={{
-          background: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)',
-          border: '1px solid #a7f3d0',
-          borderRadius: '24px',
-          padding: '3.5rem 2rem',
-          textAlign: 'center',
-          maxWidth: '960px',
-          margin: '0 auto',
-          boxShadow: 'var(--shadow-md)'
-        }}>
-          <div style={{
-            width: '56px',
-            height: '56px',
-            background: '#059669',
-            borderRadius: '50%',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 1.5rem',
-            boxShadow: '0 8px 16px rgba(5, 150, 105, 0.25)'
-          }}>
-            <Shield size={28} />
-          </div>
-
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '2.2rem', color: '#064e3b', marginBottom: '1rem' }}>
-            Zero Disturbance. 100% Ethical Wildlife Observation.
-          </h2>
-
-          <p style={{ fontSize: '1.05rem', color: '#047857', maxWidth: '680px', margin: '0 auto 2rem', lineHeight: 1.7 }}>
-            Every photograph, audio spectrogram, and field log published on Nature1 is captured without artificial baiting, drones flown over nesting birds, or intrusive perimeter harassment.
-          </p>
-
-          <Link href="/articles" className="btn-primary">
-            <span>Join Our Expedition Network</span>
           </Link>
         </div>
       </section>

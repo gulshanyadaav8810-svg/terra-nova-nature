@@ -8,8 +8,12 @@ export default function ReviewsMarquee() {
   return (
     <section className="reviews-section">
       <div className="section-header-centered" style={{ marginBottom: '2.5rem' }}>
-        <span className="section-eyebrow">Field Researcher Endorsements</span>
+        <div className="section-badge-pill">
+          <span>💬</span>
+          <span>FIELD RESEARCHER ENDORSEMENTS</span>
+        </div>
         <h2 className="section-main-title">Voices from the Frontiers</h2>
+        <div className="section-title-underline" />
         <p className="section-subtitle">
           Read what conservationists, wildlife photographers, and marine biologists say about Nature1 field reporting.
         </p>

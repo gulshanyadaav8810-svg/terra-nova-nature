@@ -1,10 +1,9 @@
 import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowRight, Clock, MapPin } from 'lucide-react';
+import { ArrowRight, Clock } from 'lucide-react';
 
 export default function ArticleCard({ article }) {
   return (
-    <article className="article-card">
+    <article className={`article-card card-border-${article.category}`}>
       <Link href={`/article/${article.id}`} className="article-card-thumb-link">
         <img
           src={article.image}
@@ -12,11 +11,17 @@ export default function ArticleCard({ article }) {
           className="article-card-img"
           loading="lazy"
         />
-        <span className="article-card-badge">{article.categoryPill}</span>
+        <span className={`article-card-badge cat-badge-${article.category}`}>
+          {article.categoryPill}
+        </span>
       </Link>
 
       <div className="article-card-body">
         <div className="article-card-meta">
+          <span className={`card-category-indicator cat-indicator-${article.category}`}>
+            ● {article.category.toUpperCase()}
+          </span>
+          <span>•</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
             <Clock size={13} /> {article.readTime}
           </span>

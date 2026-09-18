@@ -43,16 +43,24 @@ export default function ArticlesArchivePage() {
             <span>Back to Home</span>
           </Link>
 
-          <span className="section-eyebrow">Field Research Archive</span>
+          <div className="section-badge-pill" style={{ marginBottom: '0.65rem' }}>
+            <span>📖</span>
+            <span>EXPEDITION ARCHIVE</span>
+          </div>
           <h1 className="articles-archive-title">
             All Wildlife & Nature Field Journals
           </h1>
+          <div className="section-title-underline" style={{ margin: '0.6rem 0 1rem 0' }} />
           <p className="section-subtitle">
-            Search across our global dispatch archive of verified wildlife encounters, canopy research, and marine ecology.
+            Search and filter by Earth’s 4 distinct habitat categories, key predators, and expedition regions.
           </p>
         </div>
 
-        {/* Filter Bar */}
+        {/* Filter Bar with Clear Category Label */}
+        <div className="filter-category-header">
+          <span className="filter-category-title">🏷️ Select a Category to Filter:</span>
+        </div>
+
         <div className="filter-bar-wrapper">
           {/* Category Filter Pills (Touch friendly scroll on mobile) */}
           <div className="filter-pills-group">
@@ -61,16 +69,16 @@ export default function ArticlesArchivePage() {
               className={`filter-btn-pill ${activeCategory === 'all' ? 'active' : ''}`}
               onClick={() => setActiveCategory('all')}
             >
-              All Journals ({ARTICLES.length})
+              All Categories ({ARTICLES.length})
             </button>
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.slug}
                 type="button"
-                className={`filter-btn-pill ${activeCategory === cat.key ? 'active' : ''}`}
+                className={`filter-btn-pill filter-pill-${cat.key} ${activeCategory === cat.key ? 'active' : ''}`}
                 onClick={() => setActiveCategory(cat.key)}
               >
-                <span>{cat.icon}</span> {cat.shortName}
+                <span>{cat.icon}</span> {cat.name} ({cat.count})
               </button>
             ))}
           </div>
@@ -80,7 +88,7 @@ export default function ArticlesArchivePage() {
             <Search size={17} color="var(--text-muted)" style={{ flexShrink: 0 }} />
             <input
               type="text"
-              placeholder="Search animals, habitats, places..."
+              placeholder="Search animals, biomes, regions..."
               className="search-input-field"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -89,7 +97,7 @@ export default function ArticlesArchivePage() {
               <button
                 type="button"
                 onClick={() => setSearchTerm('')}
-                style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700, padding: '0 4px' }}
+                style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700, padding: '0 4px', cursor: 'pointer' }}
               >
                 ✕
               </button>
@@ -99,14 +107,19 @@ export default function ArticlesArchivePage() {
 
         {/* Counter */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-            Showing {filteredArticles.length} of {ARTICLES.length} Expedition Journals
+          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            Showing {filteredArticles.length} of {ARTICLES.length} Journals
+            {activeCategory !== 'all' && (
+              <span style={{ color: 'var(--brand-primary)', marginLeft: '0.4rem' }}>
+                in {CATEGORIES.find(c => c.key === activeCategory)?.name}
+              </span>
+            )}
           </span>
           {(activeCategory !== 'all' || searchTerm) && (
             <button
               type="button"
               onClick={() => { setActiveCategory('all'); setSearchTerm(''); }}
-              style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--brand-primary)' }}
+              style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--brand-primary)', cursor: 'pointer' }}
             >
               Reset Filters
             </button>
@@ -127,7 +140,7 @@ export default function ArticlesArchivePage() {
               No Field Journals Found
             </h3>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-              No expedition reports matched your query "{searchTerm}". Try clearing search or choosing another habitat.
+              No expedition reports matched your query "{searchTerm}". Try clearing search or choosing another habitat category.
             </p>
             <button
               type="button"

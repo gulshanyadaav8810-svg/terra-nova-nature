@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CATEGORIES, getCategoryBySlug } from '@/lib/categories';
-import { ARTICLES, getArticlesByCategory } from '@/lib/articles';
+import { getArticlesByCategory } from '@/lib/articles';
 import ArticleCard from '@/components/ArticleCard';
 import { ArrowLeft } from 'lucide-react';
 
@@ -30,8 +30,8 @@ export default async function CategoryPage({ params }) {
           <span>Back to Home</span>
         </Link>
 
-        {/* Category Hero Banner (Responsive) */}
-        <div className="category-hero-banner">
+        {/* Category Hero Banner */}
+        <div className={`category-hero-banner cat-banner-${category.key}`}>
           <img
             src={category.heroImage}
             alt={category.name}
@@ -40,8 +40,8 @@ export default async function CategoryPage({ params }) {
           <div className="category-hero-overlay" />
 
           <div className="category-hero-content">
-            <span className="category-hero-pill">
-              <span>{category.icon}</span> {category.shortName} Habitat
+            <span className={`category-hero-pill cat-pill-${category.key}`}>
+              <span>{category.icon}</span> OFFICIAL BIOME CATEGORY
             </span>
             <h1 className="category-hero-title">
               {category.name}
@@ -55,14 +55,14 @@ export default async function CategoryPage({ params }) {
         {/* Other Categories Quick Bar */}
         <div className="other-categories-bar">
           <span className="other-cat-label">
-            Explore Other Biomes:
+            Switch Habitat Category:
           </span>
           <div className="other-cat-pills">
             {CATEGORIES.map((c) => (
               <Link
                 key={c.slug}
                 href={`/category/${c.slug}`}
-                className={`filter-btn-pill ${c.slug === category.slug ? 'active' : ''}`}
+                className={`filter-btn-pill filter-pill-${c.key} ${c.slug === category.slug ? 'active' : ''}`}
               >
                 <span>{c.icon}</span> {c.shortName}
               </Link>
@@ -71,10 +71,15 @@ export default async function CategoryPage({ params }) {
         </div>
 
         {/* Section Heading */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div className="section-badge-pill" style={{ marginBottom: '0.5rem' }}>
+            <span>📖</span>
+            <span>VERIFIED FIELD DISPATCHES</span>
+          </div>
           <h2 className="category-section-title">
-            Expedition Reports in this Habitat ({categoryArticles.length})
+            Expedition Reports in {category.name} ({categoryArticles.length})
           </h2>
+          <div className="section-title-underline" style={{ margin: '0.5rem 0 1.5rem 0' }} />
         </div>
 
         {/* Articles Grid */}

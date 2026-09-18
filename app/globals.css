@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700&display=swap');
 
 :root {
   /* Light Theme Color System */
@@ -622,14 +622,31 @@ button {
 
 .section-header-centered {
   text-align: center;
-  max-width: 680px;
+  max-width: 720px;
   margin: 0 auto 3rem;
   padding: 0 0.5rem;
 }
 
+.section-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 1.05rem;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1.5px solid #a7f3d0;
+  border-radius: var(--radius-full);
+  font-size: 0.775rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.08);
+}
+
 .section-eyebrow {
   display: inline-block;
-  font-size: 0.8rem;
+  font-size: 0.825rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -639,19 +656,239 @@ button {
 
 .section-main-title {
   font-family: var(--font-serif);
-  font-size: 2.35rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.25;
-  margin-bottom: 0.85rem;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #0b1320;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.section-title-underline {
+  width: 56px;
+  height: 3.5px;
+  background: #059669;
+  border-radius: 9999px;
+  margin: 0.6rem auto 1.1rem;
 }
 
 .section-subtitle {
   font-size: 1.05rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
+  color: #334155;
+  line-height: 1.65;
+  font-weight: 500;
 }
 
+/* ==========================================================================
+   CATEGORY QUICK RIBBON (Prominent Habitats Explorer)
+   ========================================================================== */
+.category-quick-ribbon-wrapper {
+  max-width: 1280px;
+  margin: -1.25rem auto 3.25rem;
+  padding: 0 1.5rem;
+  width: 100%;
+  position: relative;
+  z-index: 10;
+}
+
+.category-quick-ribbon {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 1.2rem 1.65rem;
+  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.category-ribbon-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.ribbon-label-icon {
+  font-size: 1.5rem;
+}
+
+.ribbon-label-text {
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0f172a;
+}
+
+.ribbon-label-sub {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.category-ribbon-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex-grow: 1;
+  justify-content: flex-end;
+}
+
+.category-ribbon-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  border: 1.5px solid;
+  white-space: nowrap;
+}
+
+.category-ribbon-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.ribbon-cat-icon {
+  font-size: 1.15rem;
+}
+
+.ribbon-cat-name {
+  font-weight: 800;
+}
+
+.ribbon-cat-badge {
+  font-size: 0.725rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* ==========================================================================
+   CATEGORY COLOR THEMES (Colors for 4 Habitats)
+   ========================================================================== */
+/* 1. Animals (Warm Amber/Gold) */
+.cat-ribbon-animals,
+.cat-badge-animals,
+.filter-pill-animals {
+  background: #fffbeb !important;
+  color: #92400e !important;
+  border-color: #fcd34d !important;
+}
+.cat-ribbon-animals:hover,
+.filter-pill-animals.active {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+}
+.cat-theme-animals {
+  border-top: 5px solid #f59e0b !important;
+}
+.cat-pill-animals {
+  background: #fffbeb !important;
+  color: #92400e !important;
+  border: 1px solid #fcd34d !important;
+}
+.cat-indicator-animals {
+  color: #b45309 !important;
+}
+.card-border-animals:hover {
+  border-color: #f59e0b !important;
+}
+
+/* 2. Nature (Emerald/Forest) */
+.cat-ribbon-nature,
+.cat-badge-nature,
+.filter-pill-nature {
+  background: #ecfdf5 !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
+}
+.cat-ribbon-nature:hover,
+.filter-pill-nature.active {
+  background: #d1fae5 !important;
+  border-color: #10b981 !important;
+}
+.cat-theme-nature {
+  border-top: 5px solid #10b981 !important;
+}
+.cat-pill-nature {
+  background: #ecfdf5 !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0 !important;
+}
+.cat-indicator-nature {
+  color: #059669 !important;
+}
+.card-border-nature:hover {
+  border-color: #10b981 !important;
+}
+
+/* 3. Ocean (Cyan/Ocean Blue) */
+.cat-ribbon-ocean,
+.cat-badge-ocean,
+.filter-pill-ocean {
+  background: #f0f9ff !important;
+  color: #0369a1 !important;
+  border-color: #bae6fd !important;
+}
+.cat-ribbon-ocean:hover,
+.filter-pill-ocean.active {
+  background: #e0f2fe !important;
+  border-color: #0284c7 !important;
+}
+.cat-theme-ocean {
+  border-top: 5px solid #0284c7 !important;
+}
+.cat-pill-ocean {
+  background: #f0f9ff !important;
+  color: #0369a1 !important;
+  border: 1px solid #bae6fd !important;
+}
+.cat-indicator-ocean {
+  color: #0284c7 !important;
+}
+.card-border-ocean:hover {
+  border-color: #0284c7 !important;
+}
+
+/* 4. Mountains (Alpine Purple/Violet) */
+.cat-ribbon-mountains,
+.cat-badge-mountains,
+.filter-pill-mountains {
+  background: #f5f3ff !important;
+  color: #5b21b6 !important;
+  border-color: #ddd6fe !important;
+}
+.cat-ribbon-mountains:hover,
+.filter-pill-mountains.active {
+  background: #ede9fe !important;
+  border-color: #7c3aed !important;
+}
+.cat-theme-mountains {
+  border-top: 5px solid #7c3aed !important;
+}
+.cat-pill-mountains {
+  background: #f5f3ff !important;
+  color: #5b21b6 !important;
+  border: 1px solid #ddd6fe !important;
+}
+.cat-indicator-mountains {
+  color: #7c3aed !important;
+}
+.card-border-mountains:hover {
+  border-color: #7c3aed !important;
+}
+
+/* Categories Grid & Cards */
 .categories-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -663,7 +900,7 @@ button {
   background: #ffffff;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  border: 1px solid var(--border-light);
+  border: 1.5px solid var(--border-light);
   box-shadow: var(--shadow-md);
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
@@ -677,7 +914,6 @@ button {
 .category-card:hover {
   transform: translateY(-6px);
   box-shadow: var(--shadow-xl);
-  border-color: var(--brand-border);
 }
 
 .category-card-thumb {
@@ -703,17 +939,29 @@ button {
   position: absolute;
   top: 12px;
   left: 12px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(8px);
   padding: 0.35rem 0.75rem;
   border-radius: var(--radius-full);
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 800;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  color: var(--text-primary);
+  gap: 0.4rem;
   box-shadow: var(--shadow-sm);
+  letter-spacing: 0.05em;
+}
+
+.category-count-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(6px);
+  color: #ffffff;
+  font-size: 0.725rem;
+  font-weight: 800;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.02em;
 }
 
 .category-card-body {
@@ -723,17 +971,29 @@ button {
   flex-grow: 1;
 }
 
-.category-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--text-primary);
+.category-body-tag {
+  display: inline-block;
+  font-size: 0.725rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-primary);
   margin-bottom: 0.4rem;
 }
 
+.category-title {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.3;
+  margin-bottom: 0.45rem;
+}
+
 .category-card-desc {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
+  font-size: 0.875rem;
+  color: #475569;
+  line-height: 1.55;
   margin-bottom: 1.25rem;
   flex-grow: 1;
 }
@@ -742,9 +1002,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.825rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 800;
   color: var(--brand-primary);
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.85rem;
 }
 
 /* ==========================================================================
@@ -761,7 +1023,7 @@ button {
   background: #ffffff;
   border-radius: 20px;
   overflow: hidden;
-  border: 1px solid var(--border-light);
+  border: 1.5px solid var(--border-light);
   box-shadow: var(--shadow-md);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
@@ -773,7 +1035,6 @@ button {
 .article-card:hover {
   transform: translateY(-5px);
   box-shadow: var(--shadow-xl);
-  border-color: #cbd5e1;
 }
 
 .article-card-thumb-link {
@@ -800,15 +1061,12 @@ button {
   position: absolute;
   top: 12px;
   left: 12px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(8px);
-  color: #047857;
   font-size: 0.725rem;
   font-weight: 800;
-  padding: 0.3rem 0.7rem;
+  padding: 0.35rem 0.75rem;
   border-radius: var(--radius-full);
-  letter-spacing: 0.04em;
-  box-shadow: var(--shadow-sm);
+  letter-spacing: 0.05em;
+  box-shadow: var(--shadow-md);
 }
 
 .article-card-body {
@@ -821,7 +1079,7 @@ button {
 .article-card-meta {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.75rem;
   font-size: 0.785rem;
   color: var(--text-muted);
   font-weight: 600;
@@ -829,11 +1087,17 @@ button {
   flex-wrap: wrap;
 }
 
+.card-category-indicator {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  font-size: 0.75rem;
+}
+
 .article-card-title {
   font-family: var(--font-serif);
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
   line-height: 1.35;
   margin-bottom: 0.75rem;
   transition: color 0.2s ease;
@@ -844,8 +1108,8 @@ button {
 }
 
 .article-card-excerpt {
-  font-size: 0.885rem;
-  color: var(--text-secondary);
+  font-size: 0.9rem;
+  color: #475569;
   line-height: 1.6;
   margin-bottom: 1.5rem;
   flex-grow: 1;
@@ -1776,6 +2040,18 @@ button {
 /* ==========================================================================
    SEARCH & FILTER BAR (All Articles View)
    ========================================================================== */
+.filter-category-header {
+  margin-bottom: 0.75rem;
+}
+
+.filter-category-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #0f172a;
+}
+
 .filter-bar-wrapper {
   background: #ffffff;
   border: 1px solid var(--border-light);
@@ -1799,13 +2075,13 @@ button {
 }
 
 .filter-btn-pill {
-  padding: 0.45rem 0.95rem;
-  font-size: 0.825rem;
+  padding: 0.5rem 1.05rem;
+  font-size: 0.85rem;
   font-weight: 700;
   border-radius: var(--radius-full);
   background: var(--bg-surface-secondary);
-  color: var(--text-secondary);
-  border: 1px solid transparent;
+  color: var(--text-primary);
+  border: 1.5px solid var(--border-light);
   transition: all 0.2s ease;
   cursor: pointer;
   white-space: nowrap;
@@ -1813,9 +2089,28 @@ button {
 
 .filter-btn-pill:hover,
 .filter-btn-pill.active {
-  background: var(--brand-light);
-  color: var(--brand-primary);
-  border-color: var(--brand-border);
+  background: #059669 !important;
+  color: #ffffff !important;
+  border-color: #059669 !important;
+}
+
+.reader-category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: var(--radius-full);
+  font-weight: 800;
+  font-size: 0.775rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.reader-category-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .search-input-box {
@@ -2128,6 +2423,36 @@ button {
     font-size: 0.75rem;
   }
 
+  /* Category Quick Ribbon Mobile */
+  .category-quick-ribbon-wrapper {
+    margin: -1rem auto 2rem;
+    padding: 0 1rem;
+  }
+  .category-quick-ribbon {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+    padding: 1rem 1.15rem;
+  }
+  .category-ribbon-label {
+    justify-content: flex-start;
+  }
+  .category-ribbon-pills {
+    display: flex;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    padding-bottom: 0.35rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .category-ribbon-pill {
+    flex-shrink: 0;
+    font-size: 0.8rem;
+    padding: 0.5rem 0.85rem;
+  }
+
   /* Section Containers */
   .section-container {
     padding: 2.5rem 1rem;
@@ -2136,10 +2461,12 @@ button {
     margin-bottom: 1.75rem;
   }
   .section-main-title {
-    font-size: 1.85rem;
+    font-size: 2rem !important;
+    line-height: 1.25 !important;
   }
   .section-subtitle {
-    font-size: 0.95rem;
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
   }
 
   /* Horizontal Swipe Carousels on Mobile (Right-to-Left & Left-to-Right Swipeable) */

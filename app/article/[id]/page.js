@@ -43,7 +43,7 @@ export default async function ArticleDetailPage({ params }) {
             <nav className="breadcrumb-trail" aria-label="Breadcrumb">
               <Link href="/">Home</Link>
               <span>/</span>
-              <Link href="/articles">Journals</Link>
+              <Link href={`/category/${article.categorySlug}`}>Category: {article.categoryPill}</Link>
               <span>/</span>
               <span className="breadcrumb-current-title">
                 {article.title}
@@ -53,7 +53,14 @@ export default async function ArticleDetailPage({ params }) {
 
           {/* Category Badges & Meta */}
           <div className="reader-header-badges">
-            <span className="badge-pill">{article.categoryPill}</span>
+            <Link
+              href={`/category/${article.categorySlug}`}
+              className={`reader-category-pill cat-badge-${article.category}`}
+              title={`View all articles in category ${article.categoryPill}`}
+            >
+              <span>{article.categoryPill}</span>
+              <span style={{ fontSize: '0.725rem', opacity: 0.85, marginLeft: '0.25rem' }}>↗ Explore Category</span>
+            </Link>
             <span className="reader-meta-item">
               <Clock size={14} /> {article.readTime}
             </span>
