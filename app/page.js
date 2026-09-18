@@ -4,7 +4,7 @@ import { CATEGORIES } from '@/lib/categories';
 import { COURSES } from '@/lib/courses';
 import ArticleCard from '@/components/ArticleCard';
 import ReviewsMarquee from '@/components/ReviewsMarquee';
-import { Compass, ArrowRight, Sparkles, Shield, Camera, Award, Trees, Feather, Droplets } from 'lucide-react';
+import { ArrowRight, Shield, Camera } from 'lucide-react';
 
 export default function HomePage() {
   const trendingArticles = getTrendingArticles();
@@ -17,7 +17,7 @@ export default function HomePage() {
         <div className="hero-grid">
           <div className="hero-content">
             <div className="hero-pill-badge">
-              <Sparkles size={14} />
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#059669' }}></span>
               <span>2026 GLOBAL WILDLIFE EXPEDITIONS</span>
             </div>
 
@@ -248,7 +248,7 @@ export default function HomePage() {
           </h2>
 
           <p style={{ fontSize: '1.05rem', color: '#047857', maxWidth: '680px', margin: '0 auto 2rem', lineHeight: 1.7 }}>
-            Every photograph, audio spectrogram, and field log published on Terra Nova is captured without artificial baiting, drones flown over nesting birds, or intrusive perimeter harassment.
+            Every photograph, audio spectrogram, and field log published on Nature1 is captured without artificial baiting, drones flown over nesting birds, or intrusive perimeter harassment.
           </p>
 
           <Link href="/articles" className="btn-primary">

@@ -1,20 +1,22 @@
 import Link from 'next/link';
 import { CATEGORIES } from '@/lib/categories';
-import { Compass, Instagram, Facebook, MessageCircle, Youtube, Twitter, Heart } from 'lucide-react';
+import { Leaf, Instagram, Facebook, MessageCircle, Youtube, Twitter } from 'lucide-react';
 
 export default function Footer() {
   return (
     <footer className="site-footer">
       <div className="footer-inner">
-        {/* Brand Col */}
+        {/* Brand Col: Nature1 */}
         <div className="footer-brand-col">
           <Link href="/" className="brand-logo">
             <div className="logo-leaf-icon">
-              <Compass size={22} />
+              <Leaf size={22} strokeWidth={2.5} />
             </div>
             <div className="logo-text-group">
-              <span className="brand-name">TERRA NOVA</span>
-              <span className="brand-subtitle">Expedition & Wildlife</span>
+              <span className="brand-name">
+                Nature<span style={{ color: 'var(--brand-primary)' }}>1</span>
+              </span>
+              <span className="brand-subtitle">Wildlife & Expeditions</span>
             </div>
           </Link>
 
@@ -125,7 +127,7 @@ export default function Footer() {
       </div>
 
       <div className="footer-bottom-bar">
-        <span>© 2026 TERRA NOVA Expedition Media. All rights reserved.</span>
+        <span>© 2026 Nature1 Expedition Media. All rights reserved.</span>
         <span>Dedicated to Wildlife Conservation & Earth Biomes</span>
       </div>
     </footer>

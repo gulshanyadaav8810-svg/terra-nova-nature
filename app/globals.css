@@ -933,12 +933,6 @@ button {
   justify-content: space-between;
 }
 
-.review-stars {
-  color: var(--gold-star);
-  font-size: 0.95rem;
-  letter-spacing: 2px;
-}
-
 .review-tag {
   font-size: 0.7rem;
   font-weight: 700;

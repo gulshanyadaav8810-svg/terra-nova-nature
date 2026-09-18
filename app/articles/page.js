@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ARTICLES } from '@/lib/articles';
 import { CATEGORIES } from '@/lib/categories';
 import ArticleCard from '@/components/ArticleCard';
-import { Search, ArrowLeft, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Search, ArrowLeft } from 'lucide-react';
 
 export default function ArticlesArchivePage() {
   const [activeCategory, setActiveCategory] = useState('all');

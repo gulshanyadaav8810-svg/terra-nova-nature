@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { COURSES } from '@/lib/courses';
-import { ArrowLeft, Clock, BookOpen, Award, CheckCircle2, MessageCircle, Sparkles } from 'lucide-react';
+import { ArrowLeft, Clock, BookOpen, Award, CheckCircle2, MessageCircle } from 'lucide-react';
 
 export const metadata = {
-  title: 'Wilderness Academy Masterclasses — TERRA NOVA',
+  title: 'Wilderness Academy Masterclasses — Nature1',
   description: 'Professional field courses in wildlife telephoto optics, macro canopy ecology, sub-zero drone pilotry, and natural bioacoustics.',
 };
 
@@ -72,7 +72,7 @@ export default function CoursesPage() {
                   </div>
 
                   <a
-                    href={`https://api.whatsapp.com/send?phone=918810214878&text=${encodeURIComponent(`Hi Terra Nova team, I would like to enroll / request syllabus details for masterclass: ${course.title}`)}`}
+                    href={`https://api.whatsapp.com/send?phone=918810214878&text=${encodeURIComponent(`Hi Nature1 team, I would like to enroll / request syllabus details for masterclass: ${course.title}`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-primary"

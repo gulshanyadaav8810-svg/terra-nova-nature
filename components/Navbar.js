@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CATEGORIES } from '@/lib/categories';
-import { Compass, ChevronDown, Menu, X, Search, Sparkles, BookOpen, GraduationCap, Share2 } from 'lucide-react';
+import { Leaf, ChevronDown, Menu, X, Search, ArrowRight } from 'lucide-react';
 
 export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -33,14 +33,16 @@ export default function Navbar() {
     <>
       <header className="site-header">
         <div className="nav-container">
-          {/* Brand Logo */}
+          {/* Brand Logo: Nature1 */}
           <Link href="/" className="brand-logo" id="logoLink">
             <div className="logo-leaf-icon">
-              <Compass size={22} strokeWidth={2.4} />
+              <Leaf size={22} strokeWidth={2.5} />
             </div>
             <div className="logo-text-group">
-              <span className="brand-name">TERRA NOVA</span>
-              <span className="brand-subtitle">Expedition & Wildlife</span>
+              <span className="brand-name">
+                Nature<span style={{ color: 'var(--brand-primary)' }}>1</span>
+              </span>
+              <span className="brand-subtitle">Wildlife & Expeditions</span>
             </div>
           </Link>
 
@@ -130,7 +132,7 @@ export default function Navbar() {
               id="ctaExpeditionBtn"
             >
               <span>Explore Featured</span>
-              <Sparkles size={16} />
+              <ArrowRight size={16} />
             </Link>
 
             {/* Mobile Menu Toggle */}
@@ -159,9 +161,11 @@ export default function Navbar() {
           <div className="drawer-top-row">
             <div className="brand-logo">
               <div className="logo-leaf-icon">
-                <Compass size={20} />
+                <Leaf size={20} strokeWidth={2.5} />
               </div>
-              <span className="brand-name">TERRA NOVA</span>
+              <span className="brand-name">
+                Nature<span style={{ color: 'var(--brand-primary)' }}>1</span>
+              </span>
             </div>
             <button
               type="button"
