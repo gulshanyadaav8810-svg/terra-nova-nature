@@ -598,10 +598,11 @@ document.addEventListener('DOMContentLoaded', () => {
       card.className = 'article-card';
       card.setAttribute('role', 'button');
       card.setAttribute('tabindex', '0');
+      card.setAttribute('data-article-id', art.id);
 
       card.innerHTML = `
         <div class="card-img-wrapper">
-          <img src="${art.image}" alt="${art.title}" class="card-img" loading="lazy">
+          <img src="${art.image}" alt="${art.title}" class="card-img" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&w=800&q=80'">
           <span class="card-category-badge">${art.categoryPill}</span>
           <span class="card-read-time">⏱ ${art.readTime}</span>
         </div>
@@ -626,7 +627,18 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      card.addEventListener('click', () => openArticleModal(art.id));
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openArticleModal(art.id);
+      });
+
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openArticleModal(art.id);
+        }
+      });
+
       articlesGrid.appendChild(card);
     });
   }
@@ -846,14 +858,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     7. ARTICLE READER MODAL (RICH, FAST, ILLUSTRATED)
+     7. ARTICLE READER MODAL (RICH, FAST, ILLUSTRATED, 100% RELIABLE)
      ========================================================================== */
   function openArticleModal(articleId) {
     const art = ARTICLES_DATABASE.find(a => a.id === articleId) || ARTICLES_DATABASE[0];
     const isLiked = !!likedArticles[art.id];
 
+    // Reset scroll position of inner content to top before populating
+    if (articleReaderContent) {
+      articleReaderContent.scrollTop = 0;
+    }
+
     articleReaderContent.innerHTML = `
-      <img src="${art.image}" alt="${art.title}" class="article-hero-cover">
+      <img src="${art.image}" alt="${art.title}" class="article-hero-cover" onerror="this.src='https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&w=1200&q=80'">
 
       <div class="article-meta-header">
         <div class="article-tags-row">
@@ -893,7 +910,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Modal Like
     const likeBtn = document.getElementById('modalLikeActionBtn');
     if (likeBtn) {
-      likeBtn.addEventListener('click', () => {
+      likeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (likedArticles[art.id]) {
           delete likedArticles[art.id];
           likeBtn.classList.remove('liked');
@@ -912,7 +930,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Modal Share
     const shareBtn = document.getElementById('modalShareActionBtn');
     if (shareBtn) {
-      shareBtn.addEventListener('click', () => {
+      shareBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (navigator.clipboard) {
           navigator.clipboard.writeText(window.location.href);
           showToast('🔗 Article link copied to clipboard!');
@@ -920,30 +939,104 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // Explicitly make modal visible with flex and active class
     articleModal.classList.add('active');
+    articleModal.style.display = 'flex';
+    articleModal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
+
+    // Double-check scrollTop is 0
+    requestAnimationFrame(() => {
+      if (articleReaderContent) {
+        articleReaderContent.scrollTop = 0;
+      }
+    });
+
+    showToast(`📖 Opening: ${art.title.substring(0, 32)}...`);
   }
 
   function closeArticleModal() {
     articleModal.classList.remove('active');
+    articleModal.style.display = 'none';
+    articleModal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
   }
 
-  closeArticleModalBtn.addEventListener('click', closeArticleModal);
-  articleModal.addEventListener('click', (e) => {
-    if (e.target === articleModal) closeArticleModal();
-  });
+  if (closeArticleModalBtn) {
+    closeArticleModalBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeArticleModal();
+    });
+  }
+
+  if (articleModal) {
+    articleModal.addEventListener('click', (e) => {
+      if (e.target === articleModal) {
+        closeArticleModal();
+      }
+    });
+  }
 
   // Hero Featured Story Click
   const heroFeaturedBtn = document.getElementById('heroFeaturedBtn');
   if (heroFeaturedBtn) {
-    heroFeaturedBtn.addEventListener('click', () => openArticleModal('art-1'));
+    heroFeaturedBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openArticleModal('art-1');
+    });
   }
 
   const featuredHeroCard = document.getElementById('featuredHeroCard');
   if (featuredHeroCard) {
-    featuredHeroCard.addEventListener('click', () => openArticleModal('art-1'));
+    featuredHeroCard.addEventListener('click', (e) => {
+      e.preventDefault();
+      openArticleModal('art-1');
+    });
   }
+
+  // Event delegation on articlesGrid for click reliability
+  if (articlesGrid) {
+    articlesGrid.addEventListener('click', (e) => {
+      const card = e.target.closest('.article-card');
+      if (card) {
+        const id = card.getAttribute('data-article-id');
+        if (id) {
+          openArticleModal(id);
+        }
+      }
+    });
+  }
+
+  // Global document click delegation for all article opening triggers
+  document.addEventListener('click', (e) => {
+    // If clicked on category card or browse button, don't trigger article modal
+    if (e.target.closest('#heroCategoriesBtn') || e.target.closest('#navCategory') || e.target.closest('.sub-bar-btn')) {
+      return;
+    }
+
+    // Any button or element with explicit data-open-article or data-article-id (outside of grid)
+    const openTrigger = e.target.closest('[data-open-article]');
+    if (openTrigger) {
+      e.preventDefault();
+      const artId = openTrigger.getAttribute('data-open-article');
+      if (artId) {
+        openArticleModal(artId);
+        return;
+      }
+    }
+  });
+
+  // ESC key listener to close active modals
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (articleModal && (articleModal.classList.contains('active') || articleModal.style.display === 'flex')) {
+        closeArticleModal();
+      }
+      if (courseModal && (courseModal.classList.contains('active') || courseModal.style.display === 'flex')) {
+        closeCourseModal();
+      }
+    }
+  });
 
   /* ==========================================================================
      8. COURSE DETAILS & DIRECT WHATSAPP ENROLLMENT MODAL
@@ -1110,19 +1203,41 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 1000);
     });
 
+    if (courseModalInner) {
+      courseModalInner.scrollTop = 0;
+    }
+
     courseModal.classList.add('active');
+    courseModal.style.display = 'flex';
+    courseModal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
+
+    requestAnimationFrame(() => {
+      if (courseModalInner) {
+        courseModalInner.scrollTop = 0;
+      }
+    });
   }
 
   function closeCourseModal() {
     courseModal.classList.remove('active');
+    courseModal.style.display = 'none';
+    courseModal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
   }
 
-  closeCourseModalBtn.addEventListener('click', closeCourseModal);
-  courseModal.addEventListener('click', (e) => {
-    if (e.target === courseModal) closeCourseModal();
-  });
+  if (closeCourseModalBtn) {
+    closeCourseModalBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeCourseModal();
+    });
+  }
+
+  if (courseModal) {
+    courseModal.addEventListener('click', (e) => {
+      if (e.target === courseModal) closeCourseModal();
+    });
+  }
 
   /* ==========================================================================
      9. VIEW NAVIGATION CONTROLLER (Home vs Dedicated Courses View)
