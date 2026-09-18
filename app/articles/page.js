@@ -30,10 +30,10 @@ export default function ArticlesArchivePage() {
   }, [activeCategory, searchTerm]);
 
   return (
-    <main style={{ minHeight: '100vh', padding: '3rem 1.5rem 6rem' }}>
-      <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
+    <main className="articles-archive-view">
+      <div className="articles-archive-container">
         {/* Top Header & Breadcrumb */}
-        <div style={{ marginBottom: '2rem' }}>
+        <div className="articles-archive-header">
           <Link
             href="/"
             className="back-link-btn"
@@ -44,7 +44,7 @@ export default function ArticlesArchivePage() {
           </Link>
 
           <span className="section-eyebrow">Field Research Archive</span>
-          <h1 className="section-main-title" style={{ fontSize: '2.75rem', marginBottom: '0.75rem' }}>
+          <h1 className="articles-archive-title">
             All Wildlife & Nature Field Journals
           </h1>
           <p className="section-subtitle">
@@ -54,7 +54,7 @@ export default function ArticlesArchivePage() {
 
         {/* Filter Bar */}
         <div className="filter-bar-wrapper">
-          {/* Category Filter Pills */}
+          {/* Category Filter Pills (Touch friendly scroll on mobile) */}
           <div className="filter-pills-group">
             <button
               type="button"
@@ -77,10 +77,10 @@ export default function ArticlesArchivePage() {
 
           {/* Search Input Box */}
           <div className="search-input-box">
-            <Search size={17} color="var(--text-muted)" />
+            <Search size={17} color="var(--text-muted)" style={{ flexShrink: 0 }} />
             <input
               type="text"
-              placeholder="Search by animal, habitat, location..."
+              placeholder="Search animals, habitats, places..."
               className="search-input-field"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -89,7 +89,7 @@ export default function ArticlesArchivePage() {
               <button
                 type="button"
                 onClick={() => setSearchTerm('')}
-                style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}
+                style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700, padding: '0 4px' }}
               >
                 ✕
               </button>
@@ -98,15 +98,15 @@ export default function ArticlesArchivePage() {
         </div>
 
         {/* Counter */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-          <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>
             Showing {filteredArticles.length} of {ARTICLES.length} Expedition Journals
           </span>
           {(activeCategory !== 'all' || searchTerm) && (
             <button
               type="button"
               onClick={() => { setActiveCategory('all'); setSearchTerm(''); }}
-              style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--brand-primary)' }}
+              style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--brand-primary)' }}
             >
               Reset Filters
             </button>
@@ -121,20 +121,12 @@ export default function ArticlesArchivePage() {
             ))}
           </div>
         ) : (
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '20px',
-            border: '1px solid var(--border-light)',
-            padding: '4rem 2rem',
-            textAlign: 'center',
-            maxWidth: '560px',
-            margin: '2rem auto'
-          }}>
+          <div className="empty-results-box">
             <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🔍</div>
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
               No Field Journals Found
             </h3>
-            <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
               No expedition reports matched your query "{searchTerm}". Try clearing search or choosing another habitat.
             </p>
             <button

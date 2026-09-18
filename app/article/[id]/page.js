@@ -37,7 +37,7 @@ export default async function ArticleDetailPage({ params }) {
           <div className="reader-nav-bar">
             <Link href="/articles" className="back-link-btn" id="articleBackBtn">
               <ArrowLeft size={16} />
-              <span>← Back to All Field Journals</span>
+              <span>← All Journals</span>
             </Link>
 
             <nav className="breadcrumb-trail" aria-label="Breadcrumb">
@@ -45,7 +45,7 @@ export default async function ArticleDetailPage({ params }) {
               <span>/</span>
               <Link href="/articles">Journals</Link>
               <span>/</span>
-              <span style={{ color: 'var(--text-primary)', fontWeight: 700, maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span className="breadcrumb-current-title">
                 {article.title}
               </span>
             </nav>
@@ -54,10 +54,10 @@ export default async function ArticleDetailPage({ params }) {
           {/* Category Badges & Meta */}
           <div className="reader-header-badges">
             <span className="badge-pill">{article.categoryPill}</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <span className="reader-meta-item">
               <Clock size={14} /> {article.readTime}
             </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+            <span className="reader-meta-item">
               <Calendar size={14} /> {article.date}
             </span>
           </div>
@@ -66,8 +66,8 @@ export default async function ArticleDetailPage({ params }) {
           <h1 className="reader-headline">{article.title}</h1>
 
           {/* Location Bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.925rem', color: '#047857', fontWeight: 700, marginBottom: '1.5rem' }}>
-            <MapPin size={16} />
+          <div className="reader-location-tag">
+            <MapPin size={16} style={{ flexShrink: 0 }} />
             <span>Field Coordinates: {article.location}</span>
           </div>
 
@@ -88,7 +88,7 @@ export default async function ArticleDetailPage({ params }) {
               </div>
             </div>
 
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--brand-primary)', fontWeight: 700 }}>
+            <div className="author-bar-badge">
               <Shield size={16} />
               <span>Verified Field Journal</span>
             </div>
@@ -110,7 +110,7 @@ export default async function ArticleDetailPage({ params }) {
           {article.keyTakeaways && (
             <div className="key-takeaways-card">
               <div className="takeaways-title">
-                <CheckCircle2 size={20} />
+                <CheckCircle2 size={20} style={{ flexShrink: 0 }} />
                 <span>Expedition Field Summary & Key Findings</span>
               </div>
               <ul className="takeaways-list">
@@ -160,14 +160,14 @@ export default async function ArticleDetailPage({ params }) {
 
           {/* Related Field Journals */}
           {relatedArticles.length > 0 && (
-            <div style={{ marginTop: '5rem', paddingTop: '3rem', borderTop: '1px solid var(--border-light)' }}>
-              <div style={{ marginBottom: '2rem' }}>
+            <div className="related-journals-section">
+              <div style={{ marginBottom: '1.5rem' }}>
                 <span className="section-eyebrow">Continue Exploring</span>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <h3 className="related-journals-heading">
                   More from this Habitat
                 </h3>
               </div>
-              <div className="articles-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
+              <div className="articles-grid">
                 {relatedArticles.map((rel) => (
                   <ArticleCard key={rel.id} article={rel} />
                 ))}
