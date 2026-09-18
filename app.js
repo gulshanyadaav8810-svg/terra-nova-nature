@@ -1169,6 +1169,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (navCourses) navCourses.addEventListener('click', showCoursesView);
   if (coursesBackBtn) coursesBackBtn.addEventListener('click', () => showHomeView());
+  const ctaExpeditionBtn = document.getElementById('ctaExpeditionBtn');
+  if (ctaExpeditionBtn) {
+    ctaExpeditionBtn.addEventListener('click', () => {
+      const artSection = document.getElementById('articleSection');
+      showHomeView(artSection);
+    });
+  }
 
   // Mobile Drawer Navigation
   if (drawerHomeBtn) {
