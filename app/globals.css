@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
   /* Light Theme Color System */
@@ -36,7 +36,8 @@
   --radius-full: 9999px;
   
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-heading: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: var(--font-heading);
 }
 
 *, *::before, *::after {
@@ -465,16 +466,17 @@ button {
 }
 
 .hero-title {
-  font-family: var(--font-serif);
+  font-family: var(--font-heading);
   font-size: 3.5rem;
   line-height: 1.15;
-  font-weight: 700;
+  font-weight: 800;
   color: #0f172a;
+  letter-spacing: -0.025em;
 }
 
 .hero-title .highlight-emerald {
   color: #059669;
-  font-style: italic;
+  font-style: normal;
 }
 
 .hero-description {
@@ -655,11 +657,11 @@ button {
 }
 
 .section-main-title {
-  font-family: var(--font-serif);
-  font-size: 2.5rem;
+  font-family: var(--font-heading);
+  font-size: 2.35rem;
   font-weight: 800;
   color: #0b1320;
-  line-height: 1.2;
+  line-height: 1.22;
   letter-spacing: -0.02em;
   margin-bottom: 0.5rem;
 }
@@ -982,12 +984,13 @@ button {
 }
 
 .category-title {
-  font-family: var(--font-serif);
-  font-size: 1.3rem;
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
   font-weight: 800;
   color: #0f172a;
   line-height: 1.3;
   margin-bottom: 0.45rem;
+  letter-spacing: -0.01em;
 }
 
 .category-card-desc {
@@ -1094,13 +1097,14 @@ button {
 }
 
 .article-card-title {
-  font-family: var(--font-serif);
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
   color: #0f172a;
   line-height: 1.35;
   margin-bottom: 0.75rem;
   transition: color 0.2s ease;
+  letter-spacing: -0.01em;
 }
 
 .article-card-title:hover {

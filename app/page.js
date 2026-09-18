@@ -124,9 +124,9 @@ export default function HomePage() {
         <div className="section-header-centered">
           <div className="section-badge-pill">
             <span>🏷️</span>
-            <span>HABITAT BIOME DIRECTORY</span>
+            <span>HABITAT CATEGORIES</span>
           </div>
-          <h2 className="section-main-title">Earth’s 4 Wildlife Categories</h2>
+          <h2 className="section-main-title">Explore by Habitat Category</h2>
           <div className="section-title-underline" />
           <p className="section-subtitle">
             Select a specialized ecosystem category below to discover dedicated wildlife research journals, camera traps, and field notes.
@@ -156,7 +156,7 @@ export default function HomePage() {
               </div>
 
               <div className="category-card-body">
-                <span className="category-body-tag">BIOME CATEGORY</span>
+                <span className="category-body-tag">BIOME • {cat.shortName.toUpperCase()}</span>
                 <h3 className="category-title">{cat.name}</h3>
                 <p className="category-card-desc">{cat.description}</p>
                 <div className="category-card-footer">
@@ -169,35 +169,34 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 3. LATEST EXPEDITION JOURNALS GRID */}
+      {/* 3. LATEST EXPEDITION JOURNALS GRID (Centered Header) */}
       <section className="section-container">
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <div className="section-badge-pill" style={{ marginBottom: '0.65rem' }}>
-              <span>📖</span>
-              <span>VERIFIED FIELD RESEARCH</span>
-            </div>
-            <h2 className="section-main-title" style={{ marginBottom: '0.35rem' }}>
-              Latest Field Journals by Category
-            </h2>
-            <div className="section-title-underline" style={{ margin: '0.5rem 0 1rem 0' }} />
-            <p className="section-subtitle">
-              Recent eyewitness expeditions categorized by wild apex predators, forest canopies, marine reefs, and alpine peaks.
-            </p>
-            <div style={{ marginTop: '0.5rem' }}>
-              <span className="mobile-scroll-hint">Swipe ← → to view all journals</span>
-            </div>
+        <div className="section-header-centered">
+          <div className="section-badge-pill">
+            <span>📖</span>
+            <span>VERIFIED FIELD RESEARCH</span>
           </div>
-          <Link href="/articles" className="btn-secondary" style={{ padding: '0.65rem 1.25rem', fontSize: '0.875rem' }}>
-            <span>View All Journals ({ARTICLES.length})</span>
-            <ArrowRight size={16} />
-          </Link>
+          <h2 className="section-main-title">Latest Field Journals</h2>
+          <div className="section-title-underline" />
+          <p className="section-subtitle">
+            Recent eyewitness expeditions across wild apex predators, ancient forest canopies, marine reefs, and alpine peaks.
+          </p>
+          <div style={{ marginTop: '0.75rem' }}>
+            <span className="mobile-scroll-hint">Swipe ← → to view all journals</span>
+          </div>
         </div>
 
         <div className="articles-grid">
           {latestArticles.map((article) => (
             <ArticleCard key={article.id} article={article} />
           ))}
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: '3rem' }}>
+          <Link href="/articles" className="btn-secondary">
+            <span>View All Field Journals ({ARTICLES.length})</span>
+            <ArrowRight size={16} />
+          </Link>
         </div>
       </section>
 
