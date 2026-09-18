@@ -2654,8 +2654,9 @@ body {
    DEDICATED FULL ARTICLE READER VIEW (ZERO POPUP MODALS)
    ========================================================================== */
 #articleDetailView {
-  min-height: 90vh;
+  min-height: 100vh;
   position: relative;
+  padding-top: 78px; /* Essential: Prevents fixed site header and sticky top-bar from overlapping badges */
 }
 
 /* Reading Progress Bar fixed at the absolute top of viewport */
@@ -2682,7 +2683,7 @@ body {
 .article-page-top-bar {
   position: sticky;
   top: 72px;
-  background: rgba(10, 15, 13, 0.94);
+  background: rgba(10, 15, 13, 0.96);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -2763,11 +2764,14 @@ body {
 .article-detail-container {
   max-width: 920px;
   margin: 0 auto;
-  padding: 3.5rem 1.5rem 7rem;
+  padding: 3rem 1.5rem 7rem;
+  scroll-margin-top: 160px;
 }
 
 .article-page-header {
+  margin-top: 0.5rem;
   margin-bottom: 2.5rem;
+  scroll-margin-top: 160px;
 }
 
 .article-meta-badges {
@@ -2776,6 +2780,7 @@ body {
   gap: 0.85rem;
   flex-wrap: wrap;
   margin-bottom: 1.25rem;
+  padding-top: 0.75rem;
 }
 
 .article-page-category-pill {
@@ -3139,6 +3144,9 @@ body {
 
 /* Mobile responsive additions */
 @media (max-width: 768px) {
+  #articleDetailView {
+    padding-top: 64px;
+  }
   .review-card {
     width: 300px;
     padding: 1.25rem;
@@ -3157,7 +3165,8 @@ body {
     align-items: flex-start;
   }
   .article-page-top-bar {
-    top: 60px;
+    top: 58px;
+    padding: 0.75rem 1rem;
   }
   .bc-current {
     max-width: 140px;

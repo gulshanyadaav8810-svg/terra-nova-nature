@@ -1351,7 +1351,7 @@ document.addEventListener('DOMContentLoaded', () => {
     closeMobileDrawer();
 
     setCategoryFilter(cat, false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
   }
 
   function showArticleDetailView(articleId) {
@@ -1362,7 +1362,7 @@ document.addEventListener('DOMContentLoaded', () => {
     closeMobileDrawer();
 
     renderArticleDetailPage(articleId);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
   }
 
   function showCoursesView() {
