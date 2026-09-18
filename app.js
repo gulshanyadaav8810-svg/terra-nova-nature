@@ -622,16 +622,26 @@ document.addEventListener('DOMContentLoaded', () => {
               <span class="card-author-name">${art.author.name}</span>
             </div>
 
-            <span class="read-btn-pill">Read Story →</span>
+            <button type="button" class="read-btn-pill" data-article-id="${art.id}">Read Story →</button>
           </div>
         </div>
       `;
 
-      card.addEventListener('click', (e) => {
-        e.stopPropagation();
+      // Click on entire card opens modal
+      card.addEventListener('click', () => {
         openArticleModal(art.id);
       });
 
+      // Click directly on Read Story button opens modal
+      const readBtn = card.querySelector('.read-btn-pill');
+      if (readBtn) {
+        readBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openArticleModal(art.id);
+        });
+      }
+
+      // Keyboard accessibility
       card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -803,11 +813,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Category Showcase Cards
+  // Category Showcase Cards & Direct Article Opening
   document.querySelectorAll('.category-card').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
       const cat = card.getAttribute('data-category');
+      const openArtAttr = e.target.closest('[data-open-article]')?.getAttribute('data-open-article');
+      const targetArtId = openArtAttr || (
+        cat === 'nature' ? 'art-10' :
+        cat === 'animals' ? 'art-1' :
+        cat === 'ocean' ? 'art-4' :
+        'art-2'
+      );
+
       setCategoryFilter(cat, true);
+      // Open the journal in reader modal for instant reading
+      setTimeout(() => {
+        openArticleModal(targetArtId);
+      }, 200);
     });
   });
 
@@ -1284,11 +1306,32 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (navCourses) navCourses.addEventListener('click', showCoursesView);
   if (coursesBackBtn) coursesBackBtn.addEventListener('click', () => showHomeView());
+  // Read Journals CTA Button (Opens Premier Expedition Journal Directly!)
   const ctaExpeditionBtn = document.getElementById('ctaExpeditionBtn');
   if (ctaExpeditionBtn) {
-    ctaExpeditionBtn.addEventListener('click', () => {
+    ctaExpeditionBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      showHomeView();
       const artSection = document.getElementById('articleSection');
-      showHomeView(artSection);
+      if (artSection) {
+        artSection.scrollIntoView({ behavior: 'smooth' });
+      }
+      openArticleModal('art-1');
+      showToast('📖 Opening Featured Expedition Journal: Bengal Tiger');
+    });
+  }
+
+  // Header Nav "Articles" Link
+  const navArticles = document.getElementById('navArticles');
+  if (navArticles) {
+    navArticles.addEventListener('click', (e) => {
+      e.preventDefault();
+      showHomeView();
+      const artSection = document.getElementById('articleSection');
+      if (artSection) {
+        artSection.scrollIntoView({ behavior: 'smooth' });
+      }
+      showToast('📖 Exploring All Wildlife Journals');
     });
   }
 
