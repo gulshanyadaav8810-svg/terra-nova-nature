@@ -572,6 +572,17 @@ document.addEventListener('DOMContentLoaded', () => {
   let searchQuery = '';
   let likedArticles = JSON.parse(localStorage.getItem('terra_nova_article_likes') || '{}');
 
+  // Centralized Clean-URL Navigator (HTML5 History API - Zero '#' in URLs)
+  function navigateTo(path, push = true) {
+    const cleanPath = path || '/';
+    if (push && window.location.pathname !== cleanPath) {
+      window.history.pushState({}, '', cleanPath);
+    } else {
+      window.history.replaceState({}, '', cleanPath);
+    }
+    handleRoute();
+  }
+
   /* ==========================================================================
      4. RENDER ARTICLES
      ========================================================================== */
@@ -644,7 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Click on entire card navigates to dedicated article reader page
       card.addEventListener('click', () => {
-        window.location.hash = '#article/' + art.id;
+        navigateTo('/article/' + art.id);
       });
 
       // Click directly on Read Story button
@@ -652,7 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (readBtn) {
         readBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          window.location.hash = '#article/' + art.id;
+          navigateTo('/article/' + art.id);
         });
       }
 
@@ -660,7 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
       card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          window.location.hash = '#article/' + art.id;
+          navigateTo('/article/' + art.id);
         }
       });
 
@@ -754,7 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(catLabels[cat] || `Category: ${cat}`);
 
     if (shouldNavigate) {
-      window.location.hash = (cat === 'all') ? '#articles' : '#category/' + cat;
+      navigateTo((cat === 'all') ? '/articles' : '/category/' + cat);
     }
   }
 
@@ -804,7 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const cat = btn.getAttribute('data-category');
-      window.location.hash = '#category/' + cat;
+      navigateTo('/category/' + cat);
       closeCategoryMenus();
     });
   });
@@ -814,7 +825,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const cat = btn.getAttribute('data-category');
-      window.location.hash = '#category/' + cat;
+      navigateTo('/category/' + cat);
       closeCategoryMenus();
     });
   });
@@ -823,7 +834,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.category-card').forEach(card => {
     card.addEventListener('click', (e) => {
       const cat = card.getAttribute('data-category');
-      window.location.hash = '#category/' + cat;
+      navigateTo('/category/' + cat);
     });
   });
 
@@ -831,7 +842,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.footer-cat-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const cat = btn.getAttribute('data-category');
-      window.location.hash = '#category/' + cat;
+      navigateTo('/category/' + cat);
     });
   });
 
@@ -839,7 +850,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.drawer-cat-link').forEach(link => {
     link.addEventListener('click', () => {
       const cat = link.getAttribute('data-category');
-      window.location.hash = '#category/' + cat;
+      navigateTo('/category/' + cat);
       closeMobileDrawer();
     });
   });
@@ -860,7 +871,7 @@ document.addEventListener('DOMContentLoaded', () => {
   filterPills.forEach(pill => {
     pill.addEventListener('click', () => {
       const cat = pill.getAttribute('data-filter');
-      window.location.hash = (cat === 'all') ? '#articles' : '#category/' + cat;
+      navigateTo((cat === 'all') ? '/articles' : '/category/' + cat);
     });
   });
 
@@ -869,7 +880,7 @@ document.addEventListener('DOMContentLoaded', () => {
     resetFiltersBtn.addEventListener('click', () => {
       searchQuery = '';
       liveSearchInput.value = '';
-      window.location.hash = '#articles';
+      navigateTo('/articles');
     });
   }
 
@@ -886,7 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.title = `${art.title} — Terra Nova Wildlife Expedition Journals`;
 
-    const currentUrl = window.location.origin + window.location.pathname + '#article/' + art.id;
+    const currentUrl = `${window.location.origin}/article/${art.id}`;
     const encodedUrl = encodeURIComponent(currentUrl);
     const shareTitleText = `"${art.title}" — Terra Nova Wildlife Expedition Journal`;
     const encodedTitle = encodeURIComponent(shareTitleText);
@@ -1051,7 +1062,7 @@ document.addEventListener('DOMContentLoaded', () => {
       card.addEventListener('click', () => {
         const id = card.getAttribute('data-article-id');
         if (id) {
-          window.location.hash = '#article/' + id;
+          navigateTo('/article/' + id);
         }
       });
     });
@@ -1078,7 +1089,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (heroFeaturedBtn) {
     heroFeaturedBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      window.location.hash = '#article/art-1';
+      navigateTo('/article/art-1');
     });
   }
 
@@ -1086,7 +1097,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (featuredHeroCard) {
     featuredHeroCard.addEventListener('click', (e) => {
       e.preventDefault();
-      window.location.hash = '#article/art-1';
+      navigateTo('/article/art-1');
     });
   }
 
@@ -1377,50 +1388,63 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('🎓 Terra Nova Wildlife Academy Masterclasses');
   }
 
-  // Global Hash Router Dispatcher
+  // Global Clean URL Router Dispatcher (HTML5 History API - Zero '#' in URLs)
   function handleRoute() {
+    let path = window.location.pathname.replace(/\/+$/, '') || '/';
     const hash = window.location.hash.replace(/^#\/?/, '').trim();
 
-    if (!hash || hash === 'home') {
+    // If a legacy hash exists (e.g. #home, #articles), convert to clean URL and wipe hash immediately
+    if (hash) {
+      if (hash === 'home') path = '/';
+      else if (hash === 'articles') path = '/articles';
+      else if (hash.startsWith('category/')) path = '/' + hash;
+      else if (hash.startsWith('article/')) path = '/' + hash;
+      else if (hash === 'courses') path = '/courses';
+      window.history.replaceState({}, '', path);
+    }
+
+    if (path === '/' || path === '/home') {
+      if (path === '/home') window.history.replaceState({}, '', '/');
       showHomeView();
-    } else if (hash === 'articles') {
+    } else if (path === '/articles') {
       showArticlesView('all');
-    } else if (hash.startsWith('category/')) {
-      const cat = hash.split('/')[1] || 'all';
+    } else if (path.startsWith('/category/')) {
+      const cat = path.split('/')[2] || 'all';
       showArticlesView(cat);
-    } else if (hash.startsWith('article/')) {
-      const artId = hash.split('/')[1] || 'art-1';
+    } else if (path.startsWith('/article/')) {
+      const artId = path.split('/')[2] || 'art-1';
       showArticleDetailView(artId);
-    } else if (hash === 'courses') {
+    } else if (path === '/courses') {
       showCoursesView();
     } else {
       showHomeView();
     }
   }
 
-  window.addEventListener('hashchange', handleRoute);
+  // Listen for browser Back & Forward navigation
+  window.addEventListener('popstate', handleRoute);
 
-  // Navigation Click Listeners (Switch hash)
+  // Navigation Click Listeners (Clean URL transitions)
   if (navHome) navHome.addEventListener('click', (e) => {
     e.preventDefault();
-    window.location.hash = '#home';
+    navigateTo('/');
   });
   if (logoLink) {
     logoLink.addEventListener('click', (e) => {
       e.preventDefault();
-      window.location.hash = '#home';
+      navigateTo('/');
     });
   }
   if (navArticles) {
     navArticles.addEventListener('click', (e) => {
       e.preventDefault();
-      window.location.hash = '#articles';
+      navigateTo('/articles');
     });
   }
   if (navCourses) {
     navCourses.addEventListener('click', (e) => {
       e.preventDefault();
-      window.location.hash = '#courses';
+      navigateTo('/courses');
     });
   }
 
@@ -1428,7 +1452,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (ctaExpeditionBtn) {
     ctaExpeditionBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      window.location.hash = '#article/art-1';
+      navigateTo('/article/art-1');
       showToast('📖 Opening Featured Expedition Journal: Bengal Tiger');
     });
   }
@@ -1437,34 +1461,34 @@ document.addEventListener('DOMContentLoaded', () => {
   if (homeBrowseAllArticlesBtn) {
     homeBrowseAllArticlesBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      window.location.hash = '#articles';
+      navigateTo('/articles');
     });
   }
 
   // Breadcrumbs & Back Buttons
   if (articlesBackToHomeBtn) {
     articlesBackToHomeBtn.addEventListener('click', () => {
-      window.location.hash = '#home';
+      navigateTo('/');
     });
   }
   if (articleDetailBackBtn) {
     articleDetailBackBtn.addEventListener('click', () => {
-      window.location.hash = '#articles';
+      navigateTo('/articles');
     });
   }
   if (bcHomeBtn) {
     bcHomeBtn.addEventListener('click', () => {
-      window.location.hash = '#home';
+      navigateTo('/');
     });
   }
   if (bcArticlesBtn) {
     bcArticlesBtn.addEventListener('click', () => {
-      window.location.hash = '#articles';
+      navigateTo('/articles');
     });
   }
   if (coursesBackBtn) {
     coursesBackBtn.addEventListener('click', () => {
-      window.location.hash = '#home';
+      navigateTo('/');
     });
   }
 
@@ -1472,19 +1496,19 @@ document.addEventListener('DOMContentLoaded', () => {
   if (drawerHomeBtn) {
     drawerHomeBtn.addEventListener('click', () => {
       closeMobileDrawer();
-      window.location.hash = '#home';
+      navigateTo('/');
     });
   }
   if (drawerArticlesBtn) {
     drawerArticlesBtn.addEventListener('click', () => {
       closeMobileDrawer();
-      window.location.hash = '#articles';
+      navigateTo('/articles');
     });
   }
   if (drawerCoursesBtn) {
     drawerCoursesBtn.addEventListener('click', () => {
       closeMobileDrawer();
-      window.location.hash = '#courses';
+      navigateTo('/courses');
     });
   }
 
@@ -1501,7 +1525,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Footer Masterclass Links
   document.querySelectorAll('.footer-course-link').forEach(btn => {
     btn.addEventListener('click', () => {
-      window.location.hash = '#courses';
+      navigateTo('/courses');
       const courseId = btn.getAttribute('data-course-id');
       const course = COURSES_DATABASE.find(c => c.id === courseId);
       if (course) {
@@ -1522,8 +1546,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   liveSearchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value;
-    if (window.location.hash !== '#articles' && !window.location.hash.startsWith('#category/')) {
-      window.location.hash = '#articles';
+    if (window.location.pathname !== '/articles' && !window.location.pathname.startsWith('/category/')) {
+      navigateTo('/articles');
     }
     renderArticles();
   });
@@ -1540,7 +1564,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const tag = chip.getAttribute('data-search');
       liveSearchInput.value = tag;
       searchQuery = tag;
-      window.location.hash = '#articles';
+      navigateTo('/articles');
       renderArticles();
     });
   });
