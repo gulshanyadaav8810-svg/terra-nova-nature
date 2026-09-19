@@ -28,18 +28,38 @@ const DEMO_REEL_IDS = new Set([
 
 export function normalizeVideoUrl(url) {
   if (!url || typeof url !== 'string') return url;
+  if (url.startsWith('blob:') || url.startsWith('data:')) return url;
+
+  let filename = '';
   if (url.startsWith('/uploads/')) {
-    if (typeof window !== 'undefined' && window.location.origin && window.location.origin.includes('vercel.app')) {
-      return url;
-    }
-    return `https://nature-moments-app.vercel.app${url}`;
+    filename = url.replace(/^\/uploads\//, '');
+  } else if (url.includes('raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/')) {
+    filename = url.split('/uploads/')[1];
+  } else if (url.includes('cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/')) {
+    filename = url.split('/uploads/')[1];
   }
-  if (url.includes('raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/')) {
-    const filename = url.split('/uploads/')[1];
-    if (typeof window !== 'undefined' && window.location.origin && window.location.origin.includes('vercel.app')) {
-      return `/uploads/${filename}`;
-    }
-    return `https://nature-moments-app.vercel.app/uploads/${filename}`;
+
+  if (filename) {
+    return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
+  }
+  return url;
+}
+
+export function normalizeImageUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (url.startsWith('blob:') || url.startsWith('data:')) return url;
+
+  let filename = '';
+  if (url.startsWith('/uploads/')) {
+    filename = url.replace(/^\/uploads\//, '');
+  } else if (url.includes('raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/')) {
+    filename = url.split('/uploads/')[1];
+  } else if (url.includes('cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/')) {
+    filename = url.split('/uploads/')[1];
+  }
+
+  if (filename) {
+    return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
   }
   return url;
 }
@@ -96,7 +116,11 @@ export function loadAllReels() {
         }
         sanitizedRemote.forEach(r => {
           if (r.video_url && !r.video_url.startsWith('blob:')) {
-            mergedMap.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
+            mergedMap.set(r.content_id, {
+              ...r,
+              video_url: normalizeVideoUrl(r.video_url),
+              thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+            });
           }
         });
       }
@@ -117,7 +141,11 @@ export function loadAllReels() {
         }
         sanitizedCustom.forEach(r => {
           if (r.video_url && !r.video_url.startsWith('blob:')) {
-            mergedMap.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
+            mergedMap.set(r.content_id, {
+              ...r,
+              video_url: normalizeVideoUrl(r.video_url),
+              thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+            });
           }
         });
       }
@@ -131,7 +159,11 @@ export function loadAllReels() {
     REELS_DATA.forEach(r => {
       if (r && r.content_id && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
         if (r.video_url && !r.video_url.startsWith('blob:')) {
-          mergedMap.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
+          mergedMap.set(r.content_id, {
+            ...r,
+            video_url: normalizeVideoUrl(r.video_url),
+            thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+          });
         }
       }
     });
@@ -205,7 +237,11 @@ export async function syncRemoteReels() {
           // Add valid remote reels
           cleanRemote.forEach(r => {
             if (r.video_url && !r.video_url.startsWith('blob:')) {
-              merged.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
+              merged.set(r.content_id, {
+                ...r,
+                video_url: normalizeVideoUrl(r.video_url),
+                thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+              });
             }
           });
           
@@ -218,7 +254,11 @@ export async function syncRemoteReels() {
                 parsed.forEach(r => {
                   if (r && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
                     if (r.video_url && !r.video_url.startsWith('blob:')) {
-                      merged.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
+                      merged.set(r.content_id, {
+                        ...r,
+                        video_url: normalizeVideoUrl(r.video_url),
+                        thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+                      });
                     }
                   }
                 });

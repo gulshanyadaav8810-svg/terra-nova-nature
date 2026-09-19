@@ -452,6 +452,25 @@ export class ReelsFeed {
             video.src = dataSrc;
           }
 
+          if (!video._hasFallbackHandler) {
+            video._hasFallbackHandler = true;
+            video.addEventListener('error', () => {
+              const cur = video.src || '';
+              console.warn('Video failed to load:', cur);
+              if (cur.includes('cdn.jsdelivr.net')) {
+                const rawUrl = cur.replace('cdn.jsdelivr.net/gh/', 'raw.githubusercontent.com/').replace('@main/', '/main/');
+                console.log('Trying raw GitHub fallback:', rawUrl);
+                video.src = rawUrl;
+                video.play().catch(() => {});
+              } else if (cur.includes('raw.githubusercontent.com')) {
+                const jsdUrl = cur.replace('raw.githubusercontent.com/', 'cdn.jsdelivr.net/gh/').replace('/main/', '@main/');
+                console.log('Trying jsDelivr fallback:', jsdUrl);
+                video.src = jsdUrl;
+                video.play().catch(() => {});
+              }
+            });
+          }
+
           // Preload next adjacent video src for instant swipe
           const nextItem = entry.target.nextElementSibling;
           if (nextItem) {

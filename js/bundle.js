@@ -660,18 +660,33 @@
   ]);
   function normalizeVideoUrl(url) {
     if (!url || typeof url !== "string") return url;
+    if (url.startsWith("blob:") || url.startsWith("data:")) return url;
+    let filename = "";
     if (url.startsWith("/uploads/")) {
-      if (typeof window !== "undefined" && window.location.origin && window.location.origin.includes("vercel.app")) {
-        return url;
-      }
-      return `https://nature-moments-app.vercel.app${url}`;
+      filename = url.replace(/^\/uploads\//, "");
+    } else if (url.includes("raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/")) {
+      filename = url.split("/uploads/")[1];
+    } else if (url.includes("cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/")) {
+      filename = url.split("/uploads/")[1];
     }
-    if (url.includes("raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/")) {
-      const filename = url.split("/uploads/")[1];
-      if (typeof window !== "undefined" && window.location.origin && window.location.origin.includes("vercel.app")) {
-        return `/uploads/${filename}`;
-      }
-      return `https://nature-moments-app.vercel.app/uploads/${filename}`;
+    if (filename) {
+      return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
+    }
+    return url;
+  }
+  function normalizeImageUrl(url) {
+    if (!url || typeof url !== "string") return url;
+    if (url.startsWith("blob:") || url.startsWith("data:")) return url;
+    let filename = "";
+    if (url.startsWith("/uploads/")) {
+      filename = url.replace(/^\/uploads\//, "");
+    } else if (url.includes("raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/")) {
+      filename = url.split("/uploads/")[1];
+    } else if (url.includes("cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/")) {
+      filename = url.split("/uploads/")[1];
+    }
+    if (filename) {
+      return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
     }
     return url;
   }
@@ -720,7 +735,11 @@
           }
           sanitizedRemote.forEach((r) => {
             if (r.video_url && !r.video_url.startsWith("blob:")) {
-              mergedMap.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
+              mergedMap.set(r.content_id, {
+                ...r,
+                video_url: normalizeVideoUrl(r.video_url),
+                thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+              });
             }
           });
         }
@@ -739,7 +758,11 @@
           }
           sanitizedCustom.forEach((r) => {
             if (r.video_url && !r.video_url.startsWith("blob:")) {
-              mergedMap.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
+              mergedMap.set(r.content_id, {
+                ...r,
+                video_url: normalizeVideoUrl(r.video_url),
+                thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+              });
             }
           });
         }
@@ -751,7 +774,11 @@
       REELS_DATA.forEach((r) => {
         if (r && r.content_id && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
           if (r.video_url && !r.video_url.startsWith("blob:")) {
-            mergedMap.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
+            mergedMap.set(r.content_id, {
+              ...r,
+              video_url: normalizeVideoUrl(r.video_url),
+              thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+            });
           }
         }
       });
@@ -808,7 +835,11 @@
             const merged = /* @__PURE__ */ new Map();
             cleanRemote.forEach((r) => {
               if (r.video_url && !r.video_url.startsWith("blob:")) {
-                merged.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
+                merged.set(r.content_id, {
+                  ...r,
+                  video_url: normalizeVideoUrl(r.video_url),
+                  thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+                });
               }
             });
             const custom = localStorage.getItem("nature_custom_reels");
@@ -819,7 +850,11 @@
                   parsed.forEach((r) => {
                     if (r && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
                       if (r.video_url && !r.video_url.startsWith("blob:")) {
-                        merged.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
+                        merged.set(r.content_id, {
+                          ...r,
+                          video_url: normalizeVideoUrl(r.video_url),
+                          thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+                        });
                       }
                     }
                   });
@@ -2246,6 +2281,26 @@ ${shareUrl}`);
             const dataSrc = video.getAttribute("data-src");
             if (dataSrc && (!video.src || video.src === window.location.href || video.src === "")) {
               video.src = dataSrc;
+            }
+            if (!video._hasFallbackHandler) {
+              video._hasFallbackHandler = true;
+              video.addEventListener("error", () => {
+                const cur = video.src || "";
+                console.warn("Video failed to load:", cur);
+                if (cur.includes("cdn.jsdelivr.net")) {
+                  const rawUrl = cur.replace("cdn.jsdelivr.net/gh/", "raw.githubusercontent.com/").replace("@main/", "/main/");
+                  console.log("Trying raw GitHub fallback:", rawUrl);
+                  video.src = rawUrl;
+                  video.play().catch(() => {
+                  });
+                } else if (cur.includes("raw.githubusercontent.com")) {
+                  const jsdUrl = cur.replace("raw.githubusercontent.com/", "cdn.jsdelivr.net/gh/").replace("/main/", "@main/");
+                  console.log("Trying jsDelivr fallback:", jsdUrl);
+                  video.src = jsdUrl;
+                  video.play().catch(() => {
+                  });
+                }
+              });
             }
             const nextItem = entry.target.nextElementSibling;
             if (nextItem) {

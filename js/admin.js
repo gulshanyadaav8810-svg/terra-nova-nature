@@ -839,8 +839,8 @@ class AdminStudio {
       });
 
       if (res.ok) {
-        // Return raw GitHub URL which is live immediately with HTTP 206 range streaming!
-        return `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${safeName}`;
+        // Return global CDN URL with HTTP 206 range streaming and instant availability!
+        return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeName}`;
       }
       console.warn('GitHub direct upload HTTP status:', res.status);
     } catch (err) {
@@ -902,7 +902,7 @@ class AdminStudio {
       });
 
       if (res.ok) {
-        return `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${safeName}`;
+        return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeName}`;
       }
       console.warn('GitHub direct thumb upload HTTP status:', res.status);
     } catch (err) {
