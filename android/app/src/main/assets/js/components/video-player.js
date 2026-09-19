@@ -218,35 +218,20 @@ export class VideoPlayer {
     }
 
     this.spinner.classList.add('loading');
-    let videoSourceUrl = reel.video_url;
-
-    if (this.isOffline && this.offlineBlobUrl) {
-      videoSourceUrl = this.offlineBlobUrl;
-    } else {
-      // Check if this reel is already cached in IndexedDB!
-      try {
-        const isLocallyCached = await offlineDb.isDownloaded(reel.content_id);
-        if (isLocallyCached) {
-          videoSourceUrl = await offlineDb.getPlaybackUrl(reel.content_id);
-          this.catEl.textContent = `💾 CACHED • ${this.catEl.textContent}`;
-        }
-      } catch (e) {
-        console.warn('Error checking offlineDb for reel', e);
-      }
-    }
+    let videoSourceUrl = (this.isOffline && this.offlineBlobUrl) ? this.offlineBlobUrl : reel.video_url;
 
     this.video.playsInline = true;
     this.video.setAttribute('playsinline', '');
     this.video.setAttribute('webkit-playsinline', '');
     this.video.setAttribute('x5-playsinline', '');
+    this.video.preload = 'auto';
     this.video.src = videoSourceUrl;
-    this.video.load();
 
-    // Show overlay
+    // Show overlay immediately
     this.overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
 
-    // Play video with audio/muted fallback for Android
+    // Play video immediately with audio/muted fallback for Android
     try {
       this.video.muted = false;
       this.video.volume = 1.0;
@@ -265,6 +250,15 @@ export class VideoPlayer {
         this.centerPlay.classList.add('show');
         this.spinner.classList.remove('loading');
       }
+    }
+
+    // Check offline DB in the background without blocking instant playback
+    if (!this.isOffline) {
+      offlineDb.isDownloaded(reel.content_id).then(async isCached => {
+        if (isCached && this.video.src !== (await offlineDb.getPlaybackUrl(reel.content_id))) {
+          this.catEl.textContent = `💾 CACHED • ${this.catEl.textContent}`;
+        }
+      }).catch(() => {});
     }
   }
 

@@ -408,7 +408,7 @@ export class ReelsFeed {
 
     const options = {
       root: this.container,
-      threshold: 0.5
+      threshold: 0.35
     };
 
     this.observer = new IntersectionObserver((entries) => {
@@ -421,12 +421,10 @@ export class ReelsFeed {
         // CRITICAL: Only allow playback if actively viewing the Reels tab!
         const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
         const reelsView = document.getElementById('view-reels');
-        const isReelsVisible = reelsView && reelsView.style.display === 'block';
+        const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
 
         if (!isReelsTab || !isReelsVisible) {
           video.pause();
-          video.removeAttribute('src');
-          video.load();
           return;
         }
 
@@ -451,6 +449,7 @@ export class ReelsFeed {
           if (dataSrc && (!video.src || video.src === window.location.href || video.src === '')) {
             video.src = dataSrc;
           }
+          video.preload = 'auto';
 
           if (!video._hasFallbackHandler) {
             video._hasFallbackHandler = true;
@@ -471,13 +470,39 @@ export class ReelsFeed {
             });
           }
 
-          // Preload next adjacent video src for instant swipe
+          // Preload next 2 adjacent videos and previous video for instant 0ms swipe
           const nextItem = entry.target.nextElementSibling;
           if (nextItem) {
             const nextVideo = nextItem.querySelector('video');
-            if (nextVideo && (!nextVideo.src || nextVideo.src === window.location.href)) {
+            if (nextVideo) {
               const nextSrc = nextVideo.getAttribute('data-src');
-              if (nextSrc) nextVideo.src = nextSrc;
+              if (nextSrc && (!nextVideo.src || nextVideo.src === window.location.href)) {
+                nextVideo.src = nextSrc;
+              }
+              nextVideo.preload = 'auto';
+            }
+            const nextNextItem = nextItem.nextElementSibling;
+            if (nextNextItem) {
+              const nnVideo = nextNextItem.querySelector('video');
+              if (nnVideo) {
+                const nnSrc = nnVideo.getAttribute('data-src');
+                if (nnSrc && (!nnVideo.src || nnVideo.src === window.location.href)) {
+                  nnVideo.src = nnSrc;
+                }
+                nnVideo.preload = 'auto';
+              }
+            }
+          }
+
+          const prevItem = entry.target.previousElementSibling;
+          if (prevItem) {
+            const prevVideo = prevItem.querySelector('video');
+            if (prevVideo) {
+              const prevSrc = prevVideo.getAttribute('data-src');
+              if (prevSrc && (!prevVideo.src || prevVideo.src === window.location.href)) {
+                prevVideo.src = prevSrc;
+              }
+              prevVideo.preload = 'auto';
             }
           }
 
@@ -489,7 +514,7 @@ export class ReelsFeed {
           video.setAttribute('webkit-playsinline', '');
           video.setAttribute('x5-playsinline', '');
           video.muted = this.isMuted;
-          video.volume = 1.0;
+          video.volume = this.isMuted ? 0 : 1.0;
           const playPromise = video.play();
           if (playPromise !== undefined) {
             playPromise.catch(() => {
@@ -512,10 +537,10 @@ export class ReelsFeed {
           video.pause();
           if (vinyl) vinyl.classList.add('paused');
 
-          // Free hardware decoder on Android if far from active
+          // Free hardware decoder on Android ONLY if far (> 3 items) from active
           const activeIndex = this.activeItem ? parseInt(this.activeItem.getAttribute('data-index') || '0', 10) : -1;
           const thisIndex = parseInt(entry.target.getAttribute('data-index') || '0', 10);
-          if (Math.abs(thisIndex - activeIndex) > 1) {
+          if (Math.abs(thisIndex - activeIndex) > 3) {
             video.removeAttribute('src');
             video.load();
           }
@@ -534,8 +559,7 @@ export class ReelsFeed {
     videos.forEach(v => {
       try {
         v.pause();
-        v.removeAttribute('src');
-        v.load();
+        // Keep buffered src intact for top reels so reopening Reels tab is 0ms instant!
       } catch(e) {}
     });
     const items = this.container.querySelectorAll('.feed-reel-item');
@@ -551,40 +575,75 @@ export class ReelsFeed {
   resumeActive() {
     const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
     const reelsView = document.getElementById('view-reels');
-    const isReelsVisible = reelsView && reelsView.style.display === 'block';
+    const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
 
     if (!isReelsTab || !isReelsVisible) {
       this.pauseAll();
       return;
     }
 
-    const item = this.activeItem || this.container.querySelector('.feed-reel-item');
+    let item = this.activeItem;
+    if (!item || !this.container.contains(item)) {
+      const containerTop = this.container.scrollTop || 0;
+      const items = Array.from(this.container.querySelectorAll('.feed-reel-item'));
+      item = items.find(el => {
+        const top = el.offsetTop - this.container.offsetTop;
+        return Math.abs(top - containerTop) < 150;
+      }) || items[0];
+    }
+
     if (item) {
       this.activeItem = item;
       const video = item.querySelector('video');
       if (video) {
         this.activeVideo = video;
-        const dataSrc = video.getAttribute('data-src');
-        if (dataSrc && (!video.src || video.src === '' || video.src === window.location.href)) {
+        const dataSrc = video.getAttribute('data-src') || video.src;
+        if (!video.src || video.src === '' || video.src === window.location.href) {
           video.src = dataSrc;
         }
+        video.preload = 'auto';
+        video.playsInline = true;
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+        video.setAttribute('x5-playsinline', '');
+        video.muted = this.isMuted;
+        video.volume = this.isMuted ? 0 : 1.0;
+
         item.classList.remove('is-paused');
+        item.classList.add('active-playing');
         const playPulse = item.querySelector('.feed-play-pulse');
         if (playPulse) playPulse.classList.remove('show');
         const vinyl = item.querySelector('.dock-vinyl-disc');
         if (vinyl) vinyl.classList.remove('paused');
 
-        video.playsInline = true;
-        video.muted = this.isMuted;
-        video.volume = this.isMuted ? 0 : 1.0;
+        // Play synchronously for instant 0ms playback
         const p = video.play();
         if (p !== undefined) {
-          p.then(() => {
-            item.classList.add('active-playing');
-          }).catch(() => {
+          p.catch((err) => {
+            console.log('Unmuted autoplay prevented, playing muted:', err);
             video.muted = true;
-            video.play().catch(() => {});
+            video.play().catch(e => console.warn('Autoplay error:', e));
           });
+        }
+
+        // Pre-buffer next 2 adjacent reels immediately
+        const nextItem = item.nextElementSibling;
+        if (nextItem) {
+          const nv = nextItem.querySelector('video');
+          if (nv) {
+            const nextSrc = nv.getAttribute('data-src');
+            if (nextSrc && (!nv.src || nv.src === window.location.href)) nv.src = nextSrc;
+            nv.preload = 'auto';
+          }
+          const nextNextItem = nextItem.nextElementSibling;
+          if (nextNextItem) {
+            const nnv = nextNextItem.querySelector('video');
+            if (nnv) {
+              const nnSrc = nnv.getAttribute('data-src');
+              if (nnSrc && (!nnv.src || nnv.src === window.location.href)) nnv.src = nnSrc;
+              nnv.preload = 'auto';
+            }
+          }
         }
       }
     }
@@ -608,8 +667,8 @@ export class ReelsFeed {
       <!-- Fast 0ms Poster -->
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? 'eager' : 'lazy'}" />
 
-      <!-- 9:16 Video Canvas (No src until Reels tab is activated - 100% zero background noise!) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline preload="none" poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
+      <!-- 9:16 Video Canvas (Preloaded for instant 0ms playback) -->
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 2 ? `src="${reel.video_url}" preload="auto" muted` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
