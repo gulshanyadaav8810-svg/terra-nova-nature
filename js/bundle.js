@@ -642,106 +642,69 @@
   var i18n = new I18nService();
 
   // js/data/reels.js
-  var INITIAL_REELS = [
-    {
-      content_id: "reel-forest-0262u",
-      title: "Nature Stream & Forest Mist",
-      description: "Experience pure serenity, peaceful nature soundscapes, and calming visuals in 9:16 high-definition.",
-      category_id: "forest",
-      thumbnail_url: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80",
-      video_url: "https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4",
-      duration: "0:13",
-      likes_count: 142,
-      shares_count: 54,
-      downloads_count: 98,
-      views_count: 720,
-      is_downloadable: true,
-      is_trending: true,
-      created_at: "2026-09-19T20:20:12.935Z"
-    },
-    {
-      content_id: "reel-mountains-z3ycr",
-      title: "Alpine Mist & High Valleys",
-      description: "Breathtaking mountain peaks, fresh morning mist, and soothing wind through the valleys.",
-      category_id: "mountains",
-      thumbnail_url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80",
-      video_url: "https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4",
-      duration: "0:13",
-      likes_count: 98,
-      shares_count: 32,
-      downloads_count: 64,
-      views_count: 410,
-      is_downloadable: true,
-      is_trending: true,
-      created_at: "2026-09-19T20:19:12.935Z"
-    },
-    {
-      content_id: "reel-ocean-1t68t",
-      title: "Turquoise Ocean Waves",
-      description: "Gentle turquoise ocean waves rolling along pure sandy shores under clear skies.",
-      category_id: "ocean",
-      thumbnail_url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80",
-      video_url: "https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4",
-      duration: "0:13",
-      likes_count: 156,
-      shares_count: 73,
-      downloads_count: 112,
-      views_count: 850,
-      is_downloadable: true,
-      is_trending: true,
-      created_at: "2026-09-19T20:18:12.935Z"
-    },
-    {
-      content_id: "reel-rain-ydez8",
-      title: "Rainforest Raindrops & Blooms",
-      description: "Refreshing rain droplets pattering on lush green leaves and blooming wild flora.",
-      category_id: "rain",
-      thumbnail_url: "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=600&q=80",
-      video_url: "https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/flower.mp4",
-      duration: "0:24",
-      likes_count: 210,
-      shares_count: 88,
-      downloads_count: 145,
-      views_count: 1040,
-      is_downloadable: true,
-      is_trending: true,
-      created_at: "2026-09-19T20:17:12.935Z"
-    }
-  ];
-  var REELS_DATA = [...INITIAL_REELS];
+  var REELS_DATA = [];
+  var DEMO_REEL_IDS = /* @__PURE__ */ new Set([
+    "reel-forest-0262u",
+    "reel-mountains-z3ycr",
+    "reel-ocean-1t68t",
+    "reel-rain-ydez8",
+    "reel-forest-z3ycr",
+    "reel-forest-1t68t",
+    "reel-forest-ydez8"
+  ]);
   var FALLBACK_STREAM = "https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4";
   function loadAllReels() {
     const mergedMap = /* @__PURE__ */ new Map();
-    let deletedIds = /* @__PURE__ */ new Set();
+    let deletedIds = new Set(DEMO_REEL_IDS);
     try {
       const rawDeleted = localStorage.getItem("nature_deleted_reels");
       if (rawDeleted) {
-        deletedIds = new Set(JSON.parse(rawDeleted));
+        const parsed = JSON.parse(rawDeleted);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((id) => deletedIds.add(id));
+        }
       }
     } catch (e) {
     }
-    INITIAL_REELS.forEach((r) => {
-      if (!deletedIds.has(r.content_id)) {
-        mergedMap.set(r.content_id, { ...r });
-      }
-    });
     try {
       const remote = localStorage.getItem("nature_remote_reels");
       if (remote) {
         const parsed = JSON.parse(remote);
         if (Array.isArray(parsed)) {
-          parsed.forEach((r) => {
-            if (r && r.content_id && !deletedIds.has(r.content_id)) {
-              if (!r.video_url || r.video_url.startsWith("blob:")) {
-                r.video_url = FALLBACK_STREAM;
-              }
-              mergedMap.set(r.content_id, { ...r });
+          const sanitizedRemote = parsed.filter((r) => r && r.content_id && !deletedIds.has(r.content_id));
+          if (sanitizedRemote.length !== parsed.length) {
+            localStorage.setItem("nature_remote_reels", JSON.stringify(sanitizedRemote));
+          }
+          sanitizedRemote.forEach((r) => {
+            if (!r.video_url || r.video_url.startsWith("blob:")) {
+              r.video_url = FALLBACK_STREAM;
             }
+            mergedMap.set(r.content_id, { ...r });
           });
         }
       }
     } catch (e) {
       console.warn("Error reading nature_remote_reels from localStorage:", e);
+    }
+    try {
+      const custom = localStorage.getItem("nature_custom_reels");
+      if (custom) {
+        const parsed = JSON.parse(custom);
+        if (Array.isArray(parsed)) {
+          const sanitizedCustom = parsed.filter((r) => r && r.content_id && !deletedIds.has(r.content_id));
+          if (sanitizedCustom.length !== parsed.length) {
+            localStorage.setItem("nature_custom_reels", JSON.stringify(sanitizedCustom));
+          }
+          sanitizedCustom.forEach((r) => {
+            if (!r.video_url || r.video_url.startsWith("blob:")) {
+              r.video_url = FALLBACK_STREAM;
+            }
+            mergedMap.set(r.content_id, { ...r });
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Error reading custom reels from localStorage:", e);
     }
     if (Array.isArray(REELS_DATA) && REELS_DATA.length > 0) {
       REELS_DATA.forEach((r) => {
@@ -752,24 +715,6 @@
           mergedMap.set(r.content_id, { ...r });
         }
       });
-    }
-    try {
-      const custom = localStorage.getItem("nature_custom_reels");
-      if (custom) {
-        const parsed = JSON.parse(custom);
-        if (Array.isArray(parsed)) {
-          parsed.forEach((r) => {
-            if (r && r.content_id && !deletedIds.has(r.content_id)) {
-              if (!r.video_url || r.video_url.startsWith("blob:")) {
-                r.video_url = FALLBACK_STREAM;
-              }
-              mergedMap.set(r.content_id, { ...r });
-            }
-          });
-        }
-      }
-    } catch (e) {
-      console.warn("Error reading custom reels from localStorage:", e);
     }
     try {
       const engagements = JSON.parse(localStorage.getItem("nature_reels_engagement") || "{}");
@@ -798,10 +743,15 @@
       `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=${Date.now()}`,
       `data/reels.json?t=${Date.now()}`
     ];
-    let deletedIds = /* @__PURE__ */ new Set();
+    let deletedIds = new Set(DEMO_REEL_IDS);
     try {
       const rawDeleted = localStorage.getItem("nature_deleted_reels");
-      if (rawDeleted) deletedIds = new Set(JSON.parse(rawDeleted));
+      if (rawDeleted) {
+        const parsed = JSON.parse(rawDeleted);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((id) => deletedIds.add(id));
+        }
+      }
     } catch (e) {
     }
     for (const url of urls) {
@@ -809,24 +759,18 @@
         const res = await fetch(url, { cache: "no-store" });
         if (res.ok) {
           const remoteReels = await res.json();
-          if (Array.isArray(remoteReels) && remoteReels.length > 0) {
+          if (Array.isArray(remoteReels)) {
+            const cleanRemote = remoteReels.filter((r) => r && r.content_id && !deletedIds.has(r.content_id));
             try {
-              localStorage.setItem("nature_remote_reels", JSON.stringify(remoteReels));
+              localStorage.setItem("nature_remote_reels", JSON.stringify(cleanRemote));
             } catch (e) {
             }
             const merged = /* @__PURE__ */ new Map();
-            INITIAL_REELS.forEach((r) => {
-              if (!deletedIds.has(r.content_id)) {
-                merged.set(r.content_id, { ...r });
+            cleanRemote.forEach((r) => {
+              if (!r.video_url || r.video_url.startsWith("blob:")) {
+                r.video_url = FALLBACK_STREAM;
               }
-            });
-            remoteReels.forEach((r) => {
-              if (r && r.content_id && !deletedIds.has(r.content_id)) {
-                if (!r.video_url || r.video_url.startsWith("blob:")) {
-                  r.video_url = FALLBACK_STREAM;
-                }
-                merged.set(r.content_id, { ...r });
-              }
+              merged.set(r.content_id, { ...r });
             });
             const custom = localStorage.getItem("nature_custom_reels");
             if (custom) {
@@ -1542,6 +1486,10 @@ ${shareUrl}`);
           console.warn("Error checking offlineDb for reel", e);
         }
       }
+      this.video.playsInline = true;
+      this.video.setAttribute("playsinline", "");
+      this.video.setAttribute("webkit-playsinline", "");
+      this.video.setAttribute("x5-playsinline", "");
       this.video.src = videoSourceUrl;
       this.video.load();
       this.overlay.classList.add("active");
@@ -1549,10 +1497,19 @@ ${shareUrl}`);
       try {
         await this.video.play();
         this.centerPlay.classList.remove("show");
-      } catch (err) {
-        console.log("Autoplay deferred until user interaction:", err);
-        this.centerPlay.classList.add("show");
         this.spinner.classList.remove("loading");
+      } catch (err) {
+        console.log("Unmuted play blocked by Android, trying muted play:", err);
+        this.video.muted = true;
+        try {
+          await this.video.play();
+          this.centerPlay.classList.remove("show");
+          this.spinner.classList.remove("loading");
+        } catch (err2) {
+          console.warn("Autoplay error:", err2);
+          this.centerPlay.classList.add("show");
+          this.spinner.classList.remove("loading");
+        }
       }
     }
     close() {
@@ -1569,7 +1526,12 @@ ${shareUrl}`);
       if (this.video.paused) {
         this.video.play().then(() => {
           this.centerPlay.classList.remove("show");
-        }).catch((e) => console.warn(e));
+        }).catch(() => {
+          this.video.muted = true;
+          this.video.play().then(() => {
+            this.centerPlay.classList.remove("show");
+          }).catch((e) => console.warn(e));
+        });
       } else {
         this.video.pause();
         this.centerPlay.classList.add("show");
@@ -2055,7 +2017,14 @@ ${shareUrl}`);
                 if (dataSrc && (!video.src || video.src === window.location.href || video.src === "")) {
                   video.src = dataSrc;
                 }
-                video.play().catch(() => {
+                video.playsInline = true;
+                video.setAttribute("playsinline", "");
+                video.setAttribute("webkit-playsinline", "");
+                video.setAttribute("x5-playsinline", "");
+                video.play().catch((err) => {
+                  video.muted = true;
+                  video.play().catch(() => {
+                  });
                 });
                 item.classList.remove("is-paused");
                 if (playPulse) playPulse.classList.remove("show");
@@ -2150,10 +2119,17 @@ ${shareUrl}`);
               }
             }
             video.currentTime = 0;
+            video.playsInline = true;
+            video.setAttribute("playsinline", "");
+            video.setAttribute("webkit-playsinline", "");
+            video.setAttribute("x5-playsinline", "");
             video.muted = this.isMuted;
             const playPromise = video.play();
             if (playPromise !== void 0) {
-              playPromise.catch((e) => console.log("Autoplay handled:", e));
+              playPromise.catch(() => {
+                video.muted = true;
+                video.play().catch((e) => console.log("Autoplay handled:", e));
+              });
             }
             if (vinyl) vinyl.classList.remove("paused");
             if (playPulse) playPulse.classList.remove("show");
@@ -2372,7 +2348,12 @@ ${shareUrl}`);
             const dataSrc = firstVideo.getAttribute("data-src");
             if (dataSrc && !firstVideo.src) firstVideo.src = dataSrc;
             firstVideo.currentTime = 0;
-            firstVideo.play().catch((e) => console.log("Autoplay:", e));
+            firstVideo.muted = true;
+            firstVideo.playsInline = true;
+            firstVideo.setAttribute("playsinline", "");
+            firstVideo.setAttribute("webkit-playsinline", "");
+            firstVideo.setAttribute("x5-playsinline", "");
+            firstVideo.play().catch((e) => console.log("Initial autoplay:", e));
             this.activeItem = firstItem;
             this.activeVideo = firstVideo;
             firstItem.classList.add("active-playing");

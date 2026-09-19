@@ -226,7 +226,14 @@ export class ReelsFeed {
               if (dataSrc && (!video.src || video.src === window.location.href || video.src === '')) {
                 video.src = dataSrc;
               }
-              video.play().catch(() => {});
+              video.playsInline = true;
+              video.setAttribute('playsinline', '');
+              video.setAttribute('webkit-playsinline', '');
+              video.setAttribute('x5-playsinline', '');
+              video.play().catch(err => {
+                video.muted = true;
+                video.play().catch(() => {});
+              });
               item.classList.remove('is-paused');
               if (playPulse) playPulse.classList.remove('show');
               this.showToast('Playing Reel ▶️', '▶️');
@@ -342,10 +349,17 @@ export class ReelsFeed {
           }
 
           video.currentTime = 0;
+          video.playsInline = true;
+          video.setAttribute('playsinline', '');
+          video.setAttribute('webkit-playsinline', '');
+          video.setAttribute('x5-playsinline', '');
           video.muted = this.isMuted;
           const playPromise = video.play();
           if (playPromise !== undefined) {
-            playPromise.catch(e => console.log('Autoplay handled:', e));
+            playPromise.catch(() => {
+              video.muted = true;
+              video.play().catch(e => console.log('Autoplay handled:', e));
+            });
           }
 
           if (vinyl) vinyl.classList.remove('paused');
@@ -591,7 +605,12 @@ export class ReelsFeed {
           const dataSrc = firstVideo.getAttribute('data-src');
           if (dataSrc && !firstVideo.src) firstVideo.src = dataSrc;
           firstVideo.currentTime = 0;
-          firstVideo.play().catch(e => console.log('Autoplay:', e));
+          firstVideo.muted = true;
+          firstVideo.playsInline = true;
+          firstVideo.setAttribute('playsinline', '');
+          firstVideo.setAttribute('webkit-playsinline', '');
+          firstVideo.setAttribute('x5-playsinline', '');
+          firstVideo.play().catch(e => console.log('Initial autoplay:', e));
           this.activeItem = firstItem;
           this.activeVideo = firstVideo;
           firstItem.classList.add('active-playing');

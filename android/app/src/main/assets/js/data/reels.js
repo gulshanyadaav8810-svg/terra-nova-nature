@@ -2,76 +2,22 @@
    NATURE MOMENTS — AUTHENTIC REELS SERVICE & DATASET
    Curated 9:16 vertical nature reels with real-time sync,
    remote fetching from GitHub, and live BroadcastChannel updates.
+   Zero demo reels: strictly loads real user uploads from Admin Studio.
    ========================================================== */
 
-export const INITIAL_REELS = [
-  {
-    content_id: 'reel-forest-0262u',
-    title: 'Nature Stream & Forest Mist',
-    description: 'Experience pure serenity, peaceful nature soundscapes, and calming visuals in 9:16 high-definition.',
-    category_id: 'forest',
-    thumbnail_url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80',
-    video_url: 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4',
-    duration: '0:13',
-    likes_count: 142,
-    shares_count: 54,
-    downloads_count: 98,
-    views_count: 720,
-    is_downloadable: true,
-    is_trending: true,
-    created_at: '2026-09-19T20:20:12.935Z'
-  },
-  {
-    content_id: 'reel-mountains-z3ycr',
-    title: 'Alpine Mist & High Valleys',
-    description: 'Breathtaking mountain peaks, fresh morning mist, and soothing wind through the valleys.',
-    category_id: 'mountains',
-    thumbnail_url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80',
-    video_url: 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4',
-    duration: '0:13',
-    likes_count: 98,
-    shares_count: 32,
-    downloads_count: 64,
-    views_count: 410,
-    is_downloadable: true,
-    is_trending: true,
-    created_at: '2026-09-19T20:19:12.935Z'
-  },
-  {
-    content_id: 'reel-ocean-1t68t',
-    title: 'Turquoise Ocean Waves',
-    description: 'Gentle turquoise ocean waves rolling along pure sandy shores under clear skies.',
-    category_id: 'ocean',
-    thumbnail_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80',
-    video_url: 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4',
-    duration: '0:13',
-    likes_count: 156,
-    shares_count: 73,
-    downloads_count: 112,
-    views_count: 850,
-    is_downloadable: true,
-    is_trending: true,
-    created_at: '2026-09-19T20:18:12.935Z'
-  },
-  {
-    content_id: 'reel-rain-ydez8',
-    title: 'Rainforest Raindrops & Blooms',
-    description: 'Refreshing rain droplets pattering on lush green leaves and blooming wild flora.',
-    category_id: 'rain',
-    thumbnail_url: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=600&q=80',
-    video_url: 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/flower.mp4',
-    duration: '0:24',
-    likes_count: 210,
-    shares_count: 88,
-    downloads_count: 145,
-    views_count: 1040,
-    is_downloadable: true,
-    is_trending: true,
-    created_at: '2026-09-19T20:17:12.935Z'
-  }
-];
+export const INITIAL_REELS = [];
 
-export let REELS_DATA = [...INITIAL_REELS];
+export let REELS_DATA = [];
+
+const DEMO_REEL_IDS = new Set([
+  'reel-forest-0262u',
+  'reel-mountains-z3ycr',
+  'reel-ocean-1t68t',
+  'reel-rain-ydez8',
+  'reel-forest-z3ycr',
+  'reel-forest-1t68t',
+  'reel-forest-ydez8'
+]);
 
 const FALLBACK_STREAM = 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
 
@@ -79,40 +25,61 @@ const FALLBACK_STREAM = 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra
 export function loadAllReels() {
   const mergedMap = new Map();
 
-  // 1. Get tombstone deleted IDs
-  let deletedIds = new Set();
+  // 1. Get tombstone deleted IDs (including all demo reel IDs)
+  let deletedIds = new Set(DEMO_REEL_IDS);
   try {
     const rawDeleted = localStorage.getItem('nature_deleted_reels');
     if (rawDeleted) {
-      deletedIds = new Set(JSON.parse(rawDeleted));
+      const parsed = JSON.parse(rawDeleted);
+      if (Array.isArray(parsed)) {
+        parsed.forEach(id => deletedIds.add(id));
+      }
     }
   } catch (e) {}
 
-  // 2. Add base reels (if not deleted)
-  INITIAL_REELS.forEach(r => {
-    if (!deletedIds.has(r.content_id)) {
-      mergedMap.set(r.content_id, { ...r });
-    }
-  });
-
-  // 3. Add remote reels cached from Cloud/GitHub sync
+  // 2. Add remote reels cached from Cloud/GitHub sync
   try {
     const remote = localStorage.getItem('nature_remote_reels');
     if (remote) {
       const parsed = JSON.parse(remote);
       if (Array.isArray(parsed)) {
-        parsed.forEach(r => {
-          if (r && r.content_id && !deletedIds.has(r.content_id)) {
-            if (!r.video_url || r.video_url.startsWith('blob:')) {
-              r.video_url = FALLBACK_STREAM;
-            }
-            mergedMap.set(r.content_id, { ...r });
+        // Purge any demo reels from localStorage
+        const sanitizedRemote = parsed.filter(r => r && r.content_id && !deletedIds.has(r.content_id));
+        if (sanitizedRemote.length !== parsed.length) {
+          localStorage.setItem('nature_remote_reels', JSON.stringify(sanitizedRemote));
+        }
+        sanitizedRemote.forEach(r => {
+          if (!r.video_url || r.video_url.startsWith('blob:')) {
+            r.video_url = FALLBACK_STREAM;
           }
+          mergedMap.set(r.content_id, { ...r });
         });
       }
     }
   } catch (e) {
     console.warn('Error reading nature_remote_reels from localStorage:', e);
+  }
+
+  // 3. Add local custom reels from Admin Panel
+  try {
+    const custom = localStorage.getItem('nature_custom_reels');
+    if (custom) {
+      const parsed = JSON.parse(custom);
+      if (Array.isArray(parsed)) {
+        const sanitizedCustom = parsed.filter(r => r && r.content_id && !deletedIds.has(r.content_id));
+        if (sanitizedCustom.length !== parsed.length) {
+          localStorage.setItem('nature_custom_reels', JSON.stringify(sanitizedCustom));
+        }
+        sanitizedCustom.forEach(r => {
+          if (!r.video_url || r.video_url.startsWith('blob:')) {
+            r.video_url = FALLBACK_STREAM;
+          }
+          mergedMap.set(r.content_id, { ...r });
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Error reading custom reels from localStorage:', e);
   }
 
   // 4. Preserve existing in-memory REELS_DATA if populated
@@ -127,27 +94,7 @@ export function loadAllReels() {
     });
   }
 
-  // 5. Add local custom reels from Admin Panel
-  try {
-    const custom = localStorage.getItem('nature_custom_reels');
-    if (custom) {
-      const parsed = JSON.parse(custom);
-      if (Array.isArray(parsed)) {
-        parsed.forEach(r => {
-          if (r && r.content_id && !deletedIds.has(r.content_id)) {
-            if (!r.video_url || r.video_url.startsWith('blob:')) {
-              r.video_url = FALLBACK_STREAM;
-            }
-            mergedMap.set(r.content_id, { ...r });
-          }
-        });
-      }
-    }
-  } catch (e) {
-    console.warn('Error reading custom reels from localStorage:', e);
-  }
-
-  // 6. Apply persistent engagement overrides (likes, shares, downloads, views)
+  // 5. Apply persistent engagement overrides (likes, shares, downloads, views)
   try {
     const engagements = JSON.parse(localStorage.getItem('nature_reels_engagement') || '{}');
     mergedMap.forEach((r, id) => {
@@ -163,7 +110,7 @@ export function loadAllReels() {
     console.warn('Error applying engagement overrides:', e);
   }
 
-  // 7. Return sorted array (newest on top)
+  // 6. Return sorted array (newest on top)
   const all = Array.from(mergedMap.values());
   all.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   REELS_DATA = all;
@@ -184,11 +131,16 @@ export async function syncRemoteReels() {
     `data/reels.json?t=${Date.now()}`
   ];
 
-  // Load deleted IDs tombstone
-  let deletedIds = new Set();
+  // Load deleted IDs tombstone including demo reels
+  let deletedIds = new Set(DEMO_REEL_IDS);
   try {
     const rawDeleted = localStorage.getItem('nature_deleted_reels');
-    if (rawDeleted) deletedIds = new Set(JSON.parse(rawDeleted));
+    if (rawDeleted) {
+      const parsed = JSON.parse(rawDeleted);
+      if (Array.isArray(parsed)) {
+        parsed.forEach(id => deletedIds.add(id));
+      }
+    }
   } catch (e) {}
 
   for (const url of urls) {
@@ -196,27 +148,23 @@ export async function syncRemoteReels() {
       const res = await fetch(url, { cache: 'no-store' });
       if (res.ok) {
         const remoteReels = await res.json();
-        if (Array.isArray(remoteReels) && remoteReels.length > 0) {
+        if (Array.isArray(remoteReels)) {
+          // Filter out demo reels
+          const cleanRemote = remoteReels.filter(r => r && r.content_id && !deletedIds.has(r.content_id));
+
           // Persist raw remote dataset to localStorage
           try {
-            localStorage.setItem('nature_remote_reels', JSON.stringify(remoteReels));
+            localStorage.setItem('nature_remote_reels', JSON.stringify(cleanRemote));
           } catch (e) {}
 
           const merged = new Map();
-          INITIAL_REELS.forEach(r => {
-            if (!deletedIds.has(r.content_id)) {
-              merged.set(r.content_id, { ...r });
-            }
-          });
 
           // Sanitize remote reels (replace dead blob URLs with real CDN streaming URLs)
-          remoteReels.forEach(r => {
-            if (r && r.content_id && !deletedIds.has(r.content_id)) {
-              if (!r.video_url || r.video_url.startsWith('blob:')) {
-                r.video_url = FALLBACK_STREAM;
-              }
-              merged.set(r.content_id, { ...r });
+          cleanRemote.forEach(r => {
+            if (!r.video_url || r.video_url.startsWith('blob:')) {
+              r.video_url = FALLBACK_STREAM;
             }
+            merged.set(r.content_id, { ...r });
           });
           
           // Also persist any local customs
@@ -563,10 +511,9 @@ export function deleteCustomReelsBatch(idList) {
 
 export function wipeAllReels() {
   try {
-    // Add all current IDs to deleted tombstone
     try {
       const deletedSet = new Set(REELS_DATA.map(r => r.content_id));
-      INITIAL_REELS.forEach(r => deletedSet.add(r.content_id));
+      DEMO_REEL_IDS.forEach(id => deletedSet.add(id));
       localStorage.setItem('nature_deleted_reels', JSON.stringify(Array.from(deletedSet)));
     } catch (e) {}
 

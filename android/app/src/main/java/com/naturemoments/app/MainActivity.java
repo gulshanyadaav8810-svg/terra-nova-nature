@@ -25,6 +25,8 @@ import androidx.webkit.WebViewClientCompat;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 import android.media.MediaScannerConnection;
 
 public class MainActivity extends Activity {
@@ -198,6 +200,11 @@ public class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        }
+
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
         // Initialize Android Jetpack WebViewAssetLoader
         final WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
@@ -207,13 +214,26 @@ public class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClientCompat() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                return assetLoader.shouldInterceptRequest(request.getUrl());
+                Uri url = request.getUrl();
+                if (url != null && url.getHost() != null && url.getHost().equals("appassets.androidplatform.net")) {
+                    String path = url.getPath();
+                    if (path != null && path.toLowerCase().endsWith(".mp4")) {
+                        WebResourceResponse rangeResp = handleAssetVideoRange(request, url);
+                        if (rangeResp != null) return rangeResp;
+                    }
+                    return assetLoader.shouldInterceptRequest(url);
+                }
+                return null;
             }
 
             @Override
             @SuppressWarnings("deprecation")
-            public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
-                return assetLoader.shouldInterceptRequest(Uri.parse(url));
+            public WebResourceResponse shouldInterceptRequest(WebView view, String urlString) {
+                Uri url = Uri.parse(urlString);
+                if (url != null && url.getHost() != null && url.getHost().equals("appassets.androidplatform.net")) {
+                    return assetLoader.shouldInterceptRequest(url);
+                }
+                return null;
             }
         });
 
@@ -233,6 +253,76 @@ public class MainActivity extends Activity {
         webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
 
         hideSystemUI();
+    }
+
+    private WebResourceResponse handleAssetVideoRange(WebResourceRequest request, Uri url) {
+        try {
+            String path = url.getPath();
+            if (path == null) return null;
+            String assetPath = path;
+            if (assetPath.startsWith("/assets/")) {
+                assetPath = assetPath.substring("/assets/".length());
+            }
+
+            android.content.res.AssetFileDescriptor afd = null;
+            try {
+                afd = getAssets().openFd(assetPath);
+            } catch (Exception e1) {
+                if (!assetPath.startsWith("assets/")) {
+                    try {
+                        afd = getAssets().openFd("assets/" + assetPath);
+                    } catch (Exception e2) {
+                        return null;
+                    }
+                } else {
+                    return null;
+                }
+            }
+
+            if (afd == null) return null;
+
+            long fileLength = afd.getLength();
+            java.io.FileInputStream fis = afd.createInputStream();
+
+            Map<String, String> requestHeaders = request.getRequestHeaders();
+            String rangeHeader = requestHeaders != null ? requestHeaders.get("Range") : null;
+            if (rangeHeader == null && requestHeaders != null) {
+                rangeHeader = requestHeaders.get("range");
+            }
+
+            if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+                String rangeValue = rangeHeader.substring(6);
+                String[] parts = rangeValue.split("-");
+                long start = Long.parseLong(parts[0]);
+                long end = (parts.length > 1 && !parts[1].trim().isEmpty()) ? Long.parseLong(parts[1].trim()) : fileLength - 1;
+                if (end >= fileLength) end = fileLength - 1;
+                long rangeLength = end - start + 1;
+
+                if (start > 0) {
+                    fis.skip(start);
+                }
+
+                Map<String, String> responseHeaders = new HashMap<>();
+                responseHeaders.put("Content-Type", "video/mp4");
+                responseHeaders.put("Content-Range", "bytes " + start + "-" + end + "/" + fileLength);
+                responseHeaders.put("Content-Length", String.valueOf(rangeLength));
+                responseHeaders.put("Accept-Ranges", "bytes");
+                responseHeaders.put("Access-Control-Allow-Origin", "*");
+
+                return new WebResourceResponse("video/mp4", "UTF-8", 206, "Partial Content", responseHeaders, fis);
+            } else {
+                Map<String, String> responseHeaders = new HashMap<>();
+                responseHeaders.put("Content-Type", "video/mp4");
+                responseHeaders.put("Content-Length", String.valueOf(fileLength));
+                responseHeaders.put("Accept-Ranges", "bytes");
+                responseHeaders.put("Access-Control-Allow-Origin", "*");
+
+                return new WebResourceResponse("video/mp4", "UTF-8", 200, "OK", responseHeaders, fis);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error handling asset video range: " + url, e);
+            return null;
+        }
     }
 
     @Override

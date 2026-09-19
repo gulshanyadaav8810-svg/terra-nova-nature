@@ -232,6 +232,10 @@ export class VideoPlayer {
       }
     }
 
+    this.video.playsInline = true;
+    this.video.setAttribute('playsinline', '');
+    this.video.setAttribute('webkit-playsinline', '');
+    this.video.setAttribute('x5-playsinline', '');
     this.video.src = videoSourceUrl;
     this.video.load();
 
@@ -239,14 +243,23 @@ export class VideoPlayer {
     this.overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
 
-    // Play video
+    // Play video with audio/muted fallback for Android
     try {
       await this.video.play();
       this.centerPlay.classList.remove('show');
-    } catch (err) {
-      console.log('Autoplay deferred until user interaction:', err);
-      this.centerPlay.classList.add('show');
       this.spinner.classList.remove('loading');
+    } catch (err) {
+      console.log('Unmuted play blocked by Android, trying muted play:', err);
+      this.video.muted = true;
+      try {
+        await this.video.play();
+        this.centerPlay.classList.remove('show');
+        this.spinner.classList.remove('loading');
+      } catch (err2) {
+        console.warn('Autoplay error:', err2);
+        this.centerPlay.classList.add('show');
+        this.spinner.classList.remove('loading');
+      }
     }
   }
 
@@ -265,7 +278,12 @@ export class VideoPlayer {
     if (this.video.paused) {
       this.video.play().then(() => {
         this.centerPlay.classList.remove('show');
-      }).catch(e => console.warn(e));
+      }).catch(() => {
+        this.video.muted = true;
+        this.video.play().then(() => {
+          this.centerPlay.classList.remove('show');
+        }).catch(e => console.warn(e));
+      });
     } else {
       this.video.pause();
       this.centerPlay.classList.add('show');
