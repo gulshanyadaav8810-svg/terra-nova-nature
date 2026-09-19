@@ -544,10 +544,15 @@ export class ReelsFeed {
 
     if (!this.filteredReels || this.filteredReels.length === 0) {
       this.container.innerHTML = `
-        <div class="empty-state" style="height: 100%; justify-content: center;">
-          <div class="empty-state-icon">🌿</div>
-          <h3 class="empty-state-title" style="color: #fff;">${i18n.t('empty_category_title')}</h3>
-          <p class="empty-state-subtitle" style="color: rgba(255,255,255,0.7);">${i18n.t('empty_category_sub')}</p>
+        <div class="empty-state" style="height: 100%; justify-content: center; text-align: center; padding: 24px;">
+          <div class="empty-state-icon" style="font-size: 3rem; margin-bottom: 12px;">🌿</div>
+          <h3 class="empty-state-title" style="color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px;">No Nature Reels Yet</h3>
+          <p class="empty-state-subtitle" style="color: rgba(255,255,255,0.7); font-size: 0.9rem; max-width: 300px; margin: 0 auto 20px;">
+            Publish videos or use Bulk Upload in the Admin Studio to populate this feed.
+          </p>
+          <a href="admin.html" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 0.92rem;">
+            <span>🛠️ Open Admin Studio</span>
+          </a>
         </div>
       `;
       return;

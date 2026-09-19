@@ -94,12 +94,17 @@ export class ReelsGrid {
     const emptyWrapper = document.createElement('div');
     emptyWrapper.className = 'empty-state';
     emptyWrapper.style.gridColumn = '1 / -1';
-    emptyWrapper.style.padding = '40px 16px';
+    emptyWrapper.style.padding = '60px 16px';
     emptyWrapper.style.textAlign = 'center';
     emptyWrapper.innerHTML = `
-      <div class="empty-state-icon" style="font-size: 2.4rem; margin-bottom: 12px;">🌿</div>
-      <h3 class="empty-state-title" style="color: #17483A; font-size: 1.15rem; margin-bottom: 6px;">${i18n.t('empty_category_title', 'No reels found')}</h3>
-      <p class="empty-state-subtitle" style="color: #61756D; font-size: 0.9rem;">${i18n.t('empty_category_sub', 'Try selecting another category')}</p>
+      <div class="empty-state-icon" style="font-size: 3rem; margin-bottom: 14px;">🌿</div>
+      <h3 class="empty-state-title" style="color: #17483A; font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">No Reels Uploaded Yet</h3>
+      <p class="empty-state-subtitle" style="color: #61756D; font-size: 0.9rem; max-width: 300px; margin: 0 auto 20px;">
+        Upload single videos or use Bulk Upload from the Admin Studio to publish reels directly here.
+      </p>
+      <a href="admin.html" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #17483C; color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 0.92rem; box-shadow: 0 4px 14px rgba(23,72,60,0.3);">
+        <span>🛠️ Open Admin Studio</span>
+      </a>
     `;
     this.container.appendChild(emptyWrapper);
   }

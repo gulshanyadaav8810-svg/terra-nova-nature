@@ -1,0 +1,34 @@
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Android Build Outputs & Caches
+android/.gradle/
+android/app/build/
+android/build/
+android/.idea/
+android/local.properties
+android/*.iml
+android/app/*.iml
+.gradle/
+build/
+
+# Verification & Scratch Test Files
+scratch/
+verification_screenshots/
+*.log
+screenshot_*.png
+emulator_*.png
+test_*.mjs
+create_playstore_assets.mjs
+verify_app.mjs
+.tempmediaStorage/
+.user_uploaded/
+.vscode/
+.vercel

@@ -91,20 +91,6 @@ class NatureMomentsApp {
       this.btnHomeHamburger.addEventListener('click', () => this.sideDrawer.open());
     }
 
-    // Sound toggle on Home header
-    if (this.btnHomeSound) {
-      this.btnHomeSound.addEventListener('click', () => {
-        const isAudioActive = soundEngine.toggleSound(this.currentCategory || 'forest');
-        if (isAudioActive) {
-          this.btnHomeSound.classList.add('active');
-          this.showToast(`🔊 Nature Soundscape Active: ${this.currentCategory.toUpperCase()}`, '🌿');
-        } else {
-          this.btnHomeSound.classList.remove('active');
-          this.showToast('🔇 Nature Soundscape Muted', 'ℹ️');
-        }
-      });
-    }
-
     // 3. Dedicated Video Player Overlay (Plays full video with sound on card click)
     const playerOverlay = document.getElementById('video-player-overlay');
     this.player = new VideoPlayer(playerOverlay, (msg, icon) => this.showToast(msg, icon));

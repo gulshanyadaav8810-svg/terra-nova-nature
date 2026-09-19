@@ -5,13 +5,16 @@
    ========================================================== */
 
 import { getAllCategories, addCustomCategory, getCategoryById } from './data/categories.js';
-import { loadAllReels, addCustomReel, deleteCustomReel, REELS_DATA } from './data/reels.js';
+import { loadAllReels, addCustomReel, addCustomReelsBatch, deleteCustomReel, deleteCustomReelsBatch, wipeAllReels, REELS_DATA } from './data/reels.js';
 
 class AdminStudio {
   constructor() {
     this.currentTab = 'tab-dashboard';
     this.reels = [];
     this.categories = [];
+    this.selectedReelIds = new Set();
+    this.bulkFilesQueue = [];
+    this.bulkMode = 'files'; // 'files' | 'json'
     this.videoMode = 'url'; // 'url' | 'file'
     this.thumbMode = 'url'; // 'url' | 'file'
     this.uploadedVideoBlobUrl = null;
@@ -21,6 +24,7 @@ class AdminStudio {
     this._initTabs();
     this._loadData();
     this._bindFormEvents();
+    this._bindBulkUploadEvents();
     this._bindCategoryModal();
     this._bindSyncEvents();
     this._bindSearchFilter();
@@ -93,6 +97,24 @@ class AdminStudio {
     document.getElementById('btn-dash-view-all')?.addEventListener('click', () => this.switchTab('tab-library'));
     document.getElementById('btn-quick-upload-reel')?.addEventListener('click', () => this.switchTab('tab-upload'));
     document.getElementById('btn-lib-add-reel')?.addEventListener('click', () => this.switchTab('tab-upload'));
+    document.getElementById('btn-lib-bulk-upload-trigger')?.addEventListener('click', () => this.switchTab('tab-bulk-upload'));
+
+    // Bulk actions in library
+    document.getElementById('btn-bulk-deselect-all')?.addEventListener('click', () => {
+      this.selectedReelIds.clear();
+      document.querySelectorAll('.reel-row-checkbox').forEach(cb => cb.checked = false);
+      const selectAll = document.getElementById('check-select-all-reels');
+      if (selectAll) selectAll.checked = false;
+      this._updateBulkActionBar();
+    });
+
+    document.getElementById('btn-bulk-delete-selected')?.addEventListener('click', () => {
+      this._handleBulkDeleteSelected();
+    });
+
+    document.getElementById('btn-wipe-all-reels')?.addEventListener('click', () => {
+      this._handleWipeAllReels();
+    });
   }
 
   switchTab(tabId) {
@@ -120,6 +142,7 @@ class AdminStudio {
     const titles = {
       'tab-dashboard': ['Studio Dashboard', 'Real-time content management & live app synchronization'],
       'tab-upload': ['Upload Nature Reel', 'Publish authentic 9:16 vertical reels directly into the user app'],
+      'tab-bulk-upload': ['Bulk Reels Upload', 'Upload multiple nature videos or import batches via JSON/CSV'],
       'tab-categories': ['Nature Categories (20+)', 'Manage and organize all nature themes, icons, and avatars'],
       'tab-library': ['Reels Library', 'Inspect, preview, edit, and curate active nature moments'],
       'tab-sync': ['GitHub & Cloud Sync', 'Deploy live updates to repository and GitHub Pages']
@@ -185,6 +208,19 @@ class AdminStudio {
         libFilter.appendChild(opt);
       });
     }
+
+    // Also update bulk batch category
+    const bulkCatSelect = document.getElementById('bulk-batch-category');
+    if (bulkCatSelect) {
+      bulkCatSelect.innerHTML = '';
+      this.categories.forEach(cat => {
+        if (cat.id === 'trending') return;
+        const opt = document.createElement('option');
+        opt.value = cat.id;
+        opt.textContent = `${cat.icon} ${cat.name}`;
+        bulkCatSelect.appendChild(opt);
+      });
+    }
   }
 
   _renderCategoriesGrid() {
@@ -241,6 +277,44 @@ class AdminStudio {
     });
   }
 
+  _updateBulkActionBar() {
+    const bar = document.getElementById('library-bulk-actions');
+    const countEl = document.getElementById('bulk-selected-count');
+    const selectAllCheck = document.getElementById('check-select-all-reels');
+    if (!bar) return;
+
+    const count = this.selectedReelIds.size;
+    if (count > 0) {
+      bar.classList.add('show');
+      if (countEl) countEl.textContent = `${count} reel${count > 1 ? 's' : ''} selected`;
+    } else {
+      bar.classList.remove('show');
+      if (selectAllCheck) selectAllCheck.checked = false;
+    }
+  }
+
+  _handleBulkDeleteSelected() {
+    const count = this.selectedReelIds.size;
+    if (count === 0) return;
+
+    if (confirm(`Are you sure you want to delete ${count} selected reel${count > 1 ? 's' : ''}?`)) {
+      const ids = Array.from(this.selectedReelIds);
+      deleteCustomReelsBatch(ids);
+      this.selectedReelIds.clear();
+      this.showToast(`🗑️ ${count} reels deleted successfully`, '🗑️');
+      this._loadData();
+    }
+  }
+
+  _handleWipeAllReels() {
+    if (confirm('⚠️ Are you sure you want to delete ALL reels from the app? This cannot be undone.')) {
+      wipeAllReels();
+      this.selectedReelIds.clear();
+      this.showToast('All demo & uploaded reels deleted', '🗑️');
+      this._loadData();
+    }
+  }
+
   _renderLibraryTable(filterCategory = 'all', searchQuery = '') {
     const tbody = document.getElementById('library-reels-tbody');
     if (!tbody) return;
@@ -261,21 +335,41 @@ class AdminStudio {
       list = list.filter(r => r.title.toLowerCase().includes(q) || r.category_id.toLowerCase().includes(q));
     }
 
+    // Select All Checkbox Handler
+    const selectAllCheck = document.getElementById('check-select-all-reels');
+    if (selectAllCheck) {
+      selectAllCheck.checked = list.length > 0 && list.every(r => this.selectedReelIds.has(r.content_id));
+      selectAllCheck.onchange = (e) => {
+        if (e.target.checked) {
+          list.forEach(r => this.selectedReelIds.add(r.content_id));
+        } else {
+          list.forEach(r => this.selectedReelIds.delete(r.content_id));
+        }
+        document.querySelectorAll('.reel-row-checkbox').forEach(cb => {
+          cb.checked = e.target.checked;
+        });
+        this._updateBulkActionBar();
+      };
+    }
+
     if (list.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="6" style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
+          <td colspan="7" style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
             🌿 No reels found matching this filter.
           </td>
         </tr>
       `;
+      this._updateBulkActionBar();
       return;
     }
 
     list.forEach(reel => {
       const cat = getCategoryById(reel.category_id);
+      const isChecked = this.selectedReelIds.has(reel.content_id);
       const tr = document.createElement('tr');
       tr.innerHTML = `
+        <td><input type="checkbox" class="admin-checkbox reel-row-checkbox" data-id="${reel.content_id}" ${isChecked ? 'checked' : ''} /></td>
         <td><img class="table-thumb" src="${reel.thumbnail_url}" alt="${reel.title}" /></td>
         <td>
           <div style="font-weight: 700; color: #fff; max-width: 320px;">${reel.title}</div>
@@ -298,6 +392,20 @@ class AdminStudio {
         </td>
       `;
 
+      // Checkbox event
+      const rowCb = tr.querySelector('.reel-row-checkbox');
+      rowCb.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          this.selectedReelIds.add(reel.content_id);
+        } else {
+          this.selectedReelIds.delete(reel.content_id);
+        }
+        if (selectAllCheck) {
+          selectAllCheck.checked = list.every(r => this.selectedReelIds.has(r.content_id));
+        }
+        this._updateBulkActionBar();
+      });
+
       // Bind actions
       tr.querySelector('.btn-preview-reel').addEventListener('click', () => {
         this._openPlayerModal(reel);
@@ -306,6 +414,7 @@ class AdminStudio {
       tr.querySelector('.btn-delete-reel').addEventListener('click', () => {
         if (confirm(`Are you sure you want to delete "${reel.title}"?`)) {
           deleteCustomReel(reel.content_id);
+          this.selectedReelIds.delete(reel.content_id);
           this.showToast('Reel deleted from App', '🗑️');
           this._loadData();
         }
@@ -313,6 +422,8 @@ class AdminStudio {
 
       tbody.appendChild(tr);
     });
+
+    this._updateBulkActionBar();
   }
 
   _bindSearchFilter() {
@@ -545,6 +656,289 @@ class AdminStudio {
       this.modalVideoEl.src = '';
       this.modalPlayer.classList.remove('show');
     };
+  }
+
+  _bindBulkUploadEvents() {
+    const btnTabFiles = document.getElementById('btn-bulk-tab-files');
+    const btnTabJson = document.getElementById('btn-bulk-tab-json');
+    const secFiles = document.getElementById('bulk-section-files');
+    const secJson = document.getElementById('bulk-section-json');
+
+    btnTabFiles?.addEventListener('click', () => {
+      this.bulkMode = 'files';
+      btnTabFiles.classList.add('btn-primary');
+      btnTabFiles.classList.remove('btn-secondary');
+      btnTabJson.classList.remove('btn-primary');
+      btnTabJson.classList.add('btn-secondary');
+      if (secFiles) secFiles.style.display = 'block';
+      if (secJson) secJson.style.display = 'none';
+    });
+
+    btnTabJson?.addEventListener('click', () => {
+      this.bulkMode = 'json';
+      btnTabJson.classList.add('btn-primary');
+      btnTabJson.classList.remove('btn-secondary');
+      btnTabFiles.classList.remove('btn-primary');
+      btnTabFiles.classList.add('btn-secondary');
+      if (secFiles) secFiles.style.display = 'none';
+      if (secJson) secJson.style.display = 'block';
+    });
+
+    // Dropzone & File Input
+    const dropzone = document.getElementById('bulk-video-dropzone');
+    const inputFiles = document.getElementById('input-bulk-videos');
+    dropzone?.addEventListener('click', () => inputFiles?.click());
+
+    // Drag & drop support
+    dropzone?.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = 'var(--admin-primary)';
+    });
+    dropzone?.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = '';
+    });
+    dropzone?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = '';
+      if (e.dataTransfer?.files?.length) {
+        this._processBulkFiles(Array.from(e.dataTransfer.files));
+      }
+    });
+
+    inputFiles?.addEventListener('change', (e) => {
+      if (e.target.files?.length) {
+        this._processBulkFiles(Array.from(e.target.files));
+      }
+    });
+
+    // Publish Batch
+    const btnPublish = document.getElementById('btn-publish-bulk-files');
+    btnPublish?.addEventListener('click', () => {
+      this._publishBulkQueue();
+    });
+
+    // Mode 2: JSON Bulk
+    const btnSampleJson = document.getElementById('btn-load-sample-bulk-json');
+    const jsonInput = document.getElementById('bulk-json-input');
+    const btnSubmitJson = document.getElementById('btn-submit-bulk-json');
+
+    btnSampleJson?.addEventListener('click', () => {
+      const sample = [
+        {
+          "title": "Enchanted Emerald Forest & Birds",
+          "category_id": "forest",
+          "video_url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+          "thumbnail_url": "https://images.unsplash.com/photo-1511497584788-87676104235f?auto=format&fit=crop&w=600&q=80",
+          "duration": "0:15",
+          "is_trending": true,
+          "is_downloadable": true,
+          "description": "Deep lush emerald forest canopy swaying in gentle breeze."
+        },
+        {
+          "title": "Cascading Alpine Waterfall Echoes",
+          "category_id": "waterfalls",
+          "video_url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+          "thumbnail_url": "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=600&q=80",
+          "duration": "0:20",
+          "is_trending": false,
+          "is_downloadable": true,
+          "description": "Pure glacial runoff crashing down volcanic cliffs."
+        }
+      ];
+      if (jsonInput) jsonInput.value = JSON.stringify(sample, null, 2);
+    });
+
+    btnSubmitJson?.addEventListener('click', () => {
+      const raw = jsonInput?.value.trim();
+      if (!raw) {
+        alert('Please paste JSON data first or click "Load Sample JSON"');
+        return;
+      }
+
+      try {
+        let parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) {
+          if (parsed && typeof parsed === 'object') parsed = [parsed];
+          else throw new Error('Data must be an array of reels');
+        }
+
+        const validReels = parsed.map((item, idx) => {
+          const catId = item.category_id || 'forest';
+          const cat = getCategoryById(catId);
+          return {
+            content_id: item.content_id || `reel-${catId}-${Date.now()}-${idx}`,
+            title: item.title || `Nature Moment #${idx + 1}`,
+            description: item.description || 'Authentic nature moment recorded in high definition.',
+            category_id: catId,
+            thumbnail_url: item.thumbnail_url || cat.image_url,
+            video_url: item.video_url || 'assets/videos/nature_stream.mp4',
+            duration: item.duration || '0:20',
+            is_downloadable: item.is_downloadable !== false,
+            is_trending: Boolean(item.is_trending),
+            created_at: new Date().toISOString()
+          };
+        });
+
+        addCustomReelsBatch(validReels);
+        this.showToast(`✨ ${validReels.length} reels imported successfully!`, '🌿');
+        if (jsonInput) jsonInput.value = '';
+        this._loadData();
+        setTimeout(() => this.switchTab('tab-library'), 600);
+      } catch (err) {
+        alert('Invalid JSON: ' + err.message);
+      }
+    });
+  }
+
+  async _processBulkFiles(files) {
+    const defaultCat = document.getElementById('bulk-batch-category')?.value || 'forest';
+    const isTrending = document.getElementById('bulk-batch-trending')?.checked ?? true;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file.type.startsWith('video/')) continue;
+
+      const cleanTitle = file.name
+        .replace(/\.[^/.]+$/, '')
+        .replace(/[-_]+/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
+
+      const blobUrl = URL.createObjectURL(file);
+      const cat = getCategoryById(defaultCat);
+      const randomSuffix = Math.random().toString(36).substring(2, 7);
+
+      // Read duration
+      const duration = await this._getVideoDuration(blobUrl);
+
+      this.bulkFilesQueue.push({
+        id: `reel-${defaultCat}-${randomSuffix}`,
+        title: cleanTitle,
+        file: file,
+        blobUrl: blobUrl,
+        category_id: defaultCat,
+        thumbnail_url: cat.image_url,
+        duration: duration,
+        is_trending: isTrending,
+        is_downloadable: true,
+        description: `Peaceful nature reel: ${cleanTitle}`
+      });
+    }
+
+    this._renderBulkFilesQueue();
+  }
+
+  _getVideoDuration(url) {
+    return new Promise((resolve) => {
+      const temp = document.createElement('video');
+      temp.preload = 'metadata';
+      temp.src = url;
+      temp.onloadedmetadata = () => {
+        const durSec = Math.round(temp.duration);
+        const m = Math.floor(durSec / 60);
+        const s = durSec % 60;
+        resolve(`${m}:${s < 10 ? '0' : ''}${s}`);
+      };
+      temp.onerror = () => resolve('0:24');
+    });
+  }
+
+  _renderBulkFilesQueue() {
+    const queueContainer = document.getElementById('bulk-files-queue-container');
+    const tbody = document.getElementById('bulk-files-queue-tbody');
+    const queueCount = document.getElementById('bulk-queue-count');
+    const btnPublish = document.getElementById('btn-publish-bulk-files');
+    const dropzoneLabel = document.getElementById('bulk-dropzone-label');
+
+    if (!tbody) return;
+
+    if (this.bulkFilesQueue.length === 0) {
+      if (queueContainer) queueContainer.style.display = 'none';
+      if (queueCount) queueCount.textContent = 'No videos queued yet. Drag & drop or select video files above.';
+      if (btnPublish) btnPublish.disabled = true;
+      if (dropzoneLabel) dropzoneLabel.textContent = 'Click or Drag & Drop Multiple MP4 Videos';
+      return;
+    }
+
+    if (queueContainer) queueContainer.style.display = 'block';
+    if (queueCount) queueCount.textContent = `🎯 ${this.bulkFilesQueue.length} video${this.bulkFilesQueue.length > 1 ? 's' : ''} queued and ready for publish`;
+    if (btnPublish) btnPublish.disabled = false;
+    if (dropzoneLabel) dropzoneLabel.textContent = `✅ ${this.bulkFilesQueue.length} videos selected (+ add more)`;
+
+    tbody.innerHTML = '';
+    this.bulkFilesQueue.forEach((item, index) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-weight: 700; color: var(--admin-text-dim); width: 32px;">${index + 1}</td>
+        <td>
+          <input type="text" class="form-input bulk-queue-title" data-index="${index}" value="${item.title}" style="padding: 6px 10px; font-size: 0.85rem;" />
+        </td>
+        <td>
+          <select class="form-select bulk-queue-cat" data-index="${index}" style="padding: 6px 10px; font-size: 0.85rem;">
+            ${this.categories.filter(c => c.id !== 'trending').map(c => `
+              <option value="${c.id}" ${c.id === item.category_id ? 'selected' : ''}>${c.icon} ${c.name}</option>
+            `).join('')}
+          </select>
+        </td>
+        <td><span style="font-family: monospace; font-size: 0.85rem;">${item.duration}</span></td>
+        <td>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.8rem;">
+            <input type="checkbox" class="admin-checkbox bulk-queue-trending" data-index="${index}" ${item.is_trending ? 'checked' : ''} />
+            Trending
+          </label>
+        </td>
+        <td>
+          <button type="button" class="btn btn-danger bulk-queue-remove" data-index="${index}" style="padding: 4px 8px; font-size: 0.78rem;">✖</button>
+        </td>
+      `;
+
+      // Listeners for inline modifications in queue
+      tr.querySelector('.bulk-queue-title').addEventListener('input', (e) => {
+        this.bulkFilesQueue[index].title = e.target.value.trim();
+      });
+      tr.querySelector('.bulk-queue-cat').addEventListener('change', (e) => {
+        const newCat = e.target.value;
+        this.bulkFilesQueue[index].category_id = newCat;
+        const catObj = getCategoryById(newCat);
+        if (catObj) this.bulkFilesQueue[index].thumbnail_url = catObj.image_url;
+      });
+      tr.querySelector('.bulk-queue-trending').addEventListener('change', (e) => {
+        this.bulkFilesQueue[index].is_trending = e.target.checked;
+      });
+      tr.querySelector('.bulk-queue-remove').addEventListener('click', () => {
+        this.bulkFilesQueue.splice(index, 1);
+        this._renderBulkFilesQueue();
+      });
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  _publishBulkQueue() {
+    if (this.bulkFilesQueue.length === 0) return;
+
+    const reelsToPublish = this.bulkFilesQueue.map(q => ({
+      content_id: q.id,
+      title: q.title,
+      description: q.description,
+      category_id: q.category_id,
+      thumbnail_url: q.thumbnail_url,
+      video_url: q.blobUrl,
+      duration: q.duration,
+      is_downloadable: q.is_downloadable,
+      is_trending: q.is_trending,
+      created_at: new Date().toISOString()
+    }));
+
+    addCustomReelsBatch(reelsToPublish);
+    this.showToast(`🚀 Successfully published ${reelsToPublish.length} reels!`, '✨');
+    this.bulkFilesQueue = [];
+    this._renderBulkFilesQueue();
+    this._loadData();
+
+    setTimeout(() => {
+      this.switchTab('tab-library');
+    }, 600);
   }
 
   _bindCategoryModal() {

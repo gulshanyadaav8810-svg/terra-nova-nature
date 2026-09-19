@@ -31,3 +31,4 @@ verify_app.mjs
 .tempmediaStorage/
 .user_uploaded/
 .vscode/
+.vercel

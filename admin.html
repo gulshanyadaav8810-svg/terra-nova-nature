@@ -49,6 +49,10 @@
           <span class="icon">🎞️</span>
           <span>Reels Library</span>
         </button>
+        <button class="nav-link" data-tab="tab-bulk-upload" id="nav-btn-bulk-upload">
+          <span class="icon">⚡</span>
+          <span>Bulk Upload</span>
+        </button>
         <button class="nav-link" data-tab="tab-sync" id="nav-btn-sync">
           <span class="icon">☁️</span>
           <span>GitHub & Cloud</span>
@@ -367,8 +371,26 @@
               <h2 class="card-title">Reels Library</h2>
               <p class="card-desc" style="margin-bottom: 0;">Manage, preview, and organize active nature reels</p>
             </div>
-            <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
               <button class="btn btn-primary" id="btn-lib-add-reel">➕ Add Reel</button>
+              <button class="btn btn-accent" id="btn-lib-bulk-upload-trigger">⚡ Bulk Upload</button>
+              <button class="btn btn-danger" id="btn-wipe-all-reels" style="padding: 8px 14px; font-size: 0.82rem;" title="Delete All Reels">
+                <span>🗑️ Delete All</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Bulk Actions Toolbar (Appears when items are selected) -->
+          <div class="bulk-actions-bar" id="library-bulk-actions">
+            <div class="bulk-selected-info">
+              <span>☑️</span>
+              <span id="bulk-selected-count">0 reels selected</span>
+            </div>
+            <div class="bulk-btn-group">
+              <button class="btn btn-secondary" id="btn-bulk-deselect-all" style="padding: 6px 14px; font-size: 0.82rem;">Deselect</button>
+              <button class="btn btn-danger" id="btn-bulk-delete-selected" style="padding: 6px 16px; font-size: 0.85rem;">
+                <span>🗑️ Delete Selected</span>
+              </button>
             </div>
           </div>
 
@@ -390,6 +412,7 @@
             <table class="reels-table">
               <thead>
                 <tr>
+                  <th style="width: 36px;"><input type="checkbox" id="check-select-all-reels" class="admin-checkbox" title="Select All" /></th>
                   <th>Thumbnail</th>
                   <th>Title</th>
                   <th>Category</th>
@@ -403,6 +426,117 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </section>
+
+      <!-- TAB: BULK UPLOAD -->
+      <section class="tab-panel" id="tab-bulk-upload">
+        <div class="admin-card" style="margin-bottom: 24px;">
+          <h2 class="card-title">⚡ Bulk Reels Upload & Batch Importer</h2>
+          <p class="card-desc">Quickly upload multiple nature videos at once or batch import via JSON/CSV</p>
+
+          <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+            <button type="button" class="btn btn-primary" id="btn-bulk-tab-files" style="flex: 1;">
+              <span>📁 Batch Video Files Upload</span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-bulk-tab-json" style="flex: 1;">
+              <span>📋 JSON / CSV Bulk Import</span>
+            </button>
+          </div>
+
+          <!-- Mode 1: Multi-File Batch Uploader -->
+          <div id="bulk-section-files">
+            <div class="form-grid-two-col">
+              <div>
+                <div class="form-group">
+                  <label class="form-label">Select Multiple MP4 Nature Videos</label>
+                  <div class="file-dropzone" id="bulk-video-dropzone" style="padding: 36px 20px;">
+                    <div class="dropzone-icon">📹📂</div>
+                    <div class="dropzone-text" id="bulk-dropzone-label">Click or Drag & Drop Multiple MP4 Videos</div>
+                    <div class="dropzone-hint">Select 5, 10, or 20+ videos at once</div>
+                    <input type="file" id="input-bulk-videos" multiple accept="video/mp4,video/webm" style="display: none;" />
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                  <div class="form-group">
+                    <label class="form-label" for="bulk-batch-category">Default Category for Batch</label>
+                    <select id="bulk-batch-category" class="form-select">
+                      <!-- Populated dynamically -->
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Trending Status</label>
+                    <div style="padding-top: 10px;">
+                      <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; cursor: pointer;">
+                        <input type="checkbox" id="bulk-batch-trending" class="admin-checkbox" checked />
+                        <span>Mark all as Trending 🔥</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Batch Queue Summary -->
+              <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--admin-border); border-radius: 16px; padding: 20px;">
+                <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 8px;">Batch Upload Queue</h3>
+                <div id="bulk-queue-count" style="font-size: 0.85rem; color: var(--admin-text-muted); margin-bottom: 16px;">
+                  0 videos selected for upload
+                </div>
+                
+                <button type="button" class="btn btn-primary" id="btn-publish-bulk-files" style="width: 100%; padding: 14px;" disabled>
+                  <span>🚀 Publish All to App</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Queue Items Preview -->
+            <div id="bulk-files-queue-container" style="margin-top: 24px; display: none;">
+              <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px;">Selected Files Queue</h4>
+              <div style="max-height: 300px; overflow-y: auto;">
+                <table class="bulk-queue-table">
+                  <thead>
+                    <tr>
+                      <th>File Name</th>
+                      <th>Category</th>
+                      <th>Duration</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bulk-files-queue-tbody">
+                    <!-- Populated via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mode 2: JSON / CSV Bulk Import -->
+          <div id="bulk-section-json" style="display: none;">
+            <div class="form-group">
+              <label class="form-label" for="bulk-json-input">Paste JSON Array of Reels or CSV</label>
+              <textarea id="bulk-json-input" class="form-textarea" style="min-height: 180px; font-family: monospace; font-size: 0.82rem;" placeholder='[
+  {
+    "title": "Glacial Waterfall Stream",
+    "category_id": "waterfall",
+    "video_url": "assets/videos/nature_stream.mp4",
+    "thumbnail_url": "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=600&q=80",
+    "duration": "0:25",
+    "is_trending": true
+  }
+]'></textarea>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+              <button type="button" class="btn btn-secondary" id="btn-load-sample-bulk-json">
+                <span>📝 Load Sample Template</span>
+              </button>
+              <button type="button" class="btn btn-primary" id="btn-submit-bulk-json">
+                <span>📥 Import All into App</span>
+              </button>
+            </div>
+          </div>
+
         </div>
       </section>
 

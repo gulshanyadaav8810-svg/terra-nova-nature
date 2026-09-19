@@ -1,0 +1,14 @@
+android/
+PlayStore_Package/
+*.apk
+*.aab
+*.jks
+node_modules/
+verification_screenshots/
+scratch/
+.gradle/
+build/
+*.png
+*.jpg
+*.jpeg
+!assets/**

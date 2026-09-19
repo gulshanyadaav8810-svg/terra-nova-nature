@@ -642,236 +642,7 @@
   var i18n = new I18nService();
 
   // js/data/reels.js
-  var INITIAL_REELS = [
-    {
-      "content_id": "reel-forest-01",
-      "title": "Sunlit Emerald Pine Forest & Mountain Stream",
-      "description": "Crisp morning mist drifting through ancient pines with the soothing sound of alpine crystal waters.",
-      "category_id": "forest",
-      "thumbnail_url": "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:24",
-      "is_downloadable": true,
-      "is_trending": true,
-      "created_at": "2026-09-20T00:10:00.000Z"
-    },
-    {
-      "content_id": "reel-flowers-01",
-      "title": "Spring Wildflowers Blooming in Alpine Meadows",
-      "description": "Vibrant blossoms awakening under warm gentle sunshine with soothing ambient breeze.",
-      "category_id": "flowers",
-      "thumbnail_url": "https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/flower.mp4",
-      "duration": "0:19",
-      "is_downloadable": true,
-      "is_trending": true,
-      "created_at": "2026-09-20T00:09:00.000Z"
-    },
-    {
-      "content_id": "reel-waterfall-01",
-      "title": "Cascading Emerald Falls Deep in Moss Canyon",
-      "description": "Breathtaking waterfall dropping into a tranquil turquoise pool surrounded by dense rainforest.",
-      "category_id": "waterfall",
-      "thumbnail_url": "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:28",
-      "is_downloadable": true,
-      "is_trending": true,
-      "created_at": "2026-09-20T00:08:00.000Z"
-    },
-    {
-      "content_id": "reel-mountain-01",
-      "title": "Snow-Capped Alpine Ridges at First Light",
-      "description": "Majestic jagged peaks catching the first fiery rays of dawn above sea of clouds.",
-      "category_id": "mountain",
-      "thumbnail_url": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:22",
-      "is_downloadable": true,
-      "is_trending": true,
-      "created_at": "2026-09-20T00:07:00.000Z"
-    },
-    {
-      "content_id": "reel-rain-01",
-      "title": "Gentle Woodland Raindrops on Forest Canopy",
-      "description": "Rhythmic, calming rain falling upon lush green fern leaves with natural atmospheric sound.",
-      "category_id": "rain",
-      "thumbnail_url": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:30",
-      "is_downloadable": true,
-      "is_trending": false,
-      "created_at": "2026-09-20T00:06:00.000Z"
-    },
-    {
-      "content_id": "reel-ocean-01",
-      "title": "Turquoise Coastal Swells & Peaceful Shore",
-      "description": "Rhythmic ocean breakers rolling across secluded sands under clear azure skies.",
-      "category_id": "ocean",
-      "thumbnail_url": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:25",
-      "is_downloadable": true,
-      "is_trending": true,
-      "created_at": "2026-09-20T00:05:00.000Z"
-    },
-    {
-      "content_id": "reel-sunset-01",
-      "title": "Golden Sunset Horizon Over Mountain Silhouette",
-      "description": "Warm gradient of amber, rose, and violet painting the sky as twilight settles.",
-      "category_id": "sunset",
-      "thumbnail_url": "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:26",
-      "is_downloadable": true,
-      "is_trending": true,
-      "created_at": "2026-09-20T00:04:00.000Z"
-    },
-    {
-      "content_id": "reel-sunrise-01",
-      "title": "Morning Mist Rising From Golden Lake Dawn",
-      "description": "Sunbeams illuminating low-hanging fog over still mountain lake reflections.",
-      "category_id": "sunrise",
-      "thumbnail_url": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/flower.mp4",
-      "duration": "0:21",
-      "is_downloadable": true,
-      "is_trending": false,
-      "created_at": "2026-09-20T00:03:00.000Z"
-    },
-    {
-      "content_id": "reel-wildlife-01",
-      "title": "Wild Deer Grazing in Sunlit Mountain Meadow",
-      "description": "A tranquil peaceful encounter with majestic deer in high alpine pastures.",
-      "category_id": "wildlife",
-      "thumbnail_url": "https://images.unsplash.com/photo-1484406566174-9da000fda645?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:20",
-      "is_downloadable": true,
-      "is_trending": true,
-      "created_at": "2026-09-20T00:02:00.000Z"
-    },
-    {
-      "content_id": "reel-river-01",
-      "title": "Crystal Brook Flowing Across Polished Stones",
-      "description": "Pure glacial runoff babbling gently through ancient mossy riverbed stones.",
-      "category_id": "river",
-      "thumbnail_url": "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:27",
-      "is_downloadable": true,
-      "is_trending": false,
-      "created_at": "2026-09-20T00:01:00.000Z"
-    },
-    {
-      "content_id": "reel-beach-01",
-      "title": "Secluded White Sand Cove with Gentle Waters",
-      "description": "Pristine tropical paradise with soft waves lapping upon powdered white sand.",
-      "category_id": "beach",
-      "thumbnail_url": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:23",
-      "is_downloadable": true,
-      "is_trending": false,
-      "created_at": "2026-09-19T23:55:00.000Z"
-    },
-    {
-      "content_id": "reel-clouds-01",
-      "title": "Dreamy Cloud Sea Inversion Above Valleys",
-      "description": "Ethereal sea of rolling clouds floating beneath high peak viewpoints.",
-      "category_id": "clouds",
-      "thumbnail_url": "https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:30",
-      "is_downloadable": true,
-      "is_trending": true,
-      "created_at": "2026-09-19T23:50:00.000Z"
-    },
-    {
-      "content_id": "reel-snow-01",
-      "title": "Silent Winter Snowfall in Evergreen Pines",
-      "description": "Quiet snow flakes drifting softly between snow-laden fir boughs.",
-      "category_id": "snow",
-      "thumbnail_url": "https://images.unsplash.com/photo-1491002052546-bf38f186af56?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:25",
-      "is_downloadable": true,
-      "is_trending": false,
-      "created_at": "2026-09-19T23:45:00.000Z"
-    },
-    {
-      "content_id": "reel-greenery-01",
-      "title": "Endless Rolling Green Meadows in Summer Breeze",
-      "description": "Vibrant emerald grass rippling like ocean waves across highland slopes.",
-      "category_id": "greenery",
-      "thumbnail_url": "https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/flower.mp4",
-      "duration": "0:22",
-      "is_downloadable": true,
-      "is_trending": true,
-      "created_at": "2026-09-19T23:40:00.000Z"
-    },
-    {
-      "content_id": "reel-lake-01",
-      "title": "Mirror Lake Reflecting Pine Ridges & Sky",
-      "description": "Glass-calm surface mirroring tall pine groves in pristine mountain sanctuary.",
-      "category_id": "lake",
-      "thumbnail_url": "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:28",
-      "is_downloadable": true,
-      "is_trending": false,
-      "created_at": "2026-09-19T23:35:00.000Z"
-    },
-    {
-      "content_id": "reel-jungle-01",
-      "title": "Lush Tropical Canopy & Morning Sunlight",
-      "description": "Deep tropical rainforest alive with warm light beams and exotic greenery.",
-      "category_id": "jungle",
-      "thumbnail_url": "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/flower.mp4",
-      "duration": "0:24",
-      "is_downloadable": true,
-      "is_trending": false,
-      "created_at": "2026-09-19T23:30:00.000Z"
-    },
-    {
-      "content_id": "reel-night-01",
-      "title": "Billion Stars & Milky Way Over Mountain Peak",
-      "description": "Clear midnight sky showing the luminous core of the Milky Way galaxy.",
-      "category_id": "night-sky",
-      "thumbnail_url": "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:30",
-      "is_downloadable": true,
-      "is_trending": true,
-      "created_at": "2026-09-19T23:25:00.000Z"
-    },
-    {
-      "content_id": "reel-birds-01",
-      "title": "Morning Songbirds in Dew-Drenched Woods",
-      "description": "Gentle avian melodies echoing through the misty dawn trees.",
-      "category_id": "birds",
-      "thumbnail_url": "https://images.unsplash.com/photo-1444464666168-49d633b86797?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/nature_stream.mp4",
-      "duration": "0:18",
-      "is_downloadable": true,
-      "is_trending": false,
-      "created_at": "2026-09-19T23:20:00.000Z"
-    },
-    {
-      "content_id": "reel-nature-01",
-      "title": "Pure Wilderness Serenity & Gentle Wind",
-      "description": "Untouched wild nature in complete tranquility and harmony.",
-      "category_id": "nature",
-      "thumbnail_url": "https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?auto=format&fit=crop&w=600&q=80",
-      "video_url": "assets/videos/flower.mp4",
-      "duration": "0:25",
-      "is_downloadable": true,
-      "is_trending": true,
-      "created_at": "2026-09-19T23:15:00.000Z"
-    }
-  ];
+  var INITIAL_REELS = [];
   var REELS_DATA = [...INITIAL_REELS];
   function loadAllReels() {
     const mergedMap = /* @__PURE__ */ new Map();
@@ -939,6 +710,9 @@
           loadAllReels();
           window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
         } else if (type === "DELETE_REEL" && content_id) {
+          loadAllReels();
+          window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
+        } else if (type === "ADD_REELS_BATCH" || type === "DELETE_REELS_BATCH" || type === "WIPE_ALL_REELS") {
           loadAllReels();
           window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
         }
@@ -2274,10 +2048,15 @@ ${shareUrl}`);
       this.renderedCount = 0;
       if (!this.filteredReels || this.filteredReels.length === 0) {
         this.container.innerHTML = `
-        <div class="empty-state" style="height: 100%; justify-content: center;">
-          <div class="empty-state-icon">\u{1F33F}</div>
-          <h3 class="empty-state-title" style="color: #fff;">${i18n.t("empty_category_title")}</h3>
-          <p class="empty-state-subtitle" style="color: rgba(255,255,255,0.7);">${i18n.t("empty_category_sub")}</p>
+        <div class="empty-state" style="height: 100%; justify-content: center; text-align: center; padding: 24px;">
+          <div class="empty-state-icon" style="font-size: 3rem; margin-bottom: 12px;">\u{1F33F}</div>
+          <h3 class="empty-state-title" style="color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px;">No Nature Reels Yet</h3>
+          <p class="empty-state-subtitle" style="color: rgba(255,255,255,0.7); font-size: 0.9rem; max-width: 300px; margin: 0 auto 20px;">
+            Publish videos or use Bulk Upload in the Admin Studio to populate this feed.
+          </p>
+          <a href="admin.html" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 0.92rem;">
+            <span>\u{1F6E0}\uFE0F Open Admin Studio</span>
+          </a>
         </div>
       `;
         return;
@@ -2385,12 +2164,17 @@ ${shareUrl}`);
       const emptyWrapper = document.createElement("div");
       emptyWrapper.className = "empty-state";
       emptyWrapper.style.gridColumn = "1 / -1";
-      emptyWrapper.style.padding = "40px 16px";
+      emptyWrapper.style.padding = "60px 16px";
       emptyWrapper.style.textAlign = "center";
       emptyWrapper.innerHTML = `
-      <div class="empty-state-icon" style="font-size: 2.4rem; margin-bottom: 12px;">\u{1F33F}</div>
-      <h3 class="empty-state-title" style="color: #17483A; font-size: 1.15rem; margin-bottom: 6px;">${i18n.t("empty_category_title", "No reels found")}</h3>
-      <p class="empty-state-subtitle" style="color: #61756D; font-size: 0.9rem;">${i18n.t("empty_category_sub", "Try selecting another category")}</p>
+      <div class="empty-state-icon" style="font-size: 3rem; margin-bottom: 14px;">\u{1F33F}</div>
+      <h3 class="empty-state-title" style="color: #17483A; font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">No Reels Uploaded Yet</h3>
+      <p class="empty-state-subtitle" style="color: #61756D; font-size: 0.9rem; max-width: 300px; margin: 0 auto 20px;">
+        Upload single videos or use Bulk Upload from the Admin Studio to publish reels directly here.
+      </p>
+      <a href="admin.html" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #17483C; color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 0.92rem; box-shadow: 0 4px 14px rgba(23,72,60,0.3);">
+        <span>\u{1F6E0}\uFE0F Open Admin Studio</span>
+      </a>
     `;
       this.container.appendChild(emptyWrapper);
     }
@@ -3108,18 +2892,6 @@ ${shareUrl}`);
       }
       if (this.btnHomeHamburger) {
         this.btnHomeHamburger.addEventListener("click", () => this.sideDrawer.open());
-      }
-      if (this.btnHomeSound) {
-        this.btnHomeSound.addEventListener("click", () => {
-          const isAudioActive = soundEngine.toggleSound(this.currentCategory || "forest");
-          if (isAudioActive) {
-            this.btnHomeSound.classList.add("active");
-            this.showToast(`\u{1F50A} Nature Soundscape Active: ${this.currentCategory.toUpperCase()}`, "\u{1F33F}");
-          } else {
-            this.btnHomeSound.classList.remove("active");
-            this.showToast("\u{1F507} Nature Soundscape Muted", "\u2139\uFE0F");
-          }
-        });
       }
       const playerOverlay = document.getElementById("video-player-overlay");
       this.player = new VideoPlayer(playerOverlay, (msg, icon) => this.showToast(msg, icon));
