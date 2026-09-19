@@ -60,7 +60,16 @@ export class ReelsFeed {
   }
 
   refresh() {
-    this.filteredReels = getReelsByCategory(this.activeCategory);
+    const newReels = getReelsByCategory(this.activeCategory);
+    const oldIds = (this.filteredReels || []).map(r => r.content_id).join(',');
+    const newIds = (newReels || []).map(r => r.content_id).join(',');
+
+    // If reel list didn't change and items are already rendered, do not wipe container or reset playback!
+    if (oldIds === newIds && this.container.children.length > 0) {
+      return;
+    }
+
+    this.filteredReels = newReels;
     this.render();
   }
 
@@ -274,6 +283,14 @@ export class ReelsFeed {
         return;
       }
 
+      // Audio Mute / Unmute Toggle button
+      const muteBtn = e.target.closest('.feed-mute-btn');
+      if (muteBtn) {
+        e.stopPropagation();
+        this.toggleMute();
+        return;
+      }
+
       // Video surface tap: play / pause or double-tap to like
       if (
         !e.target.closest('.feed-actions-dock') &&
@@ -285,7 +302,7 @@ export class ReelsFeed {
         !e.target.closest('a')
       ) {
         const now = Date.now();
-        if (this._lastTapTime && (now - this._lastTapTime < 320)) {
+        if (this._lastTapTime && (now - this._lastTapTime < 280)) {
           // Double Tap -> Like with Heart Burst!
           e.stopPropagation();
           clearTimeout(this._singleTapTimeout);
@@ -295,36 +312,34 @@ export class ReelsFeed {
         }
         this._lastTapTime = now;
 
-        // If finger was dragged to scroll, don't toggle play/pause!
-        if (this._isDragging) return;
-
         const video = item.querySelector('video');
         const playPulse = item.querySelector('.feed-play-pulse');
+        const vinyl = item.querySelector('.dock-vinyl-disc');
         if (video) {
           e.stopPropagation();
           clearTimeout(this._singleTapTimeout);
           this._singleTapTimeout = setTimeout(() => {
             if (video.paused) {
+              item.classList.remove('is-paused');
+              if (playPulse) playPulse.classList.remove('show');
+              if (vinyl) vinyl.classList.remove('paused');
               video.playsInline = true;
               video.muted = this.isMuted;
               video.volume = this.isMuted ? 0 : 1.0;
               const p = video.play();
               if (p !== undefined) {
-                p.then(() => {
-                  item.classList.remove('is-paused');
-                  if (playPulse) playPulse.classList.remove('show');
-                }).catch(() => {
+                p.catch(() => {
                   video.muted = true;
                   video.play().catch(() => {});
-                  item.classList.remove('is-paused');
                 });
               }
             } else {
               video.pause();
               item.classList.add('is-paused');
               if (playPulse) playPulse.classList.add('show');
+              if (vinyl) vinyl.classList.add('paused');
             }
-          }, 180);
+          }, 150);
         }
       }
     });
@@ -393,7 +408,7 @@ export class ReelsFeed {
 
     const options = {
       root: this.container,
-      threshold: 0.6
+      threshold: 0.5
     };
 
     this.observer = new IntersectionObserver((entries) => {
@@ -416,6 +431,16 @@ export class ReelsFeed {
         }
 
         if (entry.isIntersecting) {
+          // If this reel is already active and playing, DO NOT restart or reset it!
+          if (this.activeItem === entry.target && !video.paused) {
+            return;
+          }
+
+          // If the user manually paused this reel, respect the pause!
+          if (entry.target.classList.contains('is-paused')) {
+            return;
+          }
+
           const isSameItem = this.activeItem === entry.target;
           this.activeItem = entry.target;
           this.activeVideo = video;
@@ -437,7 +462,7 @@ export class ReelsFeed {
             }
           }
 
-          if (!isSameItem) {
+          if (!isSameItem && video.currentTime > 0) {
             video.currentTime = 0;
           }
           video.playsInline = true;
@@ -524,6 +549,12 @@ export class ReelsFeed {
         if (dataSrc && (!video.src || video.src === '' || video.src === window.location.href)) {
           video.src = dataSrc;
         }
+        item.classList.remove('is-paused');
+        const playPulse = item.querySelector('.feed-play-pulse');
+        if (playPulse) playPulse.classList.remove('show');
+        const vinyl = item.querySelector('.dock-vinyl-disc');
+        if (vinyl) vinyl.classList.remove('paused');
+
         video.playsInline = true;
         video.muted = this.isMuted;
         video.volume = this.isMuted ? 0 : 1.0;
@@ -531,9 +562,6 @@ export class ReelsFeed {
         if (p !== undefined) {
           p.then(() => {
             item.classList.add('active-playing');
-            item.classList.remove('is-paused');
-            const vinyl = item.querySelector('.dock-vinyl-disc');
-            if (vinyl) vinyl.classList.remove('paused');
           }).catch(() => {
             video.muted = true;
             video.play().catch(() => {});

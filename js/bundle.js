@@ -658,6 +658,23 @@
     "reel-forest-ydez8",
     "reel-user-nature-1"
   ]);
+  function normalizeVideoUrl(url) {
+    if (!url || typeof url !== "string") return url;
+    if (url.startsWith("/uploads/")) {
+      if (typeof window !== "undefined" && window.location.origin && window.location.origin.includes("vercel.app")) {
+        return url;
+      }
+      return `https://nature-moments-app.vercel.app${url}`;
+    }
+    if (url.includes("raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/")) {
+      const filename = url.split("/uploads/")[1];
+      if (typeof window !== "undefined" && window.location.origin && window.location.origin.includes("vercel.app")) {
+        return `/uploads/${filename}`;
+      }
+      return `https://nature-moments-app.vercel.app/uploads/${filename}`;
+    }
+    return url;
+  }
   function isDemoReel(r) {
     if (!r || !r.content_id) return true;
     if (DEMO_REEL_IDS.has(r.content_id)) return true;
@@ -703,7 +720,7 @@
           }
           sanitizedRemote.forEach((r) => {
             if (r.video_url && !r.video_url.startsWith("blob:")) {
-              mergedMap.set(r.content_id, { ...r });
+              mergedMap.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
             }
           });
         }
@@ -722,7 +739,7 @@
           }
           sanitizedCustom.forEach((r) => {
             if (r.video_url && !r.video_url.startsWith("blob:")) {
-              mergedMap.set(r.content_id, { ...r });
+              mergedMap.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
             }
           });
         }
@@ -734,7 +751,7 @@
       REELS_DATA.forEach((r) => {
         if (r && r.content_id && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
           if (r.video_url && !r.video_url.startsWith("blob:")) {
-            mergedMap.set(r.content_id, { ...r });
+            mergedMap.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
           }
         }
       });
@@ -791,7 +808,7 @@
             const merged = /* @__PURE__ */ new Map();
             cleanRemote.forEach((r) => {
               if (r.video_url && !r.video_url.startsWith("blob:")) {
-                merged.set(r.content_id, { ...r });
+                merged.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
               }
             });
             const custom = localStorage.getItem("nature_custom_reels");
@@ -802,7 +819,7 @@
                   parsed.forEach((r) => {
                     if (r && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
                       if (r.video_url && !r.video_url.startsWith("blob:")) {
-                        merged.set(r.content_id, { ...r });
+                        merged.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
                       }
                     }
                   });
@@ -825,8 +842,13 @@
             }
             const all = Array.from(merged.values());
             all.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+            const currentIds = (REELS_DATA || []).map((r) => r.content_id).join(",");
+            const newIds = all.map((r) => r.content_id).join(",");
+            const hasChanged = currentIds !== newIds || REELS_DATA.length === 0;
             REELS_DATA = all;
-            window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
+            if (hasChanged) {
+              window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
+            }
             return REELS_DATA;
           }
         }
@@ -844,13 +866,13 @@
     let lastTouchSync = 0;
     window.addEventListener("touchstart", () => {
       const now = Date.now();
-      if (now - lastTouchSync > 1200) {
+      if (now - lastTouchSync > 3e3) {
         lastTouchSync = now;
         syncRemoteReels();
       }
     }, { passive: true });
     syncRemoteReels();
-    setInterval(() => syncRemoteReels(), 1500);
+    setInterval(() => syncRemoteReels(), 1e4);
     if ("BroadcastChannel" in window) {
       const channel = new BroadcastChannel("nature_moments_sync");
       channel.onmessage = (event) => {
@@ -1902,7 +1924,13 @@ ${shareUrl}`);
       });
     }
     refresh() {
-      this.filteredReels = getReelsByCategory(this.activeCategory);
+      const newReels = getReelsByCategory(this.activeCategory);
+      const oldIds = (this.filteredReels || []).map((r) => r.content_id).join(",");
+      const newIds = (newReels || []).map((r) => r.content_id).join(",");
+      if (oldIds === newIds && this.container.children.length > 0) {
+        return;
+      }
+      this.filteredReels = newReels;
       this.render();
     }
     // Floating Category Scroller inside Reels View
@@ -2087,9 +2115,15 @@ ${shareUrl}`);
           );
           return;
         }
+        const muteBtn = e.target.closest(".feed-mute-btn");
+        if (muteBtn) {
+          e.stopPropagation();
+          this.toggleMute();
+          return;
+        }
         if (!e.target.closest(".feed-actions-dock") && !e.target.closest(".floating-cat-pill") && !e.target.closest("#btn-hamburger") && !e.target.closest(".header-sound-btn") && !e.target.closest(".header-brand-pill") && !e.target.closest("button") && !e.target.closest("a")) {
           const now = Date.now();
-          if (this._lastTapTime && now - this._lastTapTime < 320) {
+          if (this._lastTapTime && now - this._lastTapTime < 280) {
             e.stopPropagation();
             clearTimeout(this._singleTapTimeout);
             this._lastTapTime = 0;
@@ -2097,35 +2131,35 @@ ${shareUrl}`);
             return;
           }
           this._lastTapTime = now;
-          if (this._isDragging) return;
           const video = item.querySelector("video");
           const playPulse = item.querySelector(".feed-play-pulse");
+          const vinyl = item.querySelector(".dock-vinyl-disc");
           if (video) {
             e.stopPropagation();
             clearTimeout(this._singleTapTimeout);
             this._singleTapTimeout = setTimeout(() => {
               if (video.paused) {
+                item.classList.remove("is-paused");
+                if (playPulse) playPulse.classList.remove("show");
+                if (vinyl) vinyl.classList.remove("paused");
                 video.playsInline = true;
                 video.muted = this.isMuted;
                 video.volume = this.isMuted ? 0 : 1;
                 const p = video.play();
                 if (p !== void 0) {
-                  p.then(() => {
-                    item.classList.remove("is-paused");
-                    if (playPulse) playPulse.classList.remove("show");
-                  }).catch(() => {
+                  p.catch(() => {
                     video.muted = true;
                     video.play().catch(() => {
                     });
-                    item.classList.remove("is-paused");
                   });
                 }
               } else {
                 video.pause();
                 item.classList.add("is-paused");
                 if (playPulse) playPulse.classList.add("show");
+                if (vinyl) vinyl.classList.add("paused");
               }
-            }, 180);
+            }, 150);
           }
         }
       });
@@ -2181,7 +2215,7 @@ ${shareUrl}`);
       if (this.observer) this.observer.disconnect();
       const options = {
         root: this.container,
-        threshold: 0.6
+        threshold: 0.5
       };
       this.observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
@@ -2199,6 +2233,12 @@ ${shareUrl}`);
             return;
           }
           if (entry.isIntersecting) {
+            if (this.activeItem === entry.target && !video.paused) {
+              return;
+            }
+            if (entry.target.classList.contains("is-paused")) {
+              return;
+            }
             const isSameItem = this.activeItem === entry.target;
             this.activeItem = entry.target;
             this.activeVideo = video;
@@ -2215,7 +2255,7 @@ ${shareUrl}`);
                 if (nextSrc) nextVideo.src = nextSrc;
               }
             }
-            if (!isSameItem) {
+            if (!isSameItem && video.currentTime > 0) {
               video.currentTime = 0;
             }
             video.playsInline = true;
@@ -2296,6 +2336,11 @@ ${shareUrl}`);
           if (dataSrc && (!video.src || video.src === "" || video.src === window.location.href)) {
             video.src = dataSrc;
           }
+          item.classList.remove("is-paused");
+          const playPulse = item.querySelector(".feed-play-pulse");
+          if (playPulse) playPulse.classList.remove("show");
+          const vinyl = item.querySelector(".dock-vinyl-disc");
+          if (vinyl) vinyl.classList.remove("paused");
           video.playsInline = true;
           video.muted = this.isMuted;
           video.volume = this.isMuted ? 0 : 1;
@@ -2303,9 +2348,6 @@ ${shareUrl}`);
           if (p !== void 0) {
             p.then(() => {
               item.classList.add("active-playing");
-              item.classList.remove("is-paused");
-              const vinyl = item.querySelector(".dock-vinyl-disc");
-              if (vinyl) vinyl.classList.remove("paused");
             }).catch(() => {
               video.muted = true;
               video.play().catch(() => {
@@ -3370,8 +3412,7 @@ ${shareUrl}`);
           this.homeGrid.setReels(reels, this.currentCategory);
         }
         if (this.reelsFeed) {
-          this.reelsFeed.filteredReels = getReelsByCategory(this.reelsFeed.activeCategory || "all");
-          this.reelsFeed.render();
+          this.reelsFeed.refresh();
         }
       });
       i18n.updateDom();

@@ -26,6 +26,24 @@ const DEMO_REEL_IDS = new Set([
   'reel-user-nature-1'
 ]);
 
+export function normalizeVideoUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (url.startsWith('/uploads/')) {
+    if (typeof window !== 'undefined' && window.location.origin && window.location.origin.includes('vercel.app')) {
+      return url;
+    }
+    return `https://nature-moments-app.vercel.app${url}`;
+  }
+  if (url.includes('raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/')) {
+    const filename = url.split('/uploads/')[1];
+    if (typeof window !== 'undefined' && window.location.origin && window.location.origin.includes('vercel.app')) {
+      return `/uploads/${filename}`;
+    }
+    return `https://nature-moments-app.vercel.app/uploads/${filename}`;
+  }
+  return url;
+}
+
 export function isDemoReel(r) {
   if (!r || !r.content_id) return true;
   if (DEMO_REEL_IDS.has(r.content_id)) return true;
@@ -78,7 +96,7 @@ export function loadAllReels() {
         }
         sanitizedRemote.forEach(r => {
           if (r.video_url && !r.video_url.startsWith('blob:')) {
-            mergedMap.set(r.content_id, { ...r });
+            mergedMap.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
           }
         });
       }
@@ -99,7 +117,7 @@ export function loadAllReels() {
         }
         sanitizedCustom.forEach(r => {
           if (r.video_url && !r.video_url.startsWith('blob:')) {
-            mergedMap.set(r.content_id, { ...r });
+            mergedMap.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
           }
         });
       }
@@ -113,7 +131,7 @@ export function loadAllReels() {
     REELS_DATA.forEach(r => {
       if (r && r.content_id && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
         if (r.video_url && !r.video_url.startsWith('blob:')) {
-          mergedMap.set(r.content_id, { ...r });
+          mergedMap.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
         }
       }
     });
@@ -187,7 +205,7 @@ export async function syncRemoteReels() {
           // Add valid remote reels
           cleanRemote.forEach(r => {
             if (r.video_url && !r.video_url.startsWith('blob:')) {
-              merged.set(r.content_id, { ...r });
+              merged.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
             }
           });
           
@@ -200,7 +218,7 @@ export async function syncRemoteReels() {
                 parsed.forEach(r => {
                   if (r && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
                     if (r.video_url && !r.video_url.startsWith('blob:')) {
-                      merged.set(r.content_id, { ...r });
+                      merged.set(r.content_id, { ...r, video_url: normalizeVideoUrl(r.video_url) });
                     }
                   }
                 });
@@ -225,8 +243,14 @@ export async function syncRemoteReels() {
           const all = Array.from(merged.values());
           all.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
           
+          const currentIds = (REELS_DATA || []).map(r => r.content_id).join(',');
+          const newIds = all.map(r => r.content_id).join(',');
+          const hasChanged = currentIds !== newIds || REELS_DATA.length === 0;
+
           REELS_DATA = all;
-          window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+          if (hasChanged) {
+            window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+          }
           return REELS_DATA;
         }
       }
@@ -237,7 +261,7 @@ export async function syncRemoteReels() {
   return REELS_DATA;
 }
 
-// Automatically sync when online, on window focus, touch, and 1.5s live polling
+// Automatically sync when online, on window focus, touch, and periodic live polling
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => syncRemoteReels());
   window.addEventListener('focus', () => syncRemoteReels());
@@ -249,15 +273,15 @@ if (typeof window !== 'undefined') {
   let lastTouchSync = 0;
   window.addEventListener('touchstart', () => {
     const now = Date.now();
-    if (now - lastTouchSync > 1200) {
+    if (now - lastTouchSync > 3000) {
       lastTouchSync = now;
       syncRemoteReels();
     }
   }, { passive: true });
 
-  // Immediate launch sync & fast 1.5s polling for near-instant app updates
+  // Initial sync & steady 10s background sync
   syncRemoteReels();
-  setInterval(() => syncRemoteReels(), 1500);
+  setInterval(() => syncRemoteReels(), 10000);
 
   // BroadcastChannel for 0-millisecond cross-tab admin sync
   if ('BroadcastChannel' in window) {

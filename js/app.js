@@ -173,8 +173,7 @@ class NatureMomentsApp {
         this.homeGrid.setReels(reels, this.currentCategory);
       }
       if (this.reelsFeed) {
-        this.reelsFeed.filteredReels = getReelsByCategory(this.reelsFeed.activeCategory || 'all');
-        this.reelsFeed.render();
+        this.reelsFeed.refresh();
       }
     });
 
