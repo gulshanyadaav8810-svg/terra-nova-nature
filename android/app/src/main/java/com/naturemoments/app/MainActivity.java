@@ -14,14 +14,15 @@ import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import androidx.webkit.WebViewAssetLoader;
-import androidx.webkit.WebViewClientCompat;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -31,6 +32,9 @@ import android.media.MediaScannerConnection;
 
 public class MainActivity extends Activity {
     private static final String TAG = "NatureMomentsApp";
+    public static final String ONLINE_URL = "https://nature-moments-app.vercel.app";
+    public static final String OFFLINE_FALLBACK_URL = "https://appassets.androidplatform.net/assets/index.html";
+
     private WebView webView;
 
     public class WebAppInterface {
@@ -198,19 +202,41 @@ public class MainActivity extends Activity {
         settings.setAllowUniversalAccessFromFileURLs(true);
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
-        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
 
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
-        // Initialize Android Jetpack WebViewAssetLoader
+        // Initialize Android Jetpack WebViewAssetLoader for offline fallback
         final WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
             .build();
 
-        webView.setWebViewClient(new WebViewClientCompat() {
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (request != null && request.getUrl() != null) {
+                    Uri uri = request.getUrl();
+                    String scheme = uri.getScheme();
+                    if (scheme != null && (scheme.equalsIgnoreCase("whatsapp") ||
+                                           scheme.equalsIgnoreCase("intent") ||
+                                           scheme.equalsIgnoreCase("tel") ||
+                                           scheme.equalsIgnoreCase("mailto"))) {
+                        try {
+                            Intent intent = Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME);
+                            startActivity(intent);
+                            return true;
+                        } catch (Exception e) {
+                            Log.w(TAG, "Cannot handle external scheme: " + scheme, e);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 Uri url = request.getUrl();
@@ -234,6 +260,25 @@ public class MainActivity extends Activity {
                 }
                 return null;
             }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                super.onReceivedError(view, request, error);
+                if (request != null && request.isForMainFrame()) {
+                    Log.w(TAG, "Online load failed, falling back to local assets: " + OFFLINE_FALLBACK_URL);
+                    view.loadUrl(OFFLINE_FALLBACK_URL);
+                }
+            }
+
+            @Override
+            @SuppressWarnings("deprecation")
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                super.onReceivedError(view, errorCode, description, failingUrl);
+                if (failingUrl != null && failingUrl.startsWith(ONLINE_URL)) {
+                    Log.w(TAG, "Online load failed (legacy), falling back to local assets: " + OFFLINE_FALLBACK_URL);
+                    view.loadUrl(OFFLINE_FALLBACK_URL);
+                }
+            }
         });
 
         // WebChromeClient for capturing console logs
@@ -248,8 +293,9 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(new WebAppInterface(this), "AndroidBridge");
         webView.setBackgroundColor(0xFF000000); // Black background matching Reels feed
 
-        // Load via secure WebViewAssetLoader domain
-        webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
+        // Load live Vercel app directly!
+        Log.d(TAG, "Loading live Vercel URL: " + ONLINE_URL);
+        webView.loadUrl(ONLINE_URL);
 
         hideSystemUI();
     }
@@ -347,7 +393,24 @@ public class MainActivity extends Activity {
     @Override
     public void onBackPressed() {
         if (webView != null) {
-            webView.evaluateJavascript("if (window.showExitConfirm) { window.showExitConfirm(); }", null);
+            webView.evaluateJavascript(
+                "(function() { " +
+                "  if (typeof window.showExitConfirm === 'function') { " +
+                "    window.showExitConfirm(); " +
+                "    return true; " +
+                "  } " +
+                "  return false; " +
+                "})();",
+                value -> {
+                    if ("false".equals(value) || "null".equals(value)) {
+                        if (webView.canGoBack()) {
+                            webView.goBack();
+                        } else {
+                            finishAffinity();
+                        }
+                    }
+                }
+            );
         } else {
             super.onBackPressed();
         }
