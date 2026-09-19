@@ -78,12 +78,14 @@ export default async function handler(req, res) {
       // 2. Perform modification
       let updatedReels = [...currentReels];
 
-      if (action === 'upload_video') {
+      if (action === 'upload_video' || action === 'upload_image' || action === 'upload_thumb') {
         const { filename, base64 } = payload;
         if (!filename || !base64) {
           return res.status(400).json({ error: 'filename and base64 required' });
         }
-        const safeName = `reel_${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        const isThumb = action === 'upload_image' || action === 'upload_thumb';
+        const prefix = isThumb ? 'thumb_' : 'reel_';
+        const safeName = `${prefix}${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
         const uploadUrl = `https://api.github.com/repos/${REPO}/contents/uploads/${safeName}`;
 
         const uploadRes = await fetch(uploadUrl, {
@@ -95,7 +97,7 @@ export default async function handler(req, res) {
             'User-Agent': 'NatureMomentsApp'
           },
           body: JSON.stringify({
-            message: `Upload video: ${safeName}`,
+            message: `Upload ${isThumb ? 'thumbnail' : 'video'}: ${safeName}`,
             content: base64,
             branch: 'main'
           })
@@ -103,12 +105,13 @@ export default async function handler(req, res) {
 
         if (!uploadRes.ok) {
           const errData = await uploadRes.json();
-          return res.status(500).json({ error: 'Video upload failed', details: errData });
+          return res.status(500).json({ error: 'Upload failed', details: errData });
         }
 
         const rawUrl = `https://raw.githubusercontent.com/${REPO}/main/uploads/${safeName}`;
         const cdnUrl = `https://cdn.jsdelivr.net/gh/${REPO}@main/uploads/${safeName}`;
-        return res.status(200).json({ success: true, url: rawUrl, cdn_url: cdnUrl, filename: safeName });
+        const vercelUrl = `/uploads/${safeName}`;
+        return res.status(200).json({ success: true, url: rawUrl, cdn_url: cdnUrl, vercel_url: vercelUrl, filename: safeName });
       }
 
       if (fullList && Array.isArray(fullList)) {

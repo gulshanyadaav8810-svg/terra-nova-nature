@@ -306,8 +306,8 @@ class NatureMomentsApp {
       if (window.pauseAllMedia) window.pauseAllMedia();
     } else if (viewName === 'reels') {
       if (bottomNav) {
-        bottomNav.classList.remove('bottom-nav-light');
-        bottomNav.classList.add('bottom-nav-dark');
+        bottomNav.classList.remove('bottom-nav-dark');
+        bottomNav.classList.add('bottom-nav-light');
       }
       if (this.navBtnReels) {
         this.navBtnReels.classList.add('active');

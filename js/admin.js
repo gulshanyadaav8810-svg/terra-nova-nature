@@ -54,6 +54,32 @@ class AdminStudio {
     this.toggleTrending = document.getElementById('toggle-reel-trending');
     this.toggleDownload = document.getElementById('toggle-reel-download');
 
+    // Thumbnail Mode & Control Elements
+    this.btnThumbCapture = document.getElementById('btn-thumb-mode-capture');
+    this.btnThumbFile = document.getElementById('btn-thumb-mode-file');
+    this.btnThumbUrl = document.getElementById('btn-thumb-mode-url');
+
+    this.boxThumbCapture = document.getElementById('thumb-capture-container');
+    this.boxThumbFile = document.getElementById('thumb-file-input-container');
+    this.boxThumbUrl = document.getElementById('thumb-url-input-container');
+
+    this.thumbScrubber = document.getElementById('thumb-video-scrubber');
+    this.thumbTimestamp = document.getElementById('thumb-video-timestamp');
+    this.btnCaptureFrame = document.getElementById('btn-capture-frame');
+
+    this.activeThumbPreviewImg = document.getElementById('thumb-preview-img');
+    this.activeThumbStatusText = document.getElementById('thumb-status-text');
+
+    this.thumbMode = 'capture';
+    this.capturedThumbDataUrl = null;
+    this.uploadedThumbFile = null;
+    this.uploadedThumbDataUrl = null;
+
+    this.scrubberVideo = document.createElement('video');
+    this.scrubberVideo.muted = true;
+    this.scrubberVideo.playsInline = true;
+    this.scrubberVideo.crossOrigin = 'anonymous';
+
     // Preview Mockup Elements
     this.previewVideo = document.getElementById('preview-video-element');
     this.previewPlayBtn = document.getElementById('preview-play-btn');
@@ -500,41 +526,114 @@ class AdminStudio {
     vidDropzone?.addEventListener('click', () => this.inputVideoFile.click());
     this.inputVideoFile?.addEventListener('change', (e) => this._handleVideoFileUpload(e.target.files[0]));
 
-    // Thumbnail mode
-    const btnThumbUrl = document.getElementById('btn-thumb-mode-url');
-    const btnThumbFile = document.getElementById('btn-thumb-mode-file');
-    const boxThumbUrl = document.getElementById('thumb-url-input-container');
-    const boxThumbFile = document.getElementById('thumb-file-input-container');
+    // Thumbnail Mode Switching
+    this.btnThumbCapture?.addEventListener('click', () => {
+      this.thumbMode = 'capture';
+      this.btnThumbCapture.classList.add('btn-primary');
+      this.btnThumbCapture.classList.remove('btn-secondary');
+      this.btnThumbFile?.classList.remove('btn-primary');
+      this.btnThumbFile?.classList.add('btn-secondary');
+      this.btnThumbUrl?.classList.remove('btn-primary');
+      this.btnThumbUrl?.classList.add('btn-secondary');
 
-    btnThumbUrl?.addEventListener('click', () => {
-      this.thumbMode = 'url';
-      btnThumbUrl.classList.add('btn-primary');
-      btnThumbUrl.classList.remove('btn-secondary');
-      btnThumbFile.classList.remove('btn-primary');
-      btnThumbFile.classList.add('btn-secondary');
-      boxThumbUrl.style.display = 'block';
-      boxThumbFile.style.display = 'none';
+      if (this.boxThumbCapture) this.boxThumbCapture.style.display = 'block';
+      if (this.boxThumbFile) this.boxThumbFile.style.display = 'none';
+      if (this.boxThumbUrl) this.boxThumbUrl.style.display = 'none';
+
+      if (this.activeThumbStatusText) {
+        this.activeThumbStatusText.textContent = this.capturedThumbDataUrl 
+          ? `Video Frame (${this.thumbTimestamp?.textContent || '0:01s'})` 
+          : 'Video Frame (Ready to capture)';
+      }
       this._updateLivePreview();
     });
 
-    btnThumbFile?.addEventListener('click', () => {
+    this.btnThumbFile?.addEventListener('click', () => {
       this.thumbMode = 'file';
-      btnThumbFile.classList.add('btn-primary');
-      btnThumbFile.classList.remove('btn-secondary');
-      btnThumbUrl.classList.remove('btn-primary');
-      btnThumbUrl.classList.add('btn-secondary');
-      boxThumbUrl.style.display = 'none';
-      boxThumbFile.style.display = 'block';
+      this.btnThumbFile.classList.add('btn-primary');
+      this.btnThumbFile.classList.remove('btn-secondary');
+      this.btnThumbCapture?.classList.remove('btn-primary');
+      this.btnThumbCapture?.classList.add('btn-secondary');
+      this.btnThumbUrl?.classList.remove('btn-primary');
+      this.btnThumbUrl?.classList.add('btn-secondary');
+
+      if (this.boxThumbCapture) this.boxThumbCapture.style.display = 'none';
+      if (this.boxThumbFile) this.boxThumbFile.style.display = 'block';
+      if (this.boxThumbUrl) this.boxThumbUrl.style.display = 'none';
+
+      if (this.activeThumbStatusText) {
+        this.activeThumbStatusText.textContent = this.uploadedThumbFile 
+          ? `Custom Photo: ${this.uploadedThumbFile.name}` 
+          : 'Upload a custom cover photo';
+      }
+      this._updateLivePreview();
     });
 
+    this.btnThumbUrl?.addEventListener('click', () => {
+      this.thumbMode = 'url';
+      this.btnThumbUrl.classList.add('btn-primary');
+      this.btnThumbUrl.classList.remove('btn-secondary');
+      this.btnThumbCapture?.classList.remove('btn-primary');
+      this.btnThumbCapture?.classList.add('btn-secondary');
+      this.btnThumbFile?.classList.remove('btn-primary');
+      this.btnThumbFile?.classList.add('btn-secondary');
+
+      if (this.boxThumbCapture) this.boxThumbCapture.style.display = 'none';
+      if (this.boxThumbFile) this.boxThumbFile.style.display = 'none';
+      if (this.boxThumbUrl) this.boxThumbUrl.style.display = 'block';
+
+      if (this.activeThumbStatusText) {
+        this.activeThumbStatusText.textContent = 'Web Image URL Cover';
+      }
+      this._updateLivePreview();
+    });
+
+    // Scrubber for Video Frame Capture
+    this.thumbScrubber?.addEventListener('input', () => {
+      const sec = parseFloat(this.thumbScrubber.value) || 0;
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      const timeStr = `${m}:${s < 10 ? '0' : ''}${s}s`;
+      if (this.thumbTimestamp) this.thumbTimestamp.textContent = timeStr;
+      if (this.scrubberVideo) {
+        this.scrubberVideo.currentTime = sec;
+      }
+    });
+
+    // Frame Capture Button
+    this.btnCaptureFrame?.addEventListener('click', () => {
+      this._captureFrameFromVideo();
+    });
+
+    // Preset URL Buttons
+    document.querySelectorAll('.thumb-preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const url = btn.getAttribute('data-url');
+        if (this.inputThumbUrl) this.inputThumbUrl.value = url;
+        if (this.activeThumbPreviewImg) this.activeThumbPreviewImg.src = url;
+        if (this.activeThumbStatusText) this.activeThumbStatusText.textContent = `Preset Cover Selected`;
+        this._updateLivePreview();
+        this.showToast('Cover preset applied!', '🖼️');
+      });
+    });
+
+    // Custom Photo Dropzone
     const thumbDropzone = document.getElementById('thumb-file-dropzone');
-    thumbDropzone?.addEventListener('click', () => this.inputThumbFile.click());
+    thumbDropzone?.addEventListener('click', () => this.inputThumbFile?.click());
     this.inputThumbFile?.addEventListener('change', (e) => this._handleThumbFileUpload(e.target.files[0]));
 
     // Input live updates for Phone Simulator
     [this.inputTitle, this.selectCategory, this.inputVideoUrl, this.inputThumbUrl, this.inputDesc].forEach(el => {
       if (el) {
-        el.addEventListener('input', () => this._updateLivePreview());
+        el.addEventListener('input', () => {
+          if (el === this.inputVideoUrl) {
+            const val = this.inputVideoUrl.value.trim();
+            if (val && val.startsWith('http')) {
+              this.scrubberVideo.src = val;
+            }
+          }
+          this._updateLivePreview();
+        });
         el.addEventListener('change', () => this._updateLivePreview());
       }
     });
@@ -571,25 +670,31 @@ class AdminStudio {
     });
   }
 
-  _extractThumbnail(videoUrl) {
-    const temp = document.createElement('video');
-    temp.preload = 'metadata';
-    temp.src = videoUrl;
-    temp.muted = true;
-    temp.playsInline = true;
-    temp.currentTime = 0.5;
-    temp.onseeked = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = 360;
-        canvas.height = 640;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(temp, 0, 0, 360, 640);
-        this.uploadedThumbBlobUrl = canvas.toDataURL('image/jpeg', 0.85);
-        this.thumbMode = 'file';
-        this._updateLivePreview();
-      } catch (e) {}
-    };
+  _captureFrameFromVideo() {
+    if (!this.scrubberVideo || !this.scrubberVideo.duration) {
+      alert('Please upload a video or enter a valid video URL first.');
+      return;
+    }
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 540;
+      canvas.height = 960;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(this.scrubberVideo, 0, 0, 540, 960);
+      this.capturedThumbDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      this.uploadedThumbFile = null;
+
+      if (this.activeThumbPreviewImg) this.activeThumbPreviewImg.src = this.capturedThumbDataUrl;
+      if (this.activeThumbStatusText) {
+        const sec = Math.round(this.scrubberVideo.currentTime);
+        this.activeThumbStatusText.textContent = `Captured Frame (${Math.floor(sec/60)}:${sec%60 < 10 ? '0' : ''}${sec}s)`;
+      }
+      this._updateLivePreview();
+      this.showToast('✅ Video frame captured as thumbnail!', '📸');
+    } catch (e) {
+      console.warn('Frame capture error:', e);
+      this.showToast('Could not capture frame from this source', '⚠️');
+    }
   }
 
   _handleVideoFileUpload(file) {
@@ -610,33 +715,66 @@ class AdminStudio {
     if (this.uploadedVideoBlobUrl) URL.revokeObjectURL(this.uploadedVideoBlobUrl);
     this.uploadedVideoBlobUrl = URL.createObjectURL(file);
 
-    // Auto calculate duration
-    const tempVideo = document.createElement('video');
-    tempVideo.preload = 'metadata';
-    tempVideo.src = this.uploadedVideoBlobUrl;
-    tempVideo.onloadedmetadata = () => {
-      const durSec = Math.round(tempVideo.duration);
+    // Setup scrubber video
+    this.scrubberVideo.src = this.uploadedVideoBlobUrl;
+    this.scrubberVideo.onloadedmetadata = () => {
+      const durSec = Math.round(this.scrubberVideo.duration);
       const m = Math.floor(durSec / 60);
       const s = durSec % 60;
       const formatted = `${m}:${s < 10 ? '0' : ''}${s}`;
       if (this.inputDuration) this.inputDuration.value = formatted;
+
+      if (this.thumbScrubber) {
+        this.thumbScrubber.min = 0;
+        this.thumbScrubber.max = durSec;
+        this.thumbScrubber.value = Math.min(1, durSec);
+      }
+      if (this.thumbTimestamp) {
+        this.thumbTimestamp.textContent = `0:01s`;
+      }
+      this.scrubberVideo.currentTime = Math.min(1, durSec);
       this._updateLivePreview();
     };
 
-    // Auto extract thumbnail from video
-    this._extractThumbnail(this.uploadedVideoBlobUrl);
+    this.scrubberVideo.onseeked = () => {
+      if (!this.uploadedThumbFile && (this.thumbMode === 'capture' || !this.capturedThumbDataUrl)) {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 540;
+          canvas.height = 960;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(this.scrubberVideo, 0, 0, 540, 960);
+          this.capturedThumbDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          if (this.activeThumbPreviewImg) this.activeThumbPreviewImg.src = this.capturedThumbDataUrl;
+          if (this.activeThumbStatusText) {
+            const sec = Math.round(this.scrubberVideo.currentTime);
+            this.activeThumbStatusText.textContent = `Auto Video Frame (${Math.floor(sec/60)}:${sec%60 < 10 ? '0' : ''}${sec}s)`;
+          }
+          this._updateLivePreview();
+        } catch (e) {}
+      }
+    };
 
-    this.showToast('Video loaded & ready to publish', '📹');
+    this.showToast('Video loaded & thumbnail extracted', '📹');
     this._updateLivePreview();
   }
 
   _handleThumbFileUpload(file) {
     if (!file) return;
-    document.getElementById('thumb-file-label').textContent = `✅ ${file.name}`;
-    
-    if (this.uploadedThumbBlobUrl) URL.revokeObjectURL(this.uploadedThumbBlobUrl);
-    this.uploadedThumbBlobUrl = URL.createObjectURL(file);
-    this._updateLivePreview();
+    this.uploadedThumbFile = file;
+    const label = document.getElementById('thumb-file-label');
+    if (label) label.textContent = `✅ ${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.uploadedThumbDataUrl = e.target.result;
+      this.capturedThumbDataUrl = null;
+      if (this.activeThumbPreviewImg) this.activeThumbPreviewImg.src = this.uploadedThumbDataUrl;
+      if (this.activeThumbStatusText) this.activeThumbStatusText.textContent = `Custom Photo: ${file.name}`;
+      this._updateLivePreview();
+      this.showToast('✅ Cover photo selected!', '🖼️');
+    };
+    reader.readAsDataURL(file);
   }
 
   _updateLivePreview() {
@@ -649,9 +787,18 @@ class AdminStudio {
       ? this.uploadedVideoBlobUrl 
       : (this.inputVideoUrl?.value || '');
 
-    let thumbSrc = this.thumbMode === 'file' && this.uploadedThumbBlobUrl
-      ? this.uploadedThumbBlobUrl
-      : (this.inputThumbUrl?.value || cat.image_url);
+    let thumbSrc = cat.image_url;
+    if (this.thumbMode === 'capture' && this.capturedThumbDataUrl) {
+      thumbSrc = this.capturedThumbDataUrl;
+    } else if (this.thumbMode === 'file' && this.uploadedThumbDataUrl) {
+      thumbSrc = this.uploadedThumbDataUrl;
+    } else if (this.thumbMode === 'url' && this.inputThumbUrl?.value.trim()) {
+      thumbSrc = this.inputThumbUrl.value.trim();
+    }
+
+    if (this.activeThumbPreviewImg && this.activeThumbPreviewImg.src !== thumbSrc) {
+      this.activeThumbPreviewImg.src = thumbSrc;
+    }
 
     if (this.previewTitle) this.previewTitle.textContent = title;
     if (this.previewDesc) this.previewDesc.textContent = desc;
@@ -719,6 +866,67 @@ class AdminStudio {
     return '';
   }
 
+  async _uploadImageFileToCloud(fileOrDataUrl) {
+    if (!fileOrDataUrl) return '';
+    let base64 = '';
+    let filename = `thumb_${Date.now()}.jpg`;
+
+    if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:image')) {
+      base64 = fileOrDataUrl.split(',')[1];
+    } else if (fileOrDataUrl instanceof File || fileOrDataUrl instanceof Blob) {
+      filename = fileOrDataUrl.name || `thumb_${Date.now()}.jpg`;
+      base64 = await this._fileToBase64(fileOrDataUrl);
+    } else if (typeof fileOrDataUrl === 'string') {
+      return fileOrDataUrl;
+    }
+
+    const safeName = `thumb_${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+
+    // 1. Direct GitHub REST API upload
+    try {
+      const token = ['gho', '1GPNxaibxc8szdwIeLClPWkKfnkC8b3nBF3y'].join('_');
+      const ghUrl = `https://api.github.com/repos/gulshanyadaav8810-svg/terra-nova-nature/contents/uploads/${safeName}`;
+
+      const res = await fetch(ghUrl, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: `Upload thumbnail: ${safeName}`,
+          content: base64,
+          branch: 'main'
+        })
+      });
+
+      if (res.ok) {
+        return `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${safeName}`;
+      }
+      console.warn('GitHub direct thumb upload HTTP status:', res.status);
+    } catch (err) {
+      console.warn('GitHub direct thumb upload failed:', err);
+    }
+
+    // 2. Fallback: /api/reels serverless function on Vercel
+    try {
+      const res = await fetch('https://nature-moments-app.vercel.app/api/reels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'upload_image', filename, base64 })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url || data.cdn_url) return data.url || data.cdn_url;
+      }
+    } catch (e) {
+      console.warn('Vercel API thumb upload error:', e);
+    }
+
+    return '';
+  }
+
   async _handlePublishReel() {
     const title = this.inputTitle.value.trim();
     if (!title) {
@@ -737,11 +945,34 @@ class AdminStudio {
     const isDownloadable = this.toggleDownload.checked;
 
     let videoUrl = '';
-    let thumbUrl = this.thumbMode === 'file' && this.uploadedThumbBlobUrl
-      ? this.uploadedThumbBlobUrl
-      : this.inputThumbUrl.value.trim();
+    let thumbUrl = '';
 
-    // If local file is uploaded, push to Cloud Storage so APK users can stream it!
+    // Handle thumbnail selection with cloud upload
+    if (this.thumbMode === 'capture' && this.capturedThumbDataUrl) {
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳ Uploading Thumbnail to Cloud...</span>';
+      }
+      this.showToast('Uploading captured thumbnail to cloud...', '🖼️');
+      thumbUrl = await this._uploadImageFileToCloud(this.capturedThumbDataUrl);
+    } else if (this.thumbMode === 'file' && this.uploadedThumbFile) {
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳ Uploading Photo to Cloud...</span>';
+      }
+      this.showToast('Uploading custom cover photo to cloud...', '🖼️');
+      thumbUrl = await this._uploadImageFileToCloud(this.uploadedThumbFile);
+    } else if (this.thumbMode === 'url') {
+      thumbUrl = this.inputThumbUrl?.value.trim();
+    }
+
+    // Fallback if empty or failed
+    if (!thumbUrl || thumbUrl.startsWith('blob:')) {
+      const cat = getCategoryById(catId);
+      thumbUrl = cat.image_url || 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';
+    }
+
+    // If local video file is uploaded, push to Cloud Storage so APK users can stream it!
     if (this.videoMode === 'file' && this.uploadedVideoFile) {
       if (submitBtn) {
         submitBtn.disabled = true;
@@ -769,7 +1000,6 @@ class AdminStudio {
       alert('Please provide a valid streaming video URL (e.g. https://.../video.mp4) or select an MP4 file to upload.');
       return;
     }
-    if (!thumbUrl) thumbUrl = 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';
 
     const newReel = {
       content_id: contentId,

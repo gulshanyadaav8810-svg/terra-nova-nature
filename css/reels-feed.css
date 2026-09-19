@@ -160,7 +160,7 @@
   padding: 4px 12px 4px 6px;
   border-radius: var(--radius-full);
   background: rgba(23, 72, 60, 0.85);
-  border: 1px solid rgba(233, 232, 91, 0.35);
+  border: 1px solid rgba(52, 211, 153, 0.35);
   color: #FFFFFF;
 }
 
@@ -187,7 +187,7 @@
   border-radius: var(--radius-full);
   background: rgba(23, 72, 60, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  color: var(--color-soft-yellow);
+  color: #34D399;
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
@@ -209,7 +209,7 @@
 
 .eq-bar {
   width: 3px;
-  background: var(--color-soft-yellow);
+  background: #34D399;
   border-radius: 2px;
   height: 4px;
   transition: height 0.1s ease;
@@ -274,23 +274,23 @@
 
 .floating-cat-pill.active {
   background: linear-gradient(135deg, #17483C 0%, #2D7A66 100%);
-  border-color: #E9E85B;
+  border-color: #34D399;
   color: #FFFFFF;
-  box-shadow: 0 4px 16px rgba(23, 72, 60, 0.7), 0 0 10px rgba(233, 232, 91, 0.35);
+  box-shadow: 0 4px 16px rgba(23, 72, 60, 0.7), 0 0 10px rgba(52, 211, 153, 0.35);
   transform: scale(1.05);
 }
 
 .floating-cat-pill.active .cat-dot {
   display: inline-block;
-  background: #E9E85B;
-  box-shadow: 0 0 6px #E9E85B;
+  background: #34D399;
+  box-shadow: 0 0 6px #34D399;
 }
 
 .cat-dot {
   width: 5px;
   height: 5px;
   border-radius: var(--radius-full);
-  background: var(--color-soft-yellow);
+  background: #34D399;
   display: none;
 }
 

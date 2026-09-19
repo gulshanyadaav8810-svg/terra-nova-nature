@@ -238,24 +238,78 @@
                 </div>
               </div>
 
-              <!-- Thumbnail Source -->
-              <div class="form-group">
-                <label class="form-label">Thumbnail Cover Photo <span class="req">*</span></label>
-                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                  <button type="button" class="btn btn-secondary" id="btn-thumb-mode-url" style="flex: 1; padding: 8px;">Image URL</button>
-                  <button type="button" class="btn btn-secondary" id="btn-thumb-mode-file" style="flex: 1; padding: 8px;">Upload Image</button>
+              <!-- Thumbnail Source with Video Frame Extraction, File Upload & URL -->
+              <div class="form-group" style="background: rgba(255,255,255,0.03); border: 1px solid var(--admin-border); border-radius: 14px; padding: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <label class="form-label" style="margin-bottom: 0;">Thumbnail Cover Photo <span class="req">*</span></label>
+                  <span style="font-size: 0.75rem; color: var(--admin-accent); font-weight: 600;">Home Card & Reel Poster</span>
                 </div>
 
-                <div id="thumb-url-input-container">
-                  <input type="text" id="input-thumb-url" class="form-input" placeholder="https://images.unsplash.com/photo-... or cover URL" value="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80" />
+                <!-- 3 Thumbnail Selection Modes -->
+                <div style="display: flex; gap: 6px; margin-bottom: 12px; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 10px;">
+                  <button type="button" class="btn btn-primary" id="btn-thumb-mode-capture" style="flex: 1; padding: 8px 4px; font-size: 0.8rem;">
+                    🎬 Video Frame
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="btn-thumb-mode-file" style="flex: 1; padding: 8px 4px; font-size: 0.8rem;">
+                    📁 Upload Photo
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="btn-thumb-mode-url" style="flex: 1; padding: 8px 4px; font-size: 0.8rem;">
+                    🔗 Image URL
+                  </button>
                 </div>
 
-                <div id="thumb-file-input-container" style="display: none;">
-                  <div class="file-dropzone" id="thumb-file-dropzone">
-                    <div class="dropzone-icon">🖼️</div>
-                    <div class="dropzone-text" id="thumb-file-label">Click or Drag & Drop Image File</div>
-                    <div class="dropzone-hint">PNG, JPG, or WebP</div>
+                <!-- Mode 1: Video Frame Capture / Scrubber -->
+                <div id="thumb-capture-container" style="display: block; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-size: 0.78rem; color: #a7f3d0; font-weight: 600;">⏱️ Video Seeker / Timestamp:</span>
+                    <span id="thumb-video-timestamp" style="font-size: 0.8rem; color: #fff; font-family: monospace; font-weight: 700;">0:01s</span>
+                  </div>
+                  <input type="range" id="thumb-video-scrubber" min="0" max="100" value="5" style="width: 100%; cursor: pointer; accent-color: var(--admin-accent); margin-bottom: 8px;" />
+                  <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-accent" id="btn-capture-frame" style="flex: 1; padding: 8px 12px; font-size: 0.82rem;">
+                      📸 Capture Current Video Frame as Thumbnail
+                    </button>
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--admin-text-dim); margin-top: 6px;">
+                    💡 Video se koi bhi frame select karke "Capture" karein.
+                  </div>
+                </div>
+
+                <!-- Mode 2: Custom Photo Upload -->
+                <div id="thumb-file-input-container" style="display: none; margin-bottom: 12px;">
+                  <div class="file-dropzone" id="thumb-file-dropzone" style="padding: 20px 14px;">
+                    <div class="dropzone-icon" style="font-size: 1.8rem;">🖼️</div>
+                    <div class="dropzone-text" id="thumb-file-label" style="font-size: 0.88rem;">Click or Drag & Drop Cover Image</div>
+                    <div class="dropzone-hint" style="font-size: 0.74rem;">JPG, PNG, or WebP (Vertical 9:16 recommended)</div>
                     <input type="file" id="input-thumb-file" accept="image/*" style="display: none;" />
+                  </div>
+                </div>
+
+                <!-- Mode 3: Image URL -->
+                <div id="thumb-url-input-container" style="display: none; margin-bottom: 12px;">
+                  <input type="text" id="input-thumb-url" class="form-input" placeholder="https://images.unsplash.com/... or image URL" value="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80" />
+                  <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;">
+                    <button type="button" class="btn btn-secondary thumb-preset-btn" data-url="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80" style="padding: 4px 8px; font-size: 0.72rem;">🌲 Forest</button>
+                    <button type="button" class="btn btn-secondary thumb-preset-btn" data-url="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80" style="padding: 4px 8px; font-size: 0.72rem;">🌊 Ocean</button>
+                    <button type="button" class="btn btn-secondary thumb-preset-btn" data-url="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80" style="padding: 4px 8px; font-size: 0.72rem;">⛰️ Mountain</button>
+                    <button type="button" class="btn btn-secondary thumb-preset-btn" data-url="https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?auto=format&fit=crop&w=600&q=80" style="padding: 4px 8px; font-size: 0.72rem;">🌧️ Rain</button>
+                    <button type="button" class="btn btn-secondary thumb-preset-btn" data-url="https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=600&q=80" style="padding: 4px 8px; font-size: 0.72rem;">🍂 Autumn</button>
+                  </div>
+                </div>
+
+                <!-- Dedicated Thumbnail Card Live Preview -->
+                <div id="thumb-active-preview-card" style="display: flex; gap: 14px; align-items: center; background: rgba(27, 77, 62, 0.25); border: 1.5px solid rgba(52, 211, 153, 0.4); border-radius: 12px; padding: 10px 12px;">
+                  <div style="width: 58px; height: 96px; border-radius: 8px; overflow: hidden; background: #000; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.25);">
+                    <img id="thumb-preview-img" src="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80" alt="Thumbnail Preview" style="width: 100%; height: 100%; object-fit: cover;" />
+                  </div>
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="display: inline-flex; align-items: center; gap: 5px; background: rgba(52, 211, 153, 0.25); color: #34d399; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; margin-bottom: 4px;">
+                      <span>✓ Active Thumbnail Cover</span>
+                    </div>
+                    <div id="thumb-status-text" style="font-size: 0.82rem; color: #fff; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Auto Video Frame Ready</div>
+                    <div style="font-size: 0.72rem; color: rgba(255,255,255,0.7); margin-top: 2px;">
+                      Home card aur Reel stream par yehi thumbnail dikhega.
+                    </div>
                   </div>
                 </div>
               </div>

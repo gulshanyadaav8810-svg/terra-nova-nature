@@ -132,7 +132,7 @@
 }
 
 .home-sound-btn.active .home-eq-bar {
-  background: #E8E76C;
+  background: #34D399;
   animation: eqBounce 0.8s ease-in-out infinite alternate;
 }
 
@@ -502,8 +502,8 @@
 
 .bottom-nav-dark .bottom-nav-item.active .bottom-nav-icon {
   transform: scale(1.08) !important;
-  color: #E8E76C !important;
-  stroke: #E8E76C !important;
+  color: #34D399 !important;
+  stroke: #34D399 !important;
 }
 
 .bottom-nav-dark .bottom-nav-item.active .bottom-nav-label {
@@ -518,8 +518,8 @@
   width: 16px !important;
   height: 2.5px !important;
   border-radius: 3px !important;
-  background: #E8E76C !important;
-  box-shadow: 0 0 10px #E8E76C !important;
+  background: #34D399 !important;
+  box-shadow: 0 0 10px #34D399 !important;
 }
 
 /* ==========================================================
