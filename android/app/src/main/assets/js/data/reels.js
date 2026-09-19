@@ -42,11 +42,15 @@ export function loadAllReels() {
 // Initial load
 loadAllReels();
 
-// Remote fetch function to sync from GitHub Pages / JSON
+// Cloud API Base URL
+const CLOUD_API_URL = 'https://nature-moments-app.vercel.app/api/reels';
+
+// Remote fetch function to sync from Cloud API & GitHub
 export async function syncRemoteReels() {
   const urls = [
-    'data/reels.json?t=' + Date.now(),
-    'https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=' + Date.now()
+    `${CLOUD_API_URL}?t=${Date.now()}`,
+    `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=${Date.now()}`,
+    `data/reels.json?t=${Date.now()}`
   ];
 
   for (const url of urls) {
@@ -54,7 +58,7 @@ export async function syncRemoteReels() {
       const res = await fetch(url, { cache: 'no-store' });
       if (res.ok) {
         const remoteReels = await res.json();
-        if (Array.isArray(remoteReels) && remoteReels.length > 0) {
+        if (Array.isArray(remoteReels)) {
           const merged = new Map();
           INITIAL_REELS.forEach(r => merged.set(r.content_id, r));
           remoteReels.forEach(r => merged.set(r.content_id, r));
@@ -62,8 +66,12 @@ export async function syncRemoteReels() {
           // Also persist any local customs
           const custom = localStorage.getItem('nature_custom_reels');
           if (custom) {
-            const parsed = JSON.parse(custom);
-            parsed.forEach(r => merged.set(r.content_id, r));
+            try {
+              const parsed = JSON.parse(custom);
+              if (Array.isArray(parsed)) {
+                parsed.forEach(r => merged.set(r.content_id, r));
+              }
+            } catch (e) {}
           }
 
           const all = Array.from(merged.values());
@@ -80,10 +88,12 @@ export async function syncRemoteReels() {
   return REELS_DATA;
 }
 
-// Automatically sync when online
+// Automatically sync when online, on window focus, and on periodic poll
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => syncRemoteReels());
-  setTimeout(() => syncRemoteReels(), 1500);
+  window.addEventListener('focus', () => syncRemoteReels());
+  setTimeout(() => syncRemoteReels(), 800);
+  setInterval(() => syncRemoteReels(), 15000); // 15s live polling
 
   // BroadcastChannel for 0-millisecond cross-tab admin sync
   if ('BroadcastChannel' in window) {
@@ -117,6 +127,19 @@ export function getReelById(contentId) {
   return REELS_DATA.find(r => r.content_id === contentId);
 }
 
+async function syncToCloudApi(action, data) {
+  try {
+    const payload = { action, ...data };
+    await fetch(CLOUD_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {
+    // Background cloud sync failed, local persistence still active
+  }
+}
+
 export function addCustomReel(reel) {
   try {
     const custom = JSON.parse(localStorage.getItem('nature_custom_reels') || '[]');
@@ -131,6 +154,7 @@ export function addCustomReel(reel) {
       channel.postMessage({ type: 'ADD_REEL', reel });
     }
     window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+    syncToCloudApi('add', { reel });
     return true;
   } catch (e) {
     console.error('Error adding custom reel:', e);
@@ -153,6 +177,7 @@ export function addCustomReelsBatch(reelsList) {
       channel.postMessage({ type: 'ADD_REELS_BATCH', count: reelsList.length });
     }
     window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+    syncToCloudApi('batch_add', { reels: reelsList });
     return true;
   } catch (e) {
     console.error('Error batch adding custom reels:', e);
@@ -174,6 +199,7 @@ export function deleteCustomReel(contentId) {
       channel.postMessage({ type: 'DELETE_REEL', content_id: contentId });
     }
     window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+    syncToCloudApi('delete', { id: contentId });
     return true;
   } catch (e) {
     console.error('Error deleting custom reel:', e);
@@ -195,6 +221,7 @@ export function deleteCustomReelsBatch(idList) {
       channel.postMessage({ type: 'DELETE_REELS_BATCH', ids: idList });
     }
     window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+    syncToCloudApi('batch_delete', { ids: idList });
     return true;
   } catch (e) {
     console.error('Error batch deleting custom reels:', e);
@@ -212,6 +239,7 @@ export function wipeAllReels() {
       channel.postMessage({ type: 'WIPE_ALL_REELS' });
     }
     window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+    syncToCloudApi('wipe', {});
     return true;
   } catch (e) {
     console.error('Error wiping reels:', e);

@@ -668,24 +668,31 @@
     return REELS_DATA;
   }
   loadAllReels();
+  var CLOUD_API_URL = "https://nature-moments-app.vercel.app/api/reels";
   async function syncRemoteReels() {
     const urls = [
-      "data/reels.json?t=" + Date.now(),
-      "https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=" + Date.now()
+      `${CLOUD_API_URL}?t=${Date.now()}`,
+      `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=${Date.now()}`,
+      `data/reels.json?t=${Date.now()}`
     ];
     for (const url of urls) {
       try {
         const res = await fetch(url, { cache: "no-store" });
         if (res.ok) {
           const remoteReels = await res.json();
-          if (Array.isArray(remoteReels) && remoteReels.length > 0) {
+          if (Array.isArray(remoteReels)) {
             const merged = /* @__PURE__ */ new Map();
             INITIAL_REELS.forEach((r) => merged.set(r.content_id, r));
             remoteReels.forEach((r) => merged.set(r.content_id, r));
             const custom = localStorage.getItem("nature_custom_reels");
             if (custom) {
-              const parsed = JSON.parse(custom);
-              parsed.forEach((r) => merged.set(r.content_id, r));
+              try {
+                const parsed = JSON.parse(custom);
+                if (Array.isArray(parsed)) {
+                  parsed.forEach((r) => merged.set(r.content_id, r));
+                }
+              } catch (e) {
+              }
             }
             const all = Array.from(merged.values());
             all.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
@@ -701,7 +708,9 @@
   }
   if (typeof window !== "undefined") {
     window.addEventListener("online", () => syncRemoteReels());
-    setTimeout(() => syncRemoteReels(), 1500);
+    window.addEventListener("focus", () => syncRemoteReels());
+    setTimeout(() => syncRemoteReels(), 800);
+    setInterval(() => syncRemoteReels(), 15e3);
     if ("BroadcastChannel" in window) {
       const channel = new BroadcastChannel("nature_moments_sync");
       channel.onmessage = (event) => {
