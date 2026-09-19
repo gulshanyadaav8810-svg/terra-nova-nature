@@ -183,6 +183,12 @@ class AdminStudio {
   _renderStats() {
     if (this.statTotalReels) this.statTotalReels.textContent = this.reels.length;
     if (this.statTotalCats) this.statTotalCats.textContent = this.categories.length;
+    const totalLikes = this.reels.reduce((sum, r) => sum + (r.likes_count || 0), 0);
+    const totalShares = this.reels.reduce((sum, r) => sum + (r.shares_count || 0), 0);
+    const statLikes = document.getElementById('stat-total-likes');
+    const statShares = document.getElementById('stat-total-shares');
+    if (statLikes) statLikes.textContent = totalLikes;
+    if (statShares) statShares.textContent = totalShares;
   }
 
   _renderCategorySelect() {
@@ -377,9 +383,8 @@ class AdminStudio {
         </td>
         <td><span class="badge-tag">${cat.icon} ${cat.name}</span></td>
         <td><span style="font-family: monospace; font-size: 0.85rem;">${reel.duration}</span></td>
-        <td>
-          ${reel.is_trending ? '<span class="badge-tag badge-trending">🔥 Trending</span>' : '<span style="color: var(--admin-text-dim); font-size: 0.8rem;">Standard</span>'}
-        </td>
+        <td><span style="color: #f43f5e; font-weight: 700; font-size: 0.85rem;">❤️ ${reel.likes_count || 0}</span></td>
+        <td><span style="color: #22c55e; font-weight: 700; font-size: 0.85rem;">↗️ ${reel.shares_count || 0}</span></td>
         <td>
           <div style="display: flex; gap: 8px;">
             <button class="btn btn-secondary btn-preview-reel" data-url="${reel.video_url}" style="padding: 6px 10px; font-size: 0.8rem;" title="Preview Video">
@@ -535,9 +540,52 @@ class AdminStudio {
     });
   }
 
+  _fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  _extractThumbnail(videoUrl) {
+    const temp = document.createElement('video');
+    temp.preload = 'metadata';
+    temp.src = videoUrl;
+    temp.muted = true;
+    temp.playsInline = true;
+    temp.currentTime = 0.5;
+    temp.onseeked = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 360;
+        canvas.height = 640;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(temp, 0, 0, 360, 640);
+        this.uploadedThumbBlobUrl = canvas.toDataURL('image/jpeg', 0.85);
+        this.thumbMode = 'file';
+        this._updateLivePreview();
+      } catch (e) {}
+    };
+  }
+
   _handleVideoFileUpload(file) {
     if (!file) return;
+    this.uploadedVideoFile = file;
     document.getElementById('video-file-label').textContent = `✅ ${file.name} (${(file.size / (1024*1024)).toFixed(1)} MB)`;
+
+    // Auto-fill Title if empty or default
+    if (this.inputTitle) {
+      const clean = file.name
+        .replace(/\.[^/.]+$/, '')
+        .replace(/[-_]+/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
+      this.inputTitle.value = clean;
+    }
     
     // Create local object URL for preview & playback
     if (this.uploadedVideoBlobUrl) URL.revokeObjectURL(this.uploadedVideoBlobUrl);
@@ -556,7 +604,10 @@ class AdminStudio {
       this._updateLivePreview();
     };
 
-    this.showToast('Video file loaded & duration analyzed', '📹');
+    // Auto extract thumbnail from video
+    this._extractThumbnail(this.uploadedVideoBlobUrl);
+
+    this.showToast('Video loaded & ready to publish', '📹');
     this._updateLivePreview();
   }
 
@@ -596,12 +647,15 @@ class AdminStudio {
     }
   }
 
-  _handlePublishReel() {
+  async _handlePublishReel() {
     const title = this.inputTitle.value.trim();
     if (!title) {
       alert('Please enter a title for the reel');
       return;
     }
+
+    const submitBtn = this.form ? this.form.querySelector('button[type="submit"]') : null;
+    const originalBtnText = submitBtn ? submitBtn.innerHTML : 'Publish Reel';
 
     const catId = this.selectCategory.value;
     const duration = this.inputDuration.value.trim() || '0:24';
@@ -618,6 +672,43 @@ class AdminStudio {
       ? this.uploadedThumbBlobUrl
       : this.inputThumbUrl.value.trim();
 
+    // If local file is uploaded, push to Cloud Storage so APK users can stream it!
+    if (this.videoMode === 'file' && this.uploadedVideoFile) {
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳ Uploading Video to Cloud...</span>';
+      }
+      this.showToast('Uploading video to Cloud storage...', '☁️');
+
+      try {
+        const base64 = await this._fileToBase64(this.uploadedVideoFile);
+        const uploadRes = await fetch('/api/reels', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'upload_video',
+            filename: this.uploadedVideoFile.name,
+            base64: base64
+          })
+        });
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          videoUrl = uploadData.cdn_url || uploadData.url;
+          this.showToast('Video stored on global cloud CDN!', '🚀');
+        } else {
+          console.warn('Cloud video upload failed, fallback to local URL');
+        }
+      } catch (err) {
+        console.warn('Cloud upload error:', err);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnText;
+        }
+      }
+    }
+
     if (!videoUrl) videoUrl = 'assets/videos/nature_stream.mp4';
     if (!thumbUrl) thumbUrl = 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';
 
@@ -629,6 +720,10 @@ class AdminStudio {
       thumbnail_url: thumbUrl,
       video_url: videoUrl,
       duration: duration,
+      likes_count: 0,
+      shares_count: 0,
+      downloads_count: 0,
+      views_count: 0,
       is_downloadable: isDownloadable,
       is_trending: isTrending,
       created_at: new Date().toISOString()
@@ -636,7 +731,7 @@ class AdminStudio {
 
     // Save & Broadcast
     addCustomReel(newReel);
-    this.showToast('✨ Reel Published! User App Updated Immediately.', '🌿');
+    this.showToast('✨ Reel Published! Live in Android App for all users.', '🌿');
 
     // Reload data & switch to Library tab to show the new reel
     this._loadData();
@@ -914,27 +1009,70 @@ class AdminStudio {
     });
   }
 
-  _publishBulkQueue() {
+  async _publishBulkQueue() {
     if (this.bulkFilesQueue.length === 0) return;
 
-    const reelsToPublish = this.bulkFilesQueue.map(q => ({
-      content_id: q.id,
-      title: q.title,
-      description: q.description,
-      category_id: q.category_id,
-      thumbnail_url: q.thumbnail_url,
-      video_url: q.blobUrl,
-      duration: q.duration,
-      is_downloadable: q.is_downloadable,
-      is_trending: q.is_trending,
-      created_at: new Date().toISOString()
-    }));
+    const btnPublish = document.getElementById('btn-publish-bulk-files');
+    if (btnPublish) {
+      btnPublish.disabled = true;
+      btnPublish.textContent = `⏳ Uploading ${this.bulkFilesQueue.length} videos to cloud...`;
+    }
+
+    const reelsToPublish = [];
+    for (let i = 0; i < this.bulkFilesQueue.length; i++) {
+      const q = this.bulkFilesQueue[i];
+      let finalVideoUrl = q.blobUrl;
+
+      if (q.file) {
+        this.showToast(`Uploading video ${i + 1}/${this.bulkFilesQueue.length} to cloud...`, '☁️');
+        try {
+          const base64 = await this._fileToBase64(q.file);
+          const uploadRes = await fetch('/api/reels', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'upload_video',
+              filename: q.file.name,
+              base64: base64
+            })
+          });
+          if (uploadRes.ok) {
+            const upData = await uploadRes.json();
+            finalVideoUrl = upData.cdn_url || upData.url;
+          }
+        } catch (e) {
+          console.warn('Batch item cloud upload failed, using fallback');
+        }
+      }
+
+      reelsToPublish.push({
+        content_id: q.id,
+        title: q.title,
+        description: q.description,
+        category_id: q.category_id,
+        thumbnail_url: q.thumbnail_url,
+        video_url: finalVideoUrl,
+        duration: q.duration,
+        likes_count: 0,
+        shares_count: 0,
+        downloads_count: 0,
+        views_count: 0,
+        is_downloadable: q.is_downloadable,
+        is_trending: q.is_trending,
+        created_at: new Date().toISOString()
+      });
+    }
 
     addCustomReelsBatch(reelsToPublish);
-    this.showToast(`🚀 Successfully published ${reelsToPublish.length} reels!`, '✨');
+    this.showToast(`🚀 Successfully published ${reelsToPublish.length} reels to live app!`, '✨');
     this.bulkFilesQueue = [];
     this._renderBulkFilesQueue();
     this._loadData();
+
+    if (btnPublish) {
+      btnPublish.disabled = false;
+      btnPublish.textContent = '🚀 Publish All to App';
+    }
 
     setTimeout(() => {
       this.switchTab('tab-library');

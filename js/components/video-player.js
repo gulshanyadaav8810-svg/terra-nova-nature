@@ -9,6 +9,7 @@ import { downloader } from '../services/downloader.js';
 import { shareService } from '../services/share.js';
 import { i18n } from '../services/i18n.js';
 import { offlineDb } from '../services/offline-db.js';
+import { trackEngagement } from '../data/reels.js';
 
 export class VideoPlayer {
   constructor(overlayElement, showToastCallback) {
@@ -117,6 +118,7 @@ export class VideoPlayer {
     this.likeBtn.addEventListener('click', () => {
       if (!this.currentReel) return;
       const isLiked = storage.toggleLike(this.currentReel.content_id);
+      trackEngagement(this.currentReel.content_id, isLiked ? 'like' : 'unlike');
       this._updateLikeState(isLiked);
       this.showToast(isLiked ? 'Added to Liked Reels ❤️' : 'Removed from Liked', '❤️');
     });
@@ -132,12 +134,14 @@ export class VideoPlayer {
     // WhatsApp Share
     this.shareBtn.addEventListener('click', async () => {
       if (!this.currentReel) return;
+      trackEngagement(this.currentReel.content_id, 'share');
       await shareService.shareReel(this.currentReel);
     });
 
     // Download Action
     this.downloadBtn.addEventListener('click', () => {
       if (!this.currentReel) return;
+      trackEngagement(this.currentReel.content_id, 'download');
       this._startDownload();
     });
 

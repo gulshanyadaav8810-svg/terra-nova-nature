@@ -739,6 +739,42 @@
     loadAllReels();
     return REELS_DATA.find((r) => r.content_id === contentId);
   }
+  async function syncToCloudApi(action, data) {
+    try {
+      const payload = { action, ...data };
+      await fetch(CLOUD_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+    }
+  }
+  function trackEngagement(contentId, metric) {
+    const reel = REELS_DATA.find((r) => r.content_id === contentId);
+    if (reel) {
+      if (metric === "like") reel.likes_count = (reel.likes_count || 0) + 1;
+      else if (metric === "unlike") reel.likes_count = Math.max(0, (reel.likes_count || 1) - 1);
+      else if (metric === "share") reel.shares_count = (reel.shares_count || 0) + 1;
+      else if (metric === "download") reel.downloads_count = (reel.downloads_count || 0) + 1;
+      else if (metric === "view") reel.views_count = (reel.views_count || 0) + 1;
+      try {
+        const custom = JSON.parse(localStorage.getItem("nature_custom_reels") || "[]");
+        const target = custom.find((r) => r.content_id === contentId);
+        if (target) {
+          if (metric === "like") target.likes_count = reel.likes_count;
+          else if (metric === "unlike") target.likes_count = reel.likes_count;
+          else if (metric === "share") target.shares_count = reel.shares_count;
+          else if (metric === "download") target.downloads_count = reel.downloads_count;
+          else if (metric === "view") target.views_count = reel.views_count;
+          localStorage.setItem("nature_custom_reels", JSON.stringify(custom));
+        }
+      } catch (e) {
+      }
+      window.dispatchEvent(new CustomEvent("reelEngagementUpdated", { detail: { content_id: contentId, metric, reel } }));
+      syncToCloudApi("track", { content_id: contentId, metric });
+    }
+  }
 
   // js/data/categories.js
   var INITIAL_CATEGORIES = [
@@ -1195,6 +1231,7 @@ ${shareUrl}`);
       this.likeBtn.addEventListener("click", () => {
         if (!this.currentReel) return;
         const isLiked = storage.toggleLike(this.currentReel.content_id);
+        trackEngagement(this.currentReel.content_id, isLiked ? "like" : "unlike");
         this._updateLikeState(isLiked);
         this.showToast(isLiked ? "Added to Liked Reels \u2764\uFE0F" : "Removed from Liked", "\u2764\uFE0F");
       });
@@ -1206,10 +1243,12 @@ ${shareUrl}`);
       });
       this.shareBtn.addEventListener("click", async () => {
         if (!this.currentReel) return;
+        trackEngagement(this.currentReel.content_id, "share");
         await shareService.shareReel(this.currentReel);
       });
       this.downloadBtn.addEventListener("click", () => {
         if (!this.currentReel) return;
+        trackEngagement(this.currentReel.content_id, "download");
         this._startDownload();
       });
       this.dlCancelBtn.addEventListener("click", () => {
@@ -1694,22 +1733,17 @@ ${shareUrl}`);
         if (likeBtn) {
           e.stopPropagation();
           const isNowLiked = storage.toggleLike(reel.content_id);
-          const likeLabel = item.querySelector(".like-action-label");
+          trackEngagement(reel.content_id, isNowLiked ? "like" : "unlike");
+          const likeCountLabel = item.querySelector(".like-count-display");
           if (isNowLiked) {
             likeBtn.classList.add("liked");
             likeBtn.querySelector("svg").setAttribute("fill", "currentColor");
-            if (likeLabel) {
-              likeLabel.setAttribute("data-i18n", "action_liked");
-              likeLabel.textContent = i18n.t("action_liked");
-            }
+            if (likeCountLabel) likeCountLabel.textContent = reel.likes_count || 0;
             this.showToast("Added to Liked Nature Reels \u2764\uFE0F", "\u2764\uFE0F");
           } else {
             likeBtn.classList.remove("liked");
             likeBtn.querySelector("svg").setAttribute("fill", "none");
-            if (likeLabel) {
-              likeLabel.setAttribute("data-i18n", "action_like");
-              likeLabel.textContent = i18n.t("action_like");
-            }
+            if (likeCountLabel) likeCountLabel.textContent = reel.likes_count || 0;
             this.showToast("Removed from Liked", "\u{1F90D}");
           }
           return;
@@ -1741,12 +1775,16 @@ ${shareUrl}`);
         const shareBtn = e.target.closest(".feed-share-btn");
         if (shareBtn) {
           e.stopPropagation();
+          trackEngagement(reel.content_id, "share");
+          const shareCountLabel = item.querySelector(".share-count-display");
+          if (shareCountLabel) shareCountLabel.textContent = reel.shares_count || 0;
           shareService.shareReel(reel);
           return;
         }
         const dlBtn = e.target.closest(".feed-download-btn");
         if (dlBtn) {
           e.stopPropagation();
+          trackEngagement(reel.content_id, "download");
           this.showToast(i18n.t("download_started"), "\u2B07\uFE0F");
           downloader.downloadReel(
             reel,
@@ -1965,7 +2003,7 @@ ${shareUrl}`);
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
           </button>
-          <span class="dock-label like-action-label" data-i18n="${isLiked ? "action_liked" : "action_like"}">${isLiked ? i18n.t("action_liked") : i18n.t("action_like")}</span>
+          <span class="dock-label like-count-display" style="font-weight: 700;">${reel.likes_count || 0}</span>
         </div>
 
         <!-- Save Bookmark -->
@@ -1989,7 +2027,7 @@ ${shareUrl}`);
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
             </svg>
           </button>
-          <span class="dock-label" data-i18n="action_share">${i18n.t("action_share")}</span>
+          <span class="dock-label share-count-display" style="font-weight: 700;">${reel.shares_count || 0}</span>
         </div>
 
         <!-- Download -->

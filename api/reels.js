@@ -78,15 +78,59 @@ export default async function handler(req, res) {
       // 2. Perform modification
       let updatedReels = [...currentReels];
 
+      if (action === 'upload_video') {
+        const { filename, base64 } = payload;
+        if (!filename || !base64) {
+          return res.status(400).json({ error: 'filename and base64 required' });
+        }
+        const safeName = `reel_${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        const uploadUrl = `https://api.github.com/repos/${REPO}/contents/uploads/${safeName}`;
+
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'NatureMomentsApp'
+          },
+          body: JSON.stringify({
+            message: `Upload video: ${safeName}`,
+            content: base64,
+            branch: 'main'
+          })
+        });
+
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json();
+          return res.status(500).json({ error: 'Video upload failed', details: errData });
+        }
+
+        const rawUrl = `https://raw.githubusercontent.com/${REPO}/main/uploads/${safeName}`;
+        const cdnUrl = `https://cdn.jsdelivr.net/gh/${REPO}@main/uploads/${safeName}`;
+        return res.status(200).json({ success: true, url: rawUrl, cdn_url: cdnUrl, filename: safeName });
+      }
+
       if (fullList && Array.isArray(fullList)) {
         updatedReels = fullList;
       } else if (action === 'add' && reel) {
+        if (typeof reel.likes_count !== 'number') reel.likes_count = 0;
+        if (typeof reel.shares_count !== 'number') reel.shares_count = 0;
+        if (typeof reel.downloads_count !== 'number') reel.downloads_count = 0;
+        if (typeof reel.views_count !== 'number') reel.views_count = 0;
         updatedReels = updatedReels.filter(r => r.content_id !== reel.content_id);
         updatedReels.unshift(reel);
       } else if (action === 'batch_add' && Array.isArray(reels)) {
         const newIds = new Set(reels.map(r => r.content_id));
         updatedReels = updatedReels.filter(r => !newIds.has(r.content_id));
-        updatedReels = [...reels, ...updatedReels];
+        const normalized = reels.map(r => ({
+          ...r,
+          likes_count: typeof r.likes_count === 'number' ? r.likes_count : 0,
+          shares_count: typeof r.shares_count === 'number' ? r.shares_count : 0,
+          downloads_count: typeof r.downloads_count === 'number' ? r.downloads_count : 0,
+          views_count: typeof r.views_count === 'number' ? r.views_count : 0,
+        }));
+        updatedReels = [...normalized, ...updatedReels];
       } else if (action === 'delete' && id) {
         updatedReels = updatedReels.filter(r => r.content_id !== id);
       } else if (action === 'batch_delete' && Array.isArray(ids)) {
@@ -94,6 +138,16 @@ export default async function handler(req, res) {
         updatedReels = updatedReels.filter(r => !idSet.has(r.content_id));
       } else if (action === 'wipe') {
         updatedReels = [];
+      } else if (action === 'track') {
+        const { content_id, metric } = payload;
+        const target = updatedReels.find(r => r.content_id === content_id);
+        if (target) {
+          if (metric === 'like') target.likes_count = (target.likes_count || 0) + 1;
+          else if (metric === 'unlike') target.likes_count = Math.max(0, (target.likes_count || 1) - 1);
+          else if (metric === 'share') target.shares_count = (target.shares_count || 0) + 1;
+          else if (metric === 'download') target.downloads_count = (target.downloads_count || 0) + 1;
+          else if (metric === 'view') target.views_count = (target.views_count || 0) + 1;
+        }
       } else if (Array.isArray(payload)) {
         updatedReels = payload;
       }

@@ -4,7 +4,7 @@
    recycling, event delegation, and instant snap scrolling
    ========================================================== */
 
-import { REELS_DATA, getReelsByCategory } from '../data/reels.js';
+import { REELS_DATA, getReelsByCategory, trackEngagement } from '../data/reels.js';
 import { CATEGORIES } from '../data/categories.js';
 import { storage } from '../services/storage.js';
 import { shareService } from '../services/share.js';
@@ -119,22 +119,17 @@ export class ReelsFeed {
       if (likeBtn) {
         e.stopPropagation();
         const isNowLiked = storage.toggleLike(reel.content_id);
-        const likeLabel = item.querySelector('.like-action-label');
+        trackEngagement(reel.content_id, isNowLiked ? 'like' : 'unlike');
+        const likeCountLabel = item.querySelector('.like-count-display');
         if (isNowLiked) {
           likeBtn.classList.add('liked');
           likeBtn.querySelector('svg').setAttribute('fill', 'currentColor');
-          if (likeLabel) {
-            likeLabel.setAttribute('data-i18n', 'action_liked');
-            likeLabel.textContent = i18n.t('action_liked');
-          }
+          if (likeCountLabel) likeCountLabel.textContent = (reel.likes_count || 0);
           this.showToast('Added to Liked Nature Reels ❤️', '❤️');
         } else {
           likeBtn.classList.remove('liked');
           likeBtn.querySelector('svg').setAttribute('fill', 'none');
-          if (likeLabel) {
-            likeLabel.setAttribute('data-i18n', 'action_like');
-            likeLabel.textContent = i18n.t('action_like');
-          }
+          if (likeCountLabel) likeCountLabel.textContent = (reel.likes_count || 0);
           this.showToast('Removed from Liked', '🤍');
         }
         return;
@@ -170,6 +165,9 @@ export class ReelsFeed {
       const shareBtn = e.target.closest('.feed-share-btn');
       if (shareBtn) {
         e.stopPropagation();
+        trackEngagement(reel.content_id, 'share');
+        const shareCountLabel = item.querySelector('.share-count-display');
+        if (shareCountLabel) shareCountLabel.textContent = (reel.shares_count || 0);
         shareService.shareReel(reel);
         return;
       }
@@ -178,6 +176,7 @@ export class ReelsFeed {
       const dlBtn = e.target.closest('.feed-download-btn');
       if (dlBtn) {
         e.stopPropagation();
+        trackEngagement(reel.content_id, 'download');
         this.showToast(i18n.t('download_started'), '⬇️');
         downloader.downloadReel(
           reel,
@@ -444,7 +443,7 @@ export class ReelsFeed {
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
           </button>
-          <span class="dock-label like-action-label" data-i18n="${isLiked ? 'action_liked' : 'action_like'}">${isLiked ? i18n.t('action_liked') : i18n.t('action_like')}</span>
+          <span class="dock-label like-count-display" style="font-weight: 700;">${reel.likes_count || 0}</span>
         </div>
 
         <!-- Save Bookmark -->
@@ -468,7 +467,7 @@ export class ReelsFeed {
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
             </svg>
           </button>
-          <span class="dock-label" data-i18n="action_share">${i18n.t('action_share')}</span>
+          <span class="dock-label share-count-display" style="font-weight: 700;">${reel.shares_count || 0}</span>
         </div>
 
         <!-- Download -->

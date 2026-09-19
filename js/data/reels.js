@@ -140,6 +140,34 @@ async function syncToCloudApi(action, data) {
   }
 }
 
+export function trackEngagement(contentId, metric) {
+  const reel = REELS_DATA.find(r => r.content_id === contentId);
+  if (reel) {
+    if (metric === 'like') reel.likes_count = (reel.likes_count || 0) + 1;
+    else if (metric === 'unlike') reel.likes_count = Math.max(0, (reel.likes_count || 1) - 1);
+    else if (metric === 'share') reel.shares_count = (reel.shares_count || 0) + 1;
+    else if (metric === 'download') reel.downloads_count = (reel.downloads_count || 0) + 1;
+    else if (metric === 'view') reel.views_count = (reel.views_count || 0) + 1;
+
+    // Update localStorage
+    try {
+      const custom = JSON.parse(localStorage.getItem('nature_custom_reels') || '[]');
+      const target = custom.find(r => r.content_id === contentId);
+      if (target) {
+        if (metric === 'like') target.likes_count = reel.likes_count;
+        else if (metric === 'unlike') target.likes_count = reel.likes_count;
+        else if (metric === 'share') target.shares_count = reel.shares_count;
+        else if (metric === 'download') target.downloads_count = reel.downloads_count;
+        else if (metric === 'view') target.views_count = reel.views_count;
+        localStorage.setItem('nature_custom_reels', JSON.stringify(custom));
+      }
+    } catch (e) {}
+
+    window.dispatchEvent(new CustomEvent('reelEngagementUpdated', { detail: { content_id: contentId, metric, reel } }));
+    syncToCloudApi('track', { content_id: contentId, metric });
+  }
+}
+
 export function addCustomReel(reel) {
   try {
     const custom = JSON.parse(localStorage.getItem('nature_custom_reels') || '[]');
