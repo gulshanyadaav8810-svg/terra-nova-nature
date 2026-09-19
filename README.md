@@ -1,7 +1,8 @@
 # 🌿 Nature Moments — Peaceful Nature Reels & Studio Admin Portal
 
-[![Live App](https://img.shields.io/badge/Live%20App-Online-52B788?style=for-the-badge&logo=google-chrome&logoColor=white)](https://gulshan8285.github.io/terra-nova-nature/)
-[![Admin Studio](https://img.shields.io/badge/Admin%20Studio-Live-E88D67?style=for-the-badge&logo=safari&logoColor=white)](https://gulshan8285.github.io/terra-nova-nature/admin.html)
+[![Live App on Vercel](https://img.shields.io/badge/Vercel%20App-Online-52B788?style=for-the-badge&logo=vercel&logoColor=white)](https://nature-moments-app.vercel.app)
+[![Admin Studio on Vercel](https://img.shields.io/badge/Admin%20Studio-Live-E88D67?style=for-the-badge&logo=vercel&logoColor=white)](https://nature-moments-app.vercel.app/admin)
+[![GitHub Repository](https://img.shields.io/badge/GitHub%20Repo-gulshanyadaav8810--svg-17483C?style=for-the-badge&logo=github&logoColor=white)](https://github.com/gulshanyadaav8810-svg/terra-nova-nature)
 [![Android APK](https://img.shields.io/badge/Android%20APK-v1.2.0%20(5.0MB)-17483C?style=for-the-badge&logo=android&logoColor=white)](NatureMoments.apk)
 
 > A modern, high-performance nature reels platform featuring authentic 9:16 vertical video playback, ambient nature soundscapes, full offline downloading, 20+ curated categories, and a dedicated **Studio Admin Portal** with zero-latency live sync directly into the user mobile application.
@@ -10,24 +11,27 @@
 
 ## 🌟 Live Links
 
-| Portal | URL | Description |
-| :--- | :--- | :--- |
-| 📱 **User Mobile Web App** | [https://gulshan8285.github.io/terra-nova-nature/](https://gulshan8285.github.io/terra-nova-nature/) | High-definition 9:16 reels, category scroller, and ambient audio |
-| 🛠️ **Studio Admin Portal** | [https://gulshan8285.github.io/terra-nova-nature/admin.html](https://gulshan8285.github.io/terra-nova-nature/admin.html) | Upload reels, manage 20+ categories, live phone simulator & GitHub sync |
-| 📦 **Android Release APK** | [`NatureMoments.apk`](NatureMoments.apk) | Standalone release build for Android devices |
+| Platform | Portal | Live URL | Description |
+| :--- | :--- | :--- | :--- |
+| ⚡ **Vercel** | 📱 **Mobile Web App** | [https://nature-moments-app.vercel.app](https://nature-moments-app.vercel.app) | Ultra-fast CDN, 9:16 reels & ambient audio |
+| ⚡ **Vercel** | 🛠️ **Studio Admin Portal** | [https://nature-moments-app.vercel.app/admin](https://nature-moments-app.vercel.app/admin) | Upload reels, manage categories, live phone simulator |
+| 🐙 **GitHub Pages** | 📱 **Mobile Web App** | [https://gulshanyadaav8810-svg.github.io/terra-nova-nature/](https://gulshanyadaav8810-svg.github.io/terra-nova-nature/) | Static GitHub Pages mirror |
+| 🐙 **GitHub Pages** | 🛠️ **Studio Admin Portal** | [https://gulshanyadaav8810-svg.github.io/terra-nova-nature/admin.html](https://gulshanyadaav8810-svg.github.io/terra-nova-nature/admin.html) | GitHub Pages Admin studio |
+| 🐙 **GitHub** | 📁 **Repository** | [https://github.com/gulshanyadaav8810-svg/terra-nova-nature](https://github.com/gulshanyadaav8810-svg/terra-nova-nature) | Official source code & datasets |
+| 📦 **Android** | 📲 **Release APK** | [`NatureMoments.apk`](NatureMoments.apk) (5.0MB) | Native Android installation package |
 
 ---
 
 ## ✨ Key Features
 
-### 1. Studio Admin Portal (`admin.html`)
+### 1. Studio Admin Portal (`/admin` or `admin.html`)
 - **Direct App Live Sync**: Videos uploaded or added in the Admin Portal appear in the user mobile app immediately via `BroadcastChannel` and dynamic `reels.json` remote fetching.
 - **Interactive 9:16 Phone Simulator**: Real-time mockup showing exactly how the reel looks to mobile users before publishing.
 - **20+ Nature Categories Manager**: Add, edit, and organize all nature categories (Forest, Waterfall, Mountain, Ocean, Rain, Sunrise, Sunset, Wildlife, etc.).
 - **Dual Video Input**: Supports direct MP4 video URLs (Pexels, Cloudinary, Supabase, CDN) and local video file uploads with automatic duration calculation.
-- **GitHub API 1-Click Commit**: Direct integration to commit updated `data/reels.json` to the GitHub repository.
+- **GitHub API 1-Click Commit**: Direct integration to commit updated `data/reels.json` to `gulshanyadaav8810-svg/terra-nova-nature`.
 
-### 2. User Mobile Application (`index.html`)
+### 2. User Mobile Application (`/` or `index.html`)
 - **Curated Home Grid**: 2-column rounded cards with center frosted glass play button matching the reference design.
 - **9:16 Vertical Continuous Reels Feed**: Snap-scrolling feed with tap-to-pause and double-tap heart burst animation.
 - **Nature Soundscape Engine**: Procedural ambient audio synthesizer tailored to active nature categories.
@@ -41,6 +45,8 @@
 ```
 ├── admin.html               # Studio Admin Portal website
 ├── index.html               # Main mobile app interface
+├── vercel.json              # Vercel deployment routing & headers
+├── .vercelignore            # Excludes heavy Android builds from web deploy
 ├── NatureMoments.apk        # Compiled Android application package
 ├── css/
 │   ├── admin.css            # Admin Portal luxury glassmorphic styles
@@ -72,21 +78,6 @@
 │   └── reels.json           # Master authentic nature reels
 ├── assets/                  # High-res logos, icons, and nature videos
 └── android/                 # Android Native Gradle project
-```
-
----
-
-## 🚀 Running Locally
-
-```bash
-# Start local development server
-python3 -m http.server 4173
-
-# Open App
-http://localhost:4173/
-
-# Open Admin Studio
-http://localhost:4173/admin.html
 ```
 
 ---
