@@ -732,6 +732,56 @@
         <video id="modal-player-video" style="width: 100%; height: 100%; object-fit: cover;" controls playsinline autoplay></video>
       </div>
     </div>
+  <!-- 4.5. EDIT REEL MODAL -->
+  <div class="admin-modal-backdrop" id="modal-edit-reel">
+    <div class="admin-modal-box" style="max-width: 520px;">
+      <div class="modal-head">
+        <h3>✏️ Edit Reel Details</h3>
+        <button class="modal-close-btn" id="modal-close-edit-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-edit-reel">
+          <input type="hidden" id="edit-reel-id" />
+          
+          <div class="form-group">
+            <label class="form-label" for="edit-reel-title">Title <span class="req">*</span></label>
+            <input type="text" id="edit-reel-title" class="form-input" required />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-reel-category">Nature Category <span class="req">*</span></label>
+            <select id="edit-reel-category" class="form-select" required>
+            </select>
+          </div>
+
+          <div class="form-group" style="display: flex; align-items: center; gap: 10px; padding: 6px 0;">
+            <input type="checkbox" id="edit-reel-trending" style="width: 20px; height: 20px; cursor: pointer;" />
+            <label class="form-label" for="edit-reel-trending" style="margin-bottom: 0; cursor: pointer; font-weight: 700;">🔥 Show in Trending Reels</label>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Thumbnail Cover Photo <span class="req">*</span></label>
+            <div style="display: flex; gap: 14px; align-items: flex-start; margin-bottom: 10px;">
+              <img id="edit-reel-thumb-preview" src="" style="width: 80px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid var(--admin-border); background: #111;" alt="Thumb" />
+              <div style="flex: 1;">
+                <label class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 8px 14px; font-size: 0.85rem; margin-bottom: 10px;">
+                  <span>🖼️ Choose Photo File</span>
+                  <input type="file" id="edit-reel-thumb-file" accept="image/*" style="display: none;" />
+                </label>
+                <input type="url" id="edit-reel-thumb-url" class="form-input" placeholder="Or paste image URL" style="font-size: 0.85rem;" />
+                <p style="font-size: 0.75rem; color: var(--admin-text-muted); margin-top: 6px;">
+                  New thumbnail will be uploaded to cloud CDN and updated in the mobile app immediately.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="btn-save-edit-reel" style="width: 100%; margin-top: 12px; font-weight: 700;">
+            💾 Save Changes & Sync to App
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
 
   <!-- 5. TOAST NOTIFICATION CONTAINER -->

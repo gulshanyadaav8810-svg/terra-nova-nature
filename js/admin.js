@@ -5,7 +5,7 @@
    ========================================================== */
 
 import { getAllCategories, addCustomCategory, getCategoryById } from './data/categories.js';
-import { loadAllReels, addCustomReel, addCustomReelsBatch, deleteCustomReel, deleteCustomReelsBatch, wipeAllReels, REELS_DATA } from './data/reels.js';
+import { loadAllReels, addCustomReel, updateCustomReel, addCustomReelsBatch, deleteCustomReel, deleteCustomReelsBatch, wipeAllReels, REELS_DATA } from './data/reels.js';
 
 class AdminStudio {
   constructor() {
@@ -238,7 +238,6 @@ class AdminStudio {
     this.selectCategory.innerHTML = '';
     
     this.categories.forEach(cat => {
-      if (cat.id === 'trending') return; // Trending is computed
       const opt = document.createElement('option');
       opt.value = cat.id;
       opt.textContent = `${cat.icon} ${cat.name}`;
@@ -262,7 +261,6 @@ class AdminStudio {
     if (bulkCatSelect) {
       bulkCatSelect.innerHTML = '';
       this.categories.forEach(cat => {
-        if (cat.id === 'trending') return;
         const opt = document.createElement('option');
         opt.value = cat.id;
         opt.textContent = `${cat.icon} ${cat.name}`;
@@ -434,6 +432,9 @@ class AdminStudio {
             <button class="btn btn-secondary btn-preview-reel" data-url="${reel.video_url}" style="padding: 6px 10px; font-size: 0.8rem;" title="Preview Video">
               ▶️ Play
             </button>
+            <button class="btn btn-secondary btn-edit-reel" data-id="${reel.content_id}" style="padding: 6px 10px; font-size: 0.8rem;" title="Edit Reel & Thumbnail">
+              ✏️ Edit
+            </button>
             <button class="btn btn-danger btn-delete-reel" data-id="${reel.content_id}" style="padding: 6px 10px; font-size: 0.8rem;" title="Delete Reel">
               🗑️
             </button>
@@ -460,11 +461,15 @@ class AdminStudio {
         this._openPlayerModal(reel);
       });
 
+      tr.querySelector('.btn-edit-reel').addEventListener('click', () => {
+        this._openEditReelModal(reel);
+      });
+
       tr.querySelector('.btn-delete-reel').addEventListener('click', () => {
         if (confirm(`Are you sure you want to delete "${reel.title}"?`)) {
           deleteCustomReel(reel.content_id);
           this.selectedReelIds.delete(reel.content_id);
-          this.showToast('Reel deleted. Syncing...', '🗑️');
+          this.showToast('Reel deleted. Syncing to app & cloud...', '🗑️');
           this._loadData();
           this._autoCommitReelsToGitHub(loadAllReels());
         }
@@ -839,7 +844,8 @@ class AdminStudio {
       });
 
       if (res.ok) {
-        // Return global CDN URL with HTTP 206 range streaming and instant availability!
+        // Immediately purge jsDelivr CDN cache so edge has file in 0ms!
+        fetch(`https://purge.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeName}`).catch(() => {});
         return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeName}`;
       }
       console.warn('GitHub direct upload HTTP status:', res.status);
@@ -902,6 +908,8 @@ class AdminStudio {
       });
 
       if (res.ok) {
+        // Immediately purge jsDelivr CDN cache so edge has thumbnail in 0ms!
+        fetch(`https://purge.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeName}`).catch(() => {});
         return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeName}`;
       }
       console.warn('GitHub direct thumb upload HTTP status:', res.status);
@@ -941,7 +949,7 @@ class AdminStudio {
     const duration = this.inputDuration.value.trim() || '0:24';
     const contentId = this.inputId.value.trim() || `reel-${catId}-${Date.now()}`;
     const desc = this.inputDesc.value.trim() || 'Experience pure serenity, peaceful nature soundscapes, and calming visuals in 9:16 high-definition.';
-    const isTrending = this.toggleTrending.checked;
+    const isTrending = this.toggleTrending.checked || (catId === 'trending');
     const isDownloadable = this.toggleDownload.checked;
 
     let videoUrl = '';
@@ -1356,7 +1364,7 @@ class AdminStudio {
         </td>
         <td>
           <select class="form-select bulk-queue-cat" data-index="${index}" style="padding: 6px 10px; font-size: 0.85rem;">
-            ${this.categories.filter(c => c.id !== 'trending').map(c => `
+            ${this.categories.map(c => `
               <option value="${c.id}" ${c.id === item.category_id ? 'selected' : ''}>${c.icon} ${c.name}</option>
             `).join('')}
           </select>
@@ -1465,7 +1473,7 @@ class AdminStudio {
         downloads_count: 0,
         views_count: 0,
         is_downloadable: q.is_downloadable,
-        is_trending: q.is_trending,
+        is_trending: q.is_trending || (q.category_id === 'trending'),
         created_at: new Date().toISOString()
       });
     }
@@ -1522,6 +1530,136 @@ class AdminStudio {
       this.formCategory.reset();
       this._loadData();
     });
+
+    this._initEditReelModal();
+  }
+
+  _initEditReelModal() {
+    this.modalEditReel = document.getElementById('modal-edit-reel');
+    this.formEditReel = document.getElementById('form-edit-reel');
+    const btnClose = document.getElementById('modal-close-edit-btn');
+    const thumbFileInput = document.getElementById('edit-reel-thumb-file');
+    const thumbUrlInput = document.getElementById('edit-reel-thumb-url');
+    const thumbPreview = document.getElementById('edit-reel-thumb-preview');
+
+    btnClose?.addEventListener('click', () => {
+      this.modalEditReel?.classList.remove('show');
+    });
+
+    this.modalEditReel?.addEventListener('click', (e) => {
+      if (e.target === this.modalEditReel) {
+        this.modalEditReel.classList.remove('show');
+      }
+    });
+
+    thumbFileInput?.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        this.editReelThumbFile = file;
+        const reader = new FileReader();
+        reader.onload = (re) => {
+          if (thumbPreview) thumbPreview.src = re.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    thumbUrlInput?.addEventListener('input', () => {
+      const url = thumbUrlInput.value.trim();
+      if (url && thumbPreview) {
+        thumbPreview.src = url;
+        this.editReelThumbFile = null;
+      }
+    });
+
+    this.formEditReel?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const contentId = document.getElementById('edit-reel-id')?.value;
+      const title = document.getElementById('edit-reel-title')?.value.trim();
+      const catId = document.getElementById('edit-reel-category')?.value;
+      const isTrendingCheck = document.getElementById('edit-reel-trending')?.checked;
+      const saveBtn = document.getElementById('btn-save-edit-reel');
+
+      if (!contentId || !title) return;
+
+      const reel = this.reels.find(r => r.content_id === contentId);
+      if (!reel) return;
+
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span>⏳ Uploading & Syncing...</span>';
+      }
+
+      let thumbUrl = reel.thumbnail_url;
+      if (this.editReelThumbFile) {
+        this.showToast('Uploading new thumbnail to cloud CDN...', '🖼️');
+        try {
+          const uploaded = await this._uploadImageFileToCloud(this.editReelThumbFile);
+          if (uploaded) thumbUrl = uploaded;
+        } catch (err) {
+          console.warn('Edit thumbnail upload failed:', err);
+        }
+      } else if (thumbUrlInput && thumbUrlInput.value.trim()) {
+        thumbUrl = thumbUrlInput.value.trim();
+      }
+
+      const isTrending = isTrendingCheck || catId === 'trending';
+
+      const updatedReel = {
+        ...reel,
+        title,
+        category_id: catId,
+        is_trending: isTrending,
+        thumbnail_url: thumbUrl
+      };
+
+      updateCustomReel(updatedReel);
+      this.modalEditReel?.classList.remove('show');
+      this.showToast('✅ Reel updated and synced to app & cloud!', '💾');
+
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '💾 Save Changes & Sync to App';
+      }
+
+      this._loadData();
+      await this._autoCommitReelsToGitHub(loadAllReels());
+    });
+  }
+
+  _openEditReelModal(reel) {
+    if (!this.modalEditReel) this._initEditReelModal();
+
+    const idInput = document.getElementById('edit-reel-id');
+    const titleInput = document.getElementById('edit-reel-title');
+    if (idInput) idInput.value = reel.content_id;
+    if (titleInput) titleInput.value = reel.title || '';
+
+    const catSelect = document.getElementById('edit-reel-category');
+    if (catSelect) {
+      catSelect.innerHTML = '';
+      this.categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.id;
+        opt.textContent = `${cat.icon} ${cat.name}`;
+        if (cat.id === reel.category_id) opt.selected = true;
+        catSelect.appendChild(opt);
+      });
+    }
+
+    const trendingCheck = document.getElementById('edit-reel-trending');
+    if (trendingCheck) {
+      trendingCheck.checked = reel.is_trending === true || reel.category_id === 'trending';
+    }
+
+    const thumbPreview = document.getElementById('edit-reel-thumb-preview');
+    if (thumbPreview) thumbPreview.src = reel.thumbnail_url || '';
+
+    const thumbUrlInput = document.getElementById('edit-reel-thumb-url');
+    if (thumbUrlInput) thumbUrlInput.value = reel.thumbnail_url || '';
+
+    this.editReelThumbFile = null;
+    this.modalEditReel?.classList.add('show');
   }
 
   _bindSyncEvents() {
@@ -1662,6 +1800,8 @@ class AdminStudio {
         body: JSON.stringify(body)
       });
       if (putRes.ok) {
+        // Invalidate CDN edge cache for data/reels.json immediately!
+        fetch('https://purge.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/data/reels.json').catch(() => {});
         console.log('[AdminStudio] reels.json auto-synced to GitHub ✅');
         return true;
       } else {

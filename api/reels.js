@@ -111,6 +111,10 @@ export default async function handler(req, res) {
         const rawUrl = `https://raw.githubusercontent.com/${REPO}/main/uploads/${safeName}`;
         const cdnUrl = `https://cdn.jsdelivr.net/gh/${REPO}@main/uploads/${safeName}`;
         const vercelUrl = `/uploads/${safeName}`;
+
+        // Immediately purge jsDelivr cache so the file is accessible in 0s without 5-10m delay!
+        fetch(`https://purge.jsdelivr.net/gh/${REPO}@main/uploads/${safeName}`).catch(() => {});
+
         return res.status(200).json({ success: true, url: rawUrl, cdn_url: cdnUrl, vercel_url: vercelUrl, filename: safeName });
       }
 
@@ -123,6 +127,13 @@ export default async function handler(req, res) {
         if (typeof reel.views_count !== 'number') reel.views_count = 0;
         updatedReels = updatedReels.filter(r => r.content_id !== reel.content_id);
         updatedReels.unshift(reel);
+      } else if (action === 'update' && reel) {
+        const idx = updatedReels.findIndex(r => r.content_id === reel.content_id);
+        if (idx !== -1) {
+          updatedReels[idx] = { ...updatedReels[idx], ...reel };
+        } else {
+          updatedReels.unshift(reel);
+        }
       } else if (action === 'batch_add' && Array.isArray(reels)) {
         const newIds = new Set(reels.map(r => r.content_id));
         updatedReels = updatedReels.filter(r => !newIds.has(r.content_id));
@@ -179,6 +190,9 @@ export default async function handler(req, res) {
         const errData = await putRes.json();
         return res.status(500).json({ error: 'GitHub commit failed', details: errData });
       }
+
+      // Purge data/reels.json CDN cache immediately
+      fetch(`https://purge.jsdelivr.net/gh/${REPO}@main/${FILE_PATH}`).catch(() => {});
 
       return res.status(200).json({ success: true, count: updatedReels.length, reels: updatedReels });
     }

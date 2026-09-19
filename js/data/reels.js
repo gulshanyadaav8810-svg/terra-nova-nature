@@ -74,6 +74,17 @@ export function isDemoReel(r) {
   return false;
 }
 
+export function getRawFallbackUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (url.includes('cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/')) {
+    return url.replace('cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/', 'raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/');
+  }
+  if (url.includes('raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/')) {
+    return url.replace('raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/', 'cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/');
+  }
+  return url;
+}
+
 // Storage version check: purge any legacy cached demo reels on new app version
 if (typeof window !== 'undefined') {
   try {
@@ -87,7 +98,13 @@ if (typeof window !== 'undefined') {
   } catch (e) {}
 }
 
-// Dynamic merge function
+// Compute comprehensive content fingerprint to detect any thumbnail, video, or title edit
+export function getReelsFingerprint(list) {
+  if (!Array.isArray(list) || list.length === 0) return '';
+  return list.map(r => `${r.content_id}#${r.thumbnail_url}#${r.video_url}#${r.title}#${r.category_id}#${r.is_trending ? 1 : 0}`).join('|');
+}
+
+// Dynamic merge function: Remote dataset is authoritative
 export function loadAllReels() {
   const mergedMap = new Map();
 
@@ -103,13 +120,12 @@ export function loadAllReels() {
     }
   } catch (e) {}
 
-  // 2. Add remote reels cached from Cloud/GitHub sync
+  // 2. Add remote reels cached from Cloud/GitHub sync (Authoritative Source)
   try {
     const remote = localStorage.getItem('nature_remote_reels');
     if (remote) {
       const parsed = JSON.parse(remote);
       if (Array.isArray(parsed)) {
-        // Purge any demo reels from localStorage
         const sanitizedRemote = parsed.filter(r => !isDemoReel(r) && !deletedIds.has(r.content_id));
         if (sanitizedRemote.length !== parsed.length) {
           localStorage.setItem('nature_remote_reels', JSON.stringify(sanitizedRemote));
@@ -129,23 +145,24 @@ export function loadAllReels() {
     console.warn('Error reading nature_remote_reels from localStorage:', e);
   }
 
-  // 3. Add local custom reels from Admin Panel
+  // 3. Add local custom reels ONLY if not already present or if created locally
   try {
     const custom = localStorage.getItem('nature_custom_reels');
     if (custom) {
       const parsed = JSON.parse(custom);
       if (Array.isArray(parsed)) {
+        // Prune deleted reels from custom reels
         const sanitizedCustom = parsed.filter(r => !isDemoReel(r) && !deletedIds.has(r.content_id));
-        if (sanitizedCustom.length !== parsed.length) {
-          localStorage.setItem('nature_custom_reels', JSON.stringify(sanitizedCustom));
-        }
         sanitizedCustom.forEach(r => {
           if (r.video_url && !r.video_url.startsWith('blob:')) {
-            mergedMap.set(r.content_id, {
-              ...r,
-              video_url: normalizeVideoUrl(r.video_url),
-              thumbnail_url: normalizeImageUrl(r.thumbnail_url)
-            });
+            // Only add if not already present in remote, so remote thumbnail/edits are preserved!
+            if (!mergedMap.has(r.content_id)) {
+              mergedMap.set(r.content_id, {
+                ...r,
+                video_url: normalizeVideoUrl(r.video_url),
+                thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+              });
+            }
           }
         });
       }
@@ -154,22 +171,7 @@ export function loadAllReels() {
     console.warn('Error reading custom reels from localStorage:', e);
   }
 
-  // 4. Preserve existing in-memory REELS_DATA if populated
-  if (Array.isArray(REELS_DATA) && REELS_DATA.length > 0) {
-    REELS_DATA.forEach(r => {
-      if (r && r.content_id && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
-        if (r.video_url && !r.video_url.startsWith('blob:')) {
-          mergedMap.set(r.content_id, {
-            ...r,
-            video_url: normalizeVideoUrl(r.video_url),
-            thumbnail_url: normalizeImageUrl(r.thumbnail_url)
-          });
-        }
-      }
-    });
-  }
-
-  // 5. Apply persistent engagement overrides (likes, shares, downloads, views)
+  // 4. Apply persistent engagement overrides (likes, shares, downloads, views)
   try {
     const engagements = JSON.parse(localStorage.getItem('nature_reels_engagement') || '{}');
     mergedMap.forEach((r, id) => {
@@ -185,7 +187,7 @@ export function loadAllReels() {
     console.warn('Error applying engagement overrides:', e);
   }
 
-  // 6. Return sorted array (newest on top)
+  // 5. Return sorted array (newest on top)
   const all = Array.from(mergedMap.values());
   all.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   REELS_DATA = all;
@@ -224,17 +226,37 @@ export async function syncRemoteReels() {
       if (res.ok) {
         const remoteReels = await res.json();
         if (Array.isArray(remoteReels)) {
-          // Filter out demo reels
+          // Filter out demo reels and deleted tombstones
           const cleanRemote = remoteReels.filter(r => !isDemoReel(r) && !deletedIds.has(r.content_id));
 
-          // Persist raw remote dataset to localStorage
+          // Persist raw remote dataset to localStorage as authoritative source
           try {
             localStorage.setItem('nature_remote_reels', JSON.stringify(cleanRemote));
           } catch (e) {}
 
+          const remoteIdSet = new Set(cleanRemote.map(r => r.content_id));
+
+          // Clean stale entries from nature_custom_reels so deleted reels never resurrect!
+          try {
+            const custom = localStorage.getItem('nature_custom_reels');
+            if (custom) {
+              const parsed = JSON.parse(custom);
+              if (Array.isArray(parsed)) {
+                // Keep only items that are either in cleanRemote or created locally in the last 60s
+                const cleanedCustom = parsed.filter(r => {
+                  if (deletedIds.has(r.content_id) || isDemoReel(r)) return false;
+                  if (remoteIdSet.has(r.content_id)) return true;
+                  const age = Date.now() - new Date(r.created_at || 0).getTime();
+                  return age < 60000; // Keep pending local uploads under 60 seconds
+                });
+                localStorage.setItem('nature_custom_reels', JSON.stringify(cleanedCustom));
+              }
+            }
+          } catch (e) {}
+
           const merged = new Map();
 
-          // Add valid remote reels
+          // 1. Add valid remote reels first (AUTHORITATIVE: contains newest thumbnails and titles)
           cleanRemote.forEach(r => {
             if (r.video_url && !r.video_url.startsWith('blob:')) {
               merged.set(r.content_id, {
@@ -244,29 +266,32 @@ export async function syncRemoteReels() {
               });
             }
           });
-          
-          // Also persist any local customs
-          const custom = localStorage.getItem('nature_custom_reels');
-          if (custom) {
-            try {
+
+          // 2. Add local customs ONLY if they are brand new and pending remote sync
+          try {
+            const custom = localStorage.getItem('nature_custom_reels');
+            if (custom) {
               const parsed = JSON.parse(custom);
               if (Array.isArray(parsed)) {
                 parsed.forEach(r => {
                   if (r && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
                     if (r.video_url && !r.video_url.startsWith('blob:')) {
-                      merged.set(r.content_id, {
-                        ...r,
-                        video_url: normalizeVideoUrl(r.video_url),
-                        thumbnail_url: normalizeImageUrl(r.thumbnail_url)
-                      });
+                      // Do NOT overwrite if remote already has it (remote has updated cloud URLs/thumbnails!)
+                      if (!merged.has(r.content_id)) {
+                        merged.set(r.content_id, {
+                          ...r,
+                          video_url: normalizeVideoUrl(r.video_url),
+                          thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+                        });
+                      }
                     }
                   }
                 });
               }
-            } catch (e) {}
-          }
+            }
+          } catch (e) {}
 
-          // Also apply local engagement overrides
+          // 3. Apply local engagement overrides
           try {
             const engagements = JSON.parse(localStorage.getItem('nature_reels_engagement') || '{}');
             merged.forEach((r, id) => {
@@ -282,13 +307,14 @@ export async function syncRemoteReels() {
 
           const all = Array.from(merged.values());
           all.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-          
-          const currentIds = (REELS_DATA || []).map(r => r.content_id).join(',');
-          const newIds = all.map(r => r.content_id).join(',');
-          const hasChanged = currentIds !== newIds || REELS_DATA.length === 0;
+
+          const oldFingerprint = getReelsFingerprint(REELS_DATA);
+          const newFingerprint = getReelsFingerprint(all);
+          const hasChanged = oldFingerprint !== newFingerprint || REELS_DATA.length === 0;
 
           REELS_DATA = all;
           if (hasChanged) {
+            console.log('[ReelsSync] Content updated! Firing reelsUpdated event');
             window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
           }
           return REELS_DATA;
@@ -308,7 +334,7 @@ if (typeof window !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) syncRemoteReels();
   });
-  
+
   // Fast touch sync for 1-second responsiveness
   let lastTouchSync = 0;
   window.addEventListener('touchstart', () => {
@@ -334,7 +360,7 @@ if (typeof window !== 'undefined') {
       } else if (type === 'DELETE_REEL' && content_id) {
         loadAllReels();
         window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
-      } else if (type === 'ADD_REELS_BATCH' || type === 'DELETE_REELS_BATCH' || type === 'WIPE_ALL_REELS') {
+      } else if (type === 'ADD_REELS_BATCH' || type === 'DELETE_REELS_BATCH' || type === 'WIPE_ALL_REELS' || type === 'UPDATE_REEL') {
         loadAllReels();
         window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
       } else if (type === 'ENGAGEMENT_TRACKED') {
@@ -346,17 +372,16 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// Strict category filtering: NEVER leaks all reels if category is empty
 export function getReelsByCategory(categoryId) {
   loadAllReels();
   if (!categoryId || categoryId === 'all') {
     return REELS_DATA;
   }
   if (categoryId === 'trending') {
-    const trending = REELS_DATA.filter(r => r.is_trending);
-    return (trending && trending.length > 0) ? trending : REELS_DATA;
+    return REELS_DATA.filter(r => r.is_trending === true || r.category_id === 'trending');
   }
-  const filtered = REELS_DATA.filter(r => r.category_id === categoryId);
-  return (filtered && filtered.length > 0) ? filtered : REELS_DATA;
+  return REELS_DATA.filter(r => r.category_id === categoryId);
 }
 
 export function getReelById(contentId) {
@@ -483,6 +508,50 @@ export function addCustomReel(reel) {
     return true;
   } catch (e) {
     console.error('Error adding custom reel:', e);
+    return false;
+  }
+}
+
+export function updateCustomReel(reel) {
+  try {
+    if (!reel || !reel.content_id) return false;
+
+    // 1. Update in nature_custom_reels
+    const custom = JSON.parse(localStorage.getItem('nature_custom_reels') || '[]');
+    const idx = custom.findIndex(r => r.content_id === reel.content_id);
+    if (idx !== -1) {
+      custom[idx] = { ...custom[idx], ...reel };
+    } else {
+      custom.unshift(reel);
+    }
+    localStorage.setItem('nature_custom_reels', JSON.stringify(custom));
+
+    // 2. Update in nature_remote_reels
+    const remote = JSON.parse(localStorage.getItem('nature_remote_reels') || '[]');
+    const rIdx = remote.findIndex(r => r.content_id === reel.content_id);
+    if (rIdx !== -1) {
+      remote[rIdx] = { ...remote[rIdx], ...reel };
+      localStorage.setItem('nature_remote_reels', JSON.stringify(remote));
+    }
+
+    // 3. Update in-memory REELS_DATA
+    const dIdx = REELS_DATA.findIndex(r => r.content_id === reel.content_id);
+    if (dIdx !== -1) {
+      REELS_DATA[dIdx] = { ...REELS_DATA[dIdx], ...reel };
+    } else {
+      REELS_DATA.unshift(reel);
+    }
+
+    // 4. Broadcast
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('nature_moments_sync');
+      channel.postMessage({ type: 'UPDATE_REEL', reel });
+    }
+    window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+    syncToCloudApi('update', { reel });
+    return true;
+  } catch (e) {
+    console.error('Error updating custom reel:', e);
     return false;
   }
 }

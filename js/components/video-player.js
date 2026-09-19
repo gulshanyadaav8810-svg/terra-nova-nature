@@ -75,6 +75,20 @@ export class VideoPlayer {
       this.durationTimeEl.textContent = this._formatTime(this.video.duration);
     });
     this.video.addEventListener('error', (e) => {
+      const cur = this.video.src || '';
+      if (cur.includes('cdn.jsdelivr.net')) {
+        const fallback = cur.replace('cdn.jsdelivr.net/gh/', 'raw.githubusercontent.com/').replace('@main/', '/main/');
+        console.log('[VideoPlayer] jsDelivr error, switching to GitHub Raw fallback in 0ms:', fallback);
+        this.video.src = fallback;
+        this.video.play().catch(() => {});
+        return;
+      } else if (cur.includes('raw.githubusercontent.com')) {
+        const fallback = cur.replace('raw.githubusercontent.com/', 'cdn.jsdelivr.net/gh/').replace('/main/', '@main/');
+        console.log('[VideoPlayer] Raw error, switching to jsDelivr fallback in 0ms:', fallback);
+        this.video.src = fallback;
+        this.video.play().catch(() => {});
+        return;
+      }
       this.spinner.classList.remove('loading');
       console.warn('Video playback error', e);
       this.showToast('Unable to stream video. Please check your connection.', '⚠️');

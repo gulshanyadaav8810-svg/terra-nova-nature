@@ -62,11 +62,11 @@ export class ReelsFeed {
 
   refresh() {
     const newReels = getReelsByCategory(this.activeCategory);
-    const oldIds = (this.filteredReels || []).map(r => r.content_id).join(',');
-    const newIds = (newReels || []).map(r => r.content_id).join(',');
+    const oldFingerprint = (this.filteredReels || []).map(r => `${r.content_id}:${r.thumbnail_url}:${r.video_url}:${r.title}:${r.category_id}`).join('|');
+    const newFingerprint = (newReels || []).map(r => `${r.content_id}:${r.thumbnail_url}:${r.video_url}:${r.title}:${r.category_id}`).join('|');
 
-    // If reel list didn't change and items are already rendered, do not wipe container or reset playback!
-    if (oldIds === newIds && this.container.children.length > 0) {
+    // If reel list and content didn't change and items are already rendered, do not wipe container or reset playback!
+    if (oldFingerprint === newFingerprint && this.container.children.length > 0) {
       return;
     }
 
@@ -666,8 +666,8 @@ export class ReelsFeed {
     const catLabel = i18n.t(catKey, reel.category_id);
 
     item.innerHTML = `
-      <!-- Fast 0ms Poster -->
-      <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? 'eager' : 'lazy'}" />
+      <!-- Fast 0ms Poster with CDN Fallback -->
+      <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? 'eager' : 'lazy'}" onerror="if(this.src.includes('cdn.jsdelivr.net')){this.src=this.src.replace('cdn.jsdelivr.net/gh/','raw.githubusercontent.com/').replace('@main/','/main/');}else{this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';}" />
 
       <!-- 9:16 Video Canvas (Preloaded for instant 0ms playback) -->
       <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 2 ? `src="${reel.video_url}" preload="auto" muted` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
@@ -775,6 +775,22 @@ export class ReelsFeed {
     const video = item.querySelector('video');
     const progressBar = item.querySelector('.feed-scrubber-filled');
 
+    // Immediate error fallback to raw.githubusercontent.com for 0ms newly uploaded videos!
+    if (video) {
+      video.addEventListener('error', () => {
+        const cur = video.src || video.getAttribute('data-src') || '';
+        if (cur.includes('cdn.jsdelivr.net')) {
+          const fallback = cur.replace('cdn.jsdelivr.net/gh/', 'raw.githubusercontent.com/').replace('@main/', '/main/');
+          console.log('[ReelsFeed] CDN error, switching instantly to GitHub Raw fallback:', fallback);
+          video.src = fallback;
+          video.setAttribute('data-src', fallback);
+          if (item.classList.contains('active-playing')) {
+            video.play().catch(() => {});
+          }
+        }
+      });
+    }
+
     // Update scrubber line efficiently
     if (video && progressBar) {
       video.addEventListener('timeupdate', () => {
@@ -809,18 +825,33 @@ export class ReelsFeed {
     this.renderedCount = 0;
 
     if (!this.filteredReels || this.filteredReels.length === 0) {
+      const catObj = CATEGORIES.find(c => c.id === this.activeCategory);
+      const catName = catObj ? catObj.name : this.activeCategory;
+      const catIcon = catObj ? catObj.icon : '🌿';
       this.container.innerHTML = `
-        <div class="empty-state" style="height: 100%; justify-content: center; text-align: center; padding: 24px;">
-          <div class="empty-state-icon" style="font-size: 3rem; margin-bottom: 12px;">🌿</div>
-          <h3 class="empty-state-title" style="color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px;">No Nature Reels Yet</h3>
+        <div class="empty-state" style="height: 100%; justify-content: center; text-align: center; padding: 32px 20px; display: flex; flex-direction: column; align-items: center;">
+          <div class="empty-state-icon" style="font-size: 3.5rem; margin-bottom: 12px;">${catIcon}</div>
+          <h3 class="empty-state-title" style="color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px;">No ${catName} Reels Yet</h3>
           <p class="empty-state-subtitle" style="color: rgba(255,255,255,0.7); font-size: 0.9rem; max-width: 300px; margin: 0 auto 20px;">
-            Publish videos or use Bulk Upload in the Admin Studio to populate this feed.
+            There are currently no videos in "${catName}". Select another category above or publish new reels in Admin Studio.
           </p>
-          <a href="admin.html" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 0.92rem;">
-            <span>🛠️ Open Admin Studio</span>
-          </a>
+          <div style="display: flex; gap: 12px;">
+            <button type="button" class="btn-feed-go-trending" style="padding: 10px 22px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.35); color: #fff; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+              🔥 View Trending
+            </button>
+            <a href="admin.html" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 22px; background: #22c55e; border: none; color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 0.9rem;">
+              <span>➕ Add Reel</span>
+            </a>
+          </div>
         </div>
       `;
+      const btnTrend = this.container.querySelector('.btn-feed-go-trending');
+      if (btnTrend) {
+        btnTrend.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.filterCategory('trending');
+        });
+      }
       return;
     }
 

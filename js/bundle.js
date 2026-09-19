@@ -711,6 +711,10 @@
     } catch (e) {
     }
   }
+  function getReelsFingerprint(list) {
+    if (!Array.isArray(list) || list.length === 0) return "";
+    return list.map((r) => `${r.content_id}#${r.thumbnail_url}#${r.video_url}#${r.title}#${r.category_id}#${r.is_trending ? 1 : 0}`).join("|");
+  }
   function loadAllReels() {
     const mergedMap = /* @__PURE__ */ new Map();
     let deletedIds = new Set(DEMO_REEL_IDS);
@@ -753,35 +757,21 @@
         const parsed = JSON.parse(custom);
         if (Array.isArray(parsed)) {
           const sanitizedCustom = parsed.filter((r) => !isDemoReel(r) && !deletedIds.has(r.content_id));
-          if (sanitizedCustom.length !== parsed.length) {
-            localStorage.setItem("nature_custom_reels", JSON.stringify(sanitizedCustom));
-          }
           sanitizedCustom.forEach((r) => {
             if (r.video_url && !r.video_url.startsWith("blob:")) {
-              mergedMap.set(r.content_id, {
-                ...r,
-                video_url: normalizeVideoUrl(r.video_url),
-                thumbnail_url: normalizeImageUrl(r.thumbnail_url)
-              });
+              if (!mergedMap.has(r.content_id)) {
+                mergedMap.set(r.content_id, {
+                  ...r,
+                  video_url: normalizeVideoUrl(r.video_url),
+                  thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+                });
+              }
             }
           });
         }
       }
     } catch (e) {
       console.warn("Error reading custom reels from localStorage:", e);
-    }
-    if (Array.isArray(REELS_DATA) && REELS_DATA.length > 0) {
-      REELS_DATA.forEach((r) => {
-        if (r && r.content_id && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
-          if (r.video_url && !r.video_url.startsWith("blob:")) {
-            mergedMap.set(r.content_id, {
-              ...r,
-              video_url: normalizeVideoUrl(r.video_url),
-              thumbnail_url: normalizeImageUrl(r.thumbnail_url)
-            });
-          }
-        }
-      });
     }
     try {
       const engagements = JSON.parse(localStorage.getItem("nature_reels_engagement") || "{}");
@@ -832,6 +822,23 @@
               localStorage.setItem("nature_remote_reels", JSON.stringify(cleanRemote));
             } catch (e) {
             }
+            const remoteIdSet = new Set(cleanRemote.map((r) => r.content_id));
+            try {
+              const custom = localStorage.getItem("nature_custom_reels");
+              if (custom) {
+                const parsed = JSON.parse(custom);
+                if (Array.isArray(parsed)) {
+                  const cleanedCustom = parsed.filter((r) => {
+                    if (deletedIds.has(r.content_id) || isDemoReel(r)) return false;
+                    if (remoteIdSet.has(r.content_id)) return true;
+                    const age = Date.now() - new Date(r.created_at || 0).getTime();
+                    return age < 6e4;
+                  });
+                  localStorage.setItem("nature_custom_reels", JSON.stringify(cleanedCustom));
+                }
+              }
+            } catch (e) {
+            }
             const merged = /* @__PURE__ */ new Map();
             cleanRemote.forEach((r) => {
               if (r.video_url && !r.video_url.startsWith("blob:")) {
@@ -842,25 +849,27 @@
                 });
               }
             });
-            const custom = localStorage.getItem("nature_custom_reels");
-            if (custom) {
-              try {
+            try {
+              const custom = localStorage.getItem("nature_custom_reels");
+              if (custom) {
                 const parsed = JSON.parse(custom);
                 if (Array.isArray(parsed)) {
                   parsed.forEach((r) => {
                     if (r && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
                       if (r.video_url && !r.video_url.startsWith("blob:")) {
-                        merged.set(r.content_id, {
-                          ...r,
-                          video_url: normalizeVideoUrl(r.video_url),
-                          thumbnail_url: normalizeImageUrl(r.thumbnail_url)
-                        });
+                        if (!merged.has(r.content_id)) {
+                          merged.set(r.content_id, {
+                            ...r,
+                            video_url: normalizeVideoUrl(r.video_url),
+                            thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+                          });
+                        }
                       }
                     }
                   });
                 }
-              } catch (e) {
               }
+            } catch (e) {
             }
             try {
               const engagements = JSON.parse(localStorage.getItem("nature_reels_engagement") || "{}");
@@ -877,11 +886,12 @@
             }
             const all = Array.from(merged.values());
             all.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-            const currentIds = (REELS_DATA || []).map((r) => r.content_id).join(",");
-            const newIds = all.map((r) => r.content_id).join(",");
-            const hasChanged = currentIds !== newIds || REELS_DATA.length === 0;
+            const oldFingerprint = getReelsFingerprint(REELS_DATA);
+            const newFingerprint = getReelsFingerprint(all);
+            const hasChanged = oldFingerprint !== newFingerprint || REELS_DATA.length === 0;
             REELS_DATA = all;
             if (hasChanged) {
+              console.log("[ReelsSync] Content updated! Firing reelsUpdated event");
               window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
             }
             return REELS_DATA;
@@ -918,7 +928,7 @@
         } else if (type === "DELETE_REEL" && content_id) {
           loadAllReels();
           window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
-        } else if (type === "ADD_REELS_BATCH" || type === "DELETE_REELS_BATCH" || type === "WIPE_ALL_REELS") {
+        } else if (type === "ADD_REELS_BATCH" || type === "DELETE_REELS_BATCH" || type === "WIPE_ALL_REELS" || type === "UPDATE_REEL") {
           loadAllReels();
           window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
         } else if (type === "ENGAGEMENT_TRACKED") {
@@ -935,11 +945,9 @@
       return REELS_DATA;
     }
     if (categoryId === "trending") {
-      const trending = REELS_DATA.filter((r) => r.is_trending);
-      return trending && trending.length > 0 ? trending : REELS_DATA;
+      return REELS_DATA.filter((r) => r.is_trending === true || r.category_id === "trending");
     }
-    const filtered = REELS_DATA.filter((r) => r.category_id === categoryId);
-    return filtered && filtered.length > 0 ? filtered : REELS_DATA;
+    return REELS_DATA.filter((r) => r.category_id === categoryId);
   }
   function getReelById(contentId) {
     loadAllReels();
@@ -1438,6 +1446,22 @@ ${shareUrl}`);
         this.durationTimeEl.textContent = this._formatTime(this.video.duration);
       });
       this.video.addEventListener("error", (e) => {
+        const cur = this.video.src || "";
+        if (cur.includes("cdn.jsdelivr.net")) {
+          const fallback = cur.replace("cdn.jsdelivr.net/gh/", "raw.githubusercontent.com/").replace("@main/", "/main/");
+          console.log("[VideoPlayer] jsDelivr error, switching to GitHub Raw fallback in 0ms:", fallback);
+          this.video.src = fallback;
+          this.video.play().catch(() => {
+          });
+          return;
+        } else if (cur.includes("raw.githubusercontent.com")) {
+          const fallback = cur.replace("raw.githubusercontent.com/", "cdn.jsdelivr.net/gh/").replace("/main/", "@main/");
+          console.log("[VideoPlayer] Raw error, switching to jsDelivr fallback in 0ms:", fallback);
+          this.video.src = fallback;
+          this.video.play().catch(() => {
+          });
+          return;
+        }
         this.spinner.classList.remove("loading");
         console.warn("Video playback error", e);
         this.showToast("Unable to stream video. Please check your connection.", "\u26A0\uFE0F");
@@ -1956,9 +1980,9 @@ ${shareUrl}`);
     }
     refresh() {
       const newReels = getReelsByCategory(this.activeCategory);
-      const oldIds = (this.filteredReels || []).map((r) => r.content_id).join(",");
-      const newIds = (newReels || []).map((r) => r.content_id).join(",");
-      if (oldIds === newIds && this.container.children.length > 0) {
+      const oldFingerprint = (this.filteredReels || []).map((r) => `${r.content_id}:${r.thumbnail_url}:${r.video_url}:${r.title}:${r.category_id}`).join("|");
+      const newFingerprint = (newReels || []).map((r) => `${r.content_id}:${r.thumbnail_url}:${r.video_url}:${r.title}:${r.category_id}`).join("|");
+      if (oldFingerprint === newFingerprint && this.container.children.length > 0) {
         return;
       }
       this.filteredReels = newReels;
@@ -2469,8 +2493,8 @@ ${shareUrl}`);
       const catKey = `category_${reel.category_id.replace(/-/g, "_")}`;
       const catLabel = i18n.t(catKey, reel.category_id);
       item.innerHTML = `
-      <!-- Fast 0ms Poster -->
-      <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? "eager" : "lazy"}" />
+      <!-- Fast 0ms Poster with CDN Fallback -->
+      <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? "eager" : "lazy"}" onerror="if(this.src.includes('cdn.jsdelivr.net')){this.src=this.src.replace('cdn.jsdelivr.net/gh/','raw.githubusercontent.com/').replace('@main/','/main/');}else{this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';}" />
 
       <!-- 9:16 Video Canvas (Preloaded for instant 0ms playback) -->
       <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 2 ? `src="${reel.video_url}" preload="auto" muted` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
@@ -2574,6 +2598,21 @@ ${shareUrl}`);
     `;
       const video = item.querySelector("video");
       const progressBar = item.querySelector(".feed-scrubber-filled");
+      if (video) {
+        video.addEventListener("error", () => {
+          const cur = video.src || video.getAttribute("data-src") || "";
+          if (cur.includes("cdn.jsdelivr.net")) {
+            const fallback = cur.replace("cdn.jsdelivr.net/gh/", "raw.githubusercontent.com/").replace("@main/", "/main/");
+            console.log("[ReelsFeed] CDN error, switching instantly to GitHub Raw fallback:", fallback);
+            video.src = fallback;
+            video.setAttribute("data-src", fallback);
+            if (item.classList.contains("active-playing")) {
+              video.play().catch(() => {
+              });
+            }
+          }
+        });
+      }
       if (video && progressBar) {
         video.addEventListener("timeupdate", () => {
           if (video.duration) {
@@ -2602,18 +2641,33 @@ ${shareUrl}`);
       this.container.innerHTML = "";
       this.renderedCount = 0;
       if (!this.filteredReels || this.filteredReels.length === 0) {
+        const catObj = CATEGORIES.find((c) => c.id === this.activeCategory);
+        const catName = catObj ? catObj.name : this.activeCategory;
+        const catIcon = catObj ? catObj.icon : "\u{1F33F}";
         this.container.innerHTML = `
-        <div class="empty-state" style="height: 100%; justify-content: center; text-align: center; padding: 24px;">
-          <div class="empty-state-icon" style="font-size: 3rem; margin-bottom: 12px;">\u{1F33F}</div>
-          <h3 class="empty-state-title" style="color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px;">No Nature Reels Yet</h3>
+        <div class="empty-state" style="height: 100%; justify-content: center; text-align: center; padding: 32px 20px; display: flex; flex-direction: column; align-items: center;">
+          <div class="empty-state-icon" style="font-size: 3.5rem; margin-bottom: 12px;">${catIcon}</div>
+          <h3 class="empty-state-title" style="color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px;">No ${catName} Reels Yet</h3>
           <p class="empty-state-subtitle" style="color: rgba(255,255,255,0.7); font-size: 0.9rem; max-width: 300px; margin: 0 auto 20px;">
-            Publish videos or use Bulk Upload in the Admin Studio to populate this feed.
+            There are currently no videos in "${catName}". Select another category above or publish new reels in Admin Studio.
           </p>
-          <a href="admin.html" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 0.92rem;">
-            <span>\u{1F6E0}\uFE0F Open Admin Studio</span>
-          </a>
+          <div style="display: flex; gap: 12px;">
+            <button type="button" class="btn-feed-go-trending" style="padding: 10px 22px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.35); color: #fff; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+              \u{1F525} View Trending
+            </button>
+            <a href="admin.html" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 22px; background: #22c55e; border: none; color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 0.9rem;">
+              <span>\u2795 Add Reel</span>
+            </a>
+          </div>
         </div>
       `;
+        const btnTrend = this.container.querySelector(".btn-feed-go-trending");
+        if (btnTrend) {
+          btnTrend.addEventListener("click", (e) => {
+            e.preventDefault();
+            this.filterCategory("trending");
+          });
+        }
         return;
       }
       const initialBatch = Math.min(5, this.filteredReels.length);
@@ -2673,7 +2727,7 @@ ${shareUrl}`);
         card.setAttribute("tabindex", "0");
         card.setAttribute("aria-label", `Play ${reel.title}`);
         card.innerHTML = `
-        <img src="${reel.thumbnail_url}" alt="${reel.title}" loading="lazy" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';" />
+        <img src="${reel.thumbnail_url}" alt="${reel.title}" loading="lazy" onerror="if(this.src.includes('cdn.jsdelivr.net')){this.src=this.src.replace('cdn.jsdelivr.net/gh/','raw.githubusercontent.com/').replace('@main/','/main/');}else{this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';}" />
         
         <!-- Category Pill Badge -->
         <div class="home-card-cat-badge">

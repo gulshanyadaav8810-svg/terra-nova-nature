@@ -49,7 +49,7 @@ export class ReelsGrid {
       card.setAttribute('aria-label', `Play ${reel.title}`);
 
       card.innerHTML = `
-        <img src="${reel.thumbnail_url}" alt="${reel.title}" loading="lazy" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';" />
+        <img src="${reel.thumbnail_url}" alt="${reel.title}" loading="lazy" onerror="if(this.src.includes('cdn.jsdelivr.net')){this.src=this.src.replace('cdn.jsdelivr.net/gh/','raw.githubusercontent.com/').replace('@main/','/main/');}else{this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';}" />
         
         <!-- Category Pill Badge -->
         <div class="home-card-cat-badge">
