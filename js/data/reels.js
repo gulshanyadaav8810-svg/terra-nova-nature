@@ -9,7 +9,7 @@ export const INITIAL_REELS = [];
 
 export let REELS_DATA = [];
 
-const APP_STORAGE_VERSION = 'v5_clean_no_demo';
+const APP_STORAGE_VERSION = 'v6_github_autosync';
 
 const DEMO_REEL_IDS = new Set([
   'reel-forest-01',
