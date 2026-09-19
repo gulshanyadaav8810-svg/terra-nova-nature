@@ -140,7 +140,10 @@ class NatureMomentsApp {
         const reels = getReelsByCategory(this.currentCategory);
         this.homeGrid.setReels(reels, this.currentCategory);
       }
-      this.showToast('✨ Live App Synced: Content Updated', '🌿');
+      if (this.reelsFeed) {
+        this.reelsFeed.filteredReels = getReelsByCategory(this.reelsFeed.activeCategory || 'all');
+        this.reelsFeed.render();
+      }
     });
 
     // Run initial localization

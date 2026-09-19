@@ -429,7 +429,7 @@ export class ReelsFeed {
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? 'eager' : 'lazy'}" />
 
       <!-- 9:16 Video Canvas -->
-      <video class="feed-reel-video" loop playsinline preload="${index === 0 ? 'auto' : 'none'}" poster="${reel.thumbnail_url}" data-src="${reel.video_url}" ${initialSrc ? `src="${initialSrc}"` : ''}>
+      <video class="feed-reel-video" loop playsinline webkit-playsinline muted preload="${index === 0 ? 'auto' : 'none'}" poster="${reel.thumbnail_url}" data-src="${reel.video_url}" ${initialSrc ? `src="${initialSrc}"` : ''}>
       </video>
       
       <div class="feed-reel-overlay"></div>
@@ -524,6 +524,13 @@ export class ReelsFeed {
       video.addEventListener('timeupdate', () => {
         if (video.duration) {
           progressBar.style.width = `${(video.currentTime / video.duration) * 100}%`;
+        }
+      });
+      video.addEventListener('error', () => {
+        const cdnFallback = 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
+        if (video.src && !video.src.includes('cdn.jsdelivr.net') && video.src !== cdnFallback) {
+          video.src = cdnFallback;
+          video.play().catch(() => {});
         }
       });
     }

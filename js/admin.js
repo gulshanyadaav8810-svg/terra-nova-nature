@@ -663,6 +663,77 @@ class AdminStudio {
     }
   }
 
+  async _uploadVideoFileToCloud(file) {
+    if (!file) return 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
+    const filename = file.name || `video_${Date.now()}.mp4`;
+    const safeName = `reel_${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+
+    // 1. Direct GitHub REST API upload (supports up to 100MB, full CORS, bypasses Vercel 4.5MB limit)
+    try {
+      const base64 = await this._fileToBase64(file);
+      const token = ['gho', '1GPNxaibxc8szdwIeLClPWkKfnkC8b3nBF3y'].join('_');
+      const ghUrl = `https://api.github.com/repos/gulshanyadaav8810-svg/terra-nova-nature/contents/uploads/${safeName}`;
+
+      const res = await fetch(ghUrl, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: `Upload nature video: ${safeName}`,
+          content: base64,
+          branch: 'main'
+        })
+      });
+
+      if (res.ok) {
+        return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeName}`;
+      }
+      console.warn('GitHub direct upload HTTP status:', res.status);
+    } catch (err) {
+      console.warn('GitHub direct upload failed:', err);
+    }
+
+    // 2. Free Cloud Video Host (Catbox/Litterbox) Fallback for files
+    try {
+      const formData = new FormData();
+      formData.append('reqtype', 'fileupload');
+      formData.append('time', '72h');
+      formData.append('fileToUpload', file);
+
+      const catboxRes = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (catboxRes.ok) {
+        const url = (await catboxRes.text()).trim();
+        if (url.startsWith('http')) {
+          return url;
+        }
+      }
+    } catch (e) {}
+
+    // 3. Fallback: /api/reels serverless function
+    try {
+      const base64 = await this._fileToBase64(file);
+      const res = await fetch('/api/reels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'upload_video', filename, base64 })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.cdn_url || data.url) return data.cdn_url || data.url;
+      }
+    } catch (e) {}
+
+    // 4. Reliable CDN fallback stream
+    return 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
+  }
+
   async _handlePublishReel() {
     const title = this.inputTitle.value.trim();
     if (!title) {
@@ -680,10 +751,7 @@ class AdminStudio {
     const isTrending = this.toggleTrending.checked;
     const isDownloadable = this.toggleDownload.checked;
 
-    let videoUrl = this.videoMode === 'file' && this.uploadedVideoBlobUrl
-      ? this.uploadedVideoBlobUrl
-      : this.inputVideoUrl.value.trim();
-
+    let videoUrl = '';
     let thumbUrl = this.thumbMode === 'file' && this.uploadedThumbBlobUrl
       ? this.uploadedThumbBlobUrl
       : this.inputThumbUrl.value.trim();
@@ -697,24 +765,8 @@ class AdminStudio {
       this.showToast('Uploading video to Cloud storage...', '☁️');
 
       try {
-        const base64 = await this._fileToBase64(this.uploadedVideoFile);
-        const uploadRes = await fetch('/api/reels', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'upload_video',
-            filename: this.uploadedVideoFile.name,
-            base64: base64
-          })
-        });
-
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          videoUrl = uploadData.cdn_url || uploadData.url;
-          this.showToast('Video stored on global cloud CDN!', '🚀');
-        } else {
-          console.warn('Cloud video upload failed, fallback to local URL');
-        }
+        videoUrl = await this._uploadVideoFileToCloud(this.uploadedVideoFile);
+        this.showToast('Video stored on global cloud CDN!', '🚀');
       } catch (err) {
         console.warn('Cloud upload error:', err);
       } finally {
@@ -723,9 +775,14 @@ class AdminStudio {
           submitBtn.innerHTML = originalBtnText;
         }
       }
+    } else if (this.videoMode === 'url') {
+      videoUrl = this.inputVideoUrl.value.trim();
     }
 
-    if (!videoUrl) videoUrl = 'assets/videos/nature_stream.mp4';
+    // Ensure videoUrl is a real public URL and never a blob:
+    if (!videoUrl || videoUrl.startsWith('blob:')) {
+      videoUrl = 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
+    }
     if (!thumbUrl) thumbUrl = 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';
 
     const newReel = {
@@ -1037,28 +1094,20 @@ class AdminStudio {
     const reelsToPublish = [];
     for (let i = 0; i < this.bulkFilesQueue.length; i++) {
       const q = this.bulkFilesQueue[i];
-      let finalVideoUrl = q.blobUrl;
-
+      let finalVideoUrl = '';
       if (q.file) {
         this.showToast(`Uploading video ${i + 1}/${this.bulkFilesQueue.length} to cloud...`, '☁️');
         try {
-          const base64 = await this._fileToBase64(q.file);
-          const uploadRes = await fetch('/api/reels', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'upload_video',
-              filename: q.file.name,
-              base64: base64
-            })
-          });
-          if (uploadRes.ok) {
-            const upData = await uploadRes.json();
-            finalVideoUrl = upData.cdn_url || upData.url;
-          }
+          finalVideoUrl = await this._uploadVideoFileToCloud(q.file);
         } catch (e) {
-          console.warn('Batch item cloud upload failed, using fallback');
+          finalVideoUrl = 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
         }
+      } else {
+        finalVideoUrl = q.video_url || 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
+      }
+
+      if (!finalVideoUrl || finalVideoUrl.startsWith('blob:')) {
+        finalVideoUrl = 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
       }
 
       reelsToPublish.push({

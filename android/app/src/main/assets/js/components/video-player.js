@@ -77,6 +77,12 @@ export class VideoPlayer {
     this.video.addEventListener('error', (e) => {
       this.spinner.classList.remove('loading');
       console.warn('Video playback error', e);
+      const cdnFallback = 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
+      if (this.video.src && !this.video.src.includes('cdn.jsdelivr.net') && this.video.src !== cdnFallback) {
+        this.video.src = cdnFallback;
+        this.video.play().catch(() => {});
+        return;
+      }
       this.showToast('Unable to stream video. Using offline preview.', '⚠️');
     });
 
