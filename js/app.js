@@ -26,6 +26,22 @@ class NatureMomentsApp {
     this._initHomeCategories();
     this._bindNavigation();
     this._checkUrlParameters();
+    window.natureAppInstance = this;
+    window.pauseAllMedia = () => {
+      document.querySelectorAll('video').forEach(v => {
+        try { v.pause(); } catch(e) {}
+      });
+      try { soundEngine.stop(); } catch(e) {}
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        window.pauseAllMedia();
+      }
+    });
+    window.addEventListener('pagehide', () => window.pauseAllMedia());
+    window.addEventListener('blur', () => window.pauseAllMedia());
+
   }
 
   _initToast() {

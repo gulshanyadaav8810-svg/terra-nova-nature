@@ -375,6 +375,16 @@ public class MainActivity extends Activity {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
             hideSystemUI();
+            if (webView != null) {
+                webView.onResume();
+                webView.resumeTimers();
+            }
+        } else {
+            if (webView != null) {
+                webView.evaluateJavascript("if (typeof window.pauseAllMedia === 'function') { window.pauseAllMedia(); }", null);
+                webView.onPause();
+                webView.pauseTimers();
+            }
         }
     }
 
@@ -419,13 +429,30 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (webView != null) webView.onResume();
+        if (webView != null) {
+            webView.onResume();
+            webView.resumeTimers();
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (webView != null) webView.onPause();
+        if (webView != null) {
+            webView.evaluateJavascript("if (typeof window.pauseAllMedia === 'function') { window.pauseAllMedia(); }", null);
+            webView.onPause();
+            webView.pauseTimers();
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (webView != null) {
+            webView.evaluateJavascript("if (typeof window.pauseAllMedia === 'function') { window.pauseAllMedia(); }", null);
+            webView.onPause();
+            webView.pauseTimers();
+        }
     }
 
     @Override

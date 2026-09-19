@@ -494,3 +494,9 @@
   width: 0%;
   background: var(--color-soft-yellow);
 }
+
+.dock-btn.muted {
+  background: rgba(220, 53, 69, 0.85);
+  border-color: #DC3545;
+  color: #FFFFFF;
+}

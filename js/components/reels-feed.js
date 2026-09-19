@@ -89,6 +89,61 @@ export class ReelsFeed {
   }
 
   // Bind Voice / Sound Equalizer Toggle directly to Video Native Audio
+
+  toggleMute() {
+    this.isMuted = !this.isMuted;
+    this._applyMuteState();
+  }
+
+  _applyMuteState() {
+    if (this.activeVideo) {
+      this.activeVideo.muted = this.isMuted;
+      this.activeVideo.volume = this.isMuted ? 0 : 1.0;
+    }
+    const allVideos = this.container.querySelectorAll('video');
+    allVideos.forEach(v => {
+      v.muted = this.isMuted;
+      v.volume = this.isMuted ? 0 : 1.0;
+    });
+
+    const muteBtns = this.container.querySelectorAll('.feed-mute-btn');
+    muteBtns.forEach(btn => {
+      if (this.isMuted) {
+        btn.classList.add('muted');
+        btn.innerHTML = `
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+        `;
+      } else {
+        btn.classList.remove('muted');
+        btn.innerHTML = `
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        `;
+      }
+    });
+
+    const labels = this.container.querySelectorAll('.mute-label-display');
+    labels.forEach(l => {
+      l.textContent = this.isMuted ? 'Muted' : 'Sound';
+    });
+
+    if (this.soundEq) {
+      if (this.isMuted) this.soundEq.classList.remove('active');
+      else this.soundEq.classList.add('active');
+    }
+    if (this.soundLabel) {
+      this.soundLabel.textContent = this.isMuted ? 'Muted' : 'Audio On';
+    }
+
+    this.showToast(this.isMuted ? '🔇 Audio Muted' : '🔊 Sound Active', this.isMuted ? '🔇' : '🔊');
+  }
+
   _bindSoundButton() {
     this.soundBtn = document.getElementById('reels-sound-toggle-btn');
     this.soundEq = document.getElementById('reels-sound-eq');
@@ -238,36 +293,36 @@ export class ReelsFeed {
         }
         this._lastTapTime = now;
 
+        // If finger was dragged to scroll, don't toggle play/pause!
+        if (this._isDragging) return;
+
         const video = item.querySelector('video');
         const playPulse = item.querySelector('.feed-play-pulse');
         if (video) {
           e.stopPropagation();
+          clearTimeout(this._singleTapTimeout);
           this._singleTapTimeout = setTimeout(() => {
             if (video.paused) {
-              const dataSrc = video.getAttribute('data-src');
-              if (dataSrc && (!video.src || video.src === window.location.href || video.src === '')) {
-                video.src = dataSrc;
-              }
               video.playsInline = true;
-              video.setAttribute('playsinline', '');
-              video.setAttribute('webkit-playsinline', '');
-              video.setAttribute('x5-playsinline', '');
               video.muted = this.isMuted;
-              video.volume = 1.0;
-              video.play().catch(err => {
-                video.muted = true;
-                video.play().catch(() => {});
-              });
-              item.classList.remove('is-paused');
-              if (playPulse) playPulse.classList.remove('show');
-              this.showToast('Playing Reel ▶️', '▶️');
+              video.volume = this.isMuted ? 0 : 1.0;
+              const p = video.play();
+              if (p !== undefined) {
+                p.then(() => {
+                  item.classList.remove('is-paused');
+                  if (playPulse) playPulse.classList.remove('show');
+                }).catch(() => {
+                  video.muted = true;
+                  video.play().catch(() => {});
+                  item.classList.remove('is-paused');
+                });
+              }
             } else {
               video.pause();
               item.classList.add('is-paused');
               if (playPulse) playPulse.classList.add('show');
-              this.showToast('Reel Paused ⏸️', '⏸️');
             }
-          }, 240);
+          }, 180);
         }
       }
     });
@@ -414,11 +469,9 @@ export class ReelsFeed {
   pauseAll() {
     const videos = this.container.querySelectorAll('video');
     videos.forEach(v => {
-      v.pause();
-      v.removeAttribute('src');
-      v.load();
+      try { v.pause(); } catch(e) {}
     });
-    soundEngine.stop();
+    try { soundEngine.stop(); } catch(e) {}
   }
 
   resumeActive() {
@@ -517,6 +570,18 @@ export class ReelsFeed {
             </svg>
           </button>
           <span class="dock-label" data-i18n="action_download">${i18n.t('action_download')}</span>
+        </div>
+
+        <!-- Audio Mute / Unmute Toggle Button -->
+        <div class="dock-action-item">
+          <button class="dock-btn feed-mute-btn ${this.isMuted ? 'muted' : ''}" data-id="${reel.content_id}" title="Sound Mute/Unmute">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              ${this.isMuted 
+                ? '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line>'
+                : '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>'}
+            </svg>
+          </button>
+          <span class="dock-label mute-label-display">${this.isMuted ? 'Muted' : 'Sound'}</span>
         </div>
 
         <!-- Spinning Vinyl Disc -->
