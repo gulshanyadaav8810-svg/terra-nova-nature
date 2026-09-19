@@ -402,6 +402,14 @@ export class ReelsFeed {
         if (!video) return;
 
         if (entry.isIntersecting) {
+          // CRITICAL: If app is on Home tab or Save tab, DO NOT play video or audio!
+          const reelsView = document.getElementById('view-reels');
+          if (!reelsView || reelsView.style.display === 'none') {
+            video.pause();
+            return;
+          }
+
+          const isSameItem = this.activeItem === entry.target;
           this.activeItem = entry.target;
           this.activeVideo = video;
           entry.target.classList.add('active-playing');
@@ -422,7 +430,9 @@ export class ReelsFeed {
             }
           }
 
-          video.currentTime = 0;
+          if (!isSameItem) {
+            video.currentTime = 0;
+          }
           video.playsInline = true;
           video.setAttribute('playsinline', '');
           video.setAttribute('webkit-playsinline', '');
@@ -475,16 +485,35 @@ export class ReelsFeed {
   }
 
   resumeActive() {
-    if (this.activeItem) {
-      const video = this.activeItem.querySelector('video');
+    const reelsView = document.getElementById('view-reels');
+    if (reelsView && reelsView.style.display === 'none') {
+      this.pauseAll();
+      return;
+    }
+
+    const item = this.activeItem || this.container.querySelector('.feed-reel-item');
+    if (item) {
+      this.activeItem = item;
+      const video = item.querySelector('video');
       if (video) {
+        this.activeVideo = video;
         const dataSrc = video.getAttribute('data-src');
         if (dataSrc && (!video.src || video.src === '')) {
           video.src = dataSrc;
         }
+        video.playsInline = true;
         video.muted = this.isMuted;
-        video.volume = 1.0;
-        video.play().catch(e => console.warn(e));
+        video.volume = this.isMuted ? 0 : 1.0;
+        const p = video.play();
+        if (p !== undefined) {
+          p.then(() => {
+            item.classList.add('active-playing');
+            item.classList.remove('is-paused');
+          }).catch(() => {
+            video.muted = true;
+            video.play().catch(() => {});
+          });
+        }
       }
     }
   }
@@ -672,34 +701,16 @@ export class ReelsFeed {
 
     this._initObserver();
 
-    // Auto-start the very first reel unmuted
+    // NEVER autoplay on render if app is on Home tab!
+    // Video will ONLY play when user explicitly navigates to Reels tab!
     setTimeout(() => {
-      const firstItem = this.container.querySelector('.feed-reel-item');
-      if (firstItem) {
-        const firstVideo = firstItem.querySelector('video');
-        if (firstVideo) {
-          const dataSrc = firstVideo.getAttribute('data-src');
-          if (dataSrc && !firstVideo.src) firstVideo.src = dataSrc;
-          firstVideo.currentTime = 0;
-          firstVideo.muted = this.isMuted;
-          firstVideo.volume = 1.0;
-          firstVideo.playsInline = true;
-          firstVideo.setAttribute('playsinline', '');
-          firstVideo.setAttribute('webkit-playsinline', '');
-          firstVideo.setAttribute('x5-playsinline', '');
-          const p = firstVideo.play();
-          if (p !== undefined) {
-            p.catch(e => {
-              firstVideo.muted = true;
-              firstVideo.play().catch(() => {});
-            });
-          }
-          this.activeItem = firstItem;
-          this.activeVideo = firstVideo;
-          firstItem.classList.add('active-playing');
-        }
+      const reelsView = document.getElementById('view-reels');
+      if (reelsView && reelsView.style.display === 'block') {
+        this.resumeActive();
+      } else {
+        this.pauseAll();
       }
-    }, 60);
+    }, 50);
   }
 
   _updateLanguageUI() {

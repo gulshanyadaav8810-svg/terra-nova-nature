@@ -287,6 +287,8 @@ class NatureMomentsApp {
       if (this.saveView) this.saveView.style.display = 'none';
       if (floatingHeader) floatingHeader.style.display = 'none';
       if (this.reelsFeed) this.reelsFeed.pauseAll();
+      if (this.player && this.player.video) this.player.video.pause();
+      if (window.pauseAllMedia) window.pauseAllMedia();
     } else if (viewName === 'reels') {
       if (bottomNav) {
         bottomNav.classList.remove('bottom-nav-light');
@@ -315,6 +317,8 @@ class NatureMomentsApp {
       if (this.saveView) this.saveView.style.display = 'block';
       if (floatingHeader) floatingHeader.style.display = 'none';
       if (this.reelsFeed) this.reelsFeed.pauseAll();
+      if (this.player && this.player.video) this.player.video.pause();
+      if (window.pauseAllMedia) window.pauseAllMedia();
       this.saveScreen.render();
     }
   }
