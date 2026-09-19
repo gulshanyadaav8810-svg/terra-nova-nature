@@ -643,7 +643,7 @@
 
   // js/data/reels.js
   var REELS_DATA = [];
-  var APP_STORAGE_VERSION = "v5_clean_no_demo";
+  var APP_STORAGE_VERSION = "v6_github_autosync";
   var DEMO_REEL_IDS = /* @__PURE__ */ new Set([
     "reel-forest-01",
     "reel-flowers-01",
@@ -1448,7 +1448,9 @@ ${shareUrl}`);
       });
       this.muteBtn.addEventListener("click", () => {
         this.video.muted = !this.video.muted;
+        this.video.volume = this.video.muted ? 0 : 1;
         this._updateMuteState(this.video.muted);
+        this.showToast(this.video.muted ? "\u{1F507} Audio Muted" : "\u{1F50A} Audio Active", this.video.muted ? "\u{1F507}" : "\u{1F50A}");
       });
       this.fullscreenBtn.addEventListener("click", () => {
         this._toggleFullscreen();
@@ -1483,6 +1485,9 @@ ${shareUrl}`);
       this._updateMuteState(false);
       if (this.isOffline) {
         this.catEl.textContent = `\u26A1 OFFLINE \u2022 ${i18n.t(catKey, reel.category_id)}`;
+      }
+      if (window.natureAppInstance && window.natureAppInstance.reelsFeed) {
+        window.natureAppInstance.reelsFeed.pauseAll();
       }
       this.spinner.classList.add("loading");
       let videoSourceUrl = reel.video_url;
@@ -1536,6 +1541,9 @@ ${shareUrl}`);
       this.dlProgressOverlay.classList.remove("show");
       this.currentReel = null;
       this.isOffline = false;
+      if (window.natureAppInstance && window.natureAppInstance.currentView === "reels" && window.natureAppInstance.reelsFeed) {
+        window.natureAppInstance.reelsFeed.resumeActive();
+      }
     }
     togglePlay() {
       if (this.video.paused) {
@@ -1869,9 +1877,11 @@ ${shareUrl}`);
       this._bindContainerDelegation();
       this.filterCategory("trending");
       const unmuteOnInteraction = () => {
-        if (!this.isMuted && this.activeVideo) {
-          this.activeVideo.muted = false;
-          this.activeVideo.volume = 1;
+        if (window.natureAppInstance && window.natureAppInstance.currentView === "reels") {
+          if (!this.isMuted && this.activeVideo) {
+            this.activeVideo.muted = false;
+            this.activeVideo.volume = 1;
+          }
         }
         window.removeEventListener("pointerdown", unmuteOnInteraction);
         window.removeEventListener("touchstart", unmuteOnInteraction);
@@ -1918,6 +1928,54 @@ ${shareUrl}`);
       });
     }
     // Bind Voice / Sound Equalizer Toggle directly to Video Native Audio
+    toggleMute() {
+      this.isMuted = !this.isMuted;
+      this._applyMuteState();
+    }
+    _applyMuteState() {
+      if (this.activeVideo) {
+        this.activeVideo.muted = this.isMuted;
+        this.activeVideo.volume = this.isMuted ? 0 : 1;
+      }
+      const allVideos = this.container.querySelectorAll("video");
+      allVideos.forEach((v) => {
+        v.muted = this.isMuted;
+        v.volume = this.isMuted ? 0 : 1;
+      });
+      const muteBtns = this.container.querySelectorAll(".feed-mute-btn");
+      muteBtns.forEach((btn) => {
+        if (this.isMuted) {
+          btn.classList.add("muted");
+          btn.innerHTML = `
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+        `;
+        } else {
+          btn.classList.remove("muted");
+          btn.innerHTML = `
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        `;
+        }
+      });
+      const labels = this.container.querySelectorAll(".mute-label-display");
+      labels.forEach((l) => {
+        l.textContent = this.isMuted ? "Muted" : "Sound";
+      });
+      if (this.soundEq) {
+        if (this.isMuted) this.soundEq.classList.remove("active");
+        else this.soundEq.classList.add("active");
+      }
+      if (this.soundLabel) {
+        this.soundLabel.textContent = this.isMuted ? "Muted" : "Audio On";
+      }
+      this.showToast(this.isMuted ? "\u{1F507} Audio Muted" : "\u{1F50A} Sound Active", this.isMuted ? "\u{1F507}" : "\u{1F50A}");
+    }
     _bindSoundButton() {
       this.soundBtn = document.getElementById("reels-sound-toggle-btn");
       this.soundEq = document.getElementById("reels-sound-eq");
@@ -2039,37 +2097,35 @@ ${shareUrl}`);
             return;
           }
           this._lastTapTime = now;
+          if (this._isDragging) return;
           const video = item.querySelector("video");
           const playPulse = item.querySelector(".feed-play-pulse");
           if (video) {
             e.stopPropagation();
+            clearTimeout(this._singleTapTimeout);
             this._singleTapTimeout = setTimeout(() => {
               if (video.paused) {
-                const dataSrc = video.getAttribute("data-src");
-                if (dataSrc && (!video.src || video.src === window.location.href || video.src === "")) {
-                  video.src = dataSrc;
-                }
                 video.playsInline = true;
-                video.setAttribute("playsinline", "");
-                video.setAttribute("webkit-playsinline", "");
-                video.setAttribute("x5-playsinline", "");
                 video.muted = this.isMuted;
-                video.volume = 1;
-                video.play().catch((err) => {
-                  video.muted = true;
-                  video.play().catch(() => {
+                video.volume = this.isMuted ? 0 : 1;
+                const p = video.play();
+                if (p !== void 0) {
+                  p.then(() => {
+                    item.classList.remove("is-paused");
+                    if (playPulse) playPulse.classList.remove("show");
+                  }).catch(() => {
+                    video.muted = true;
+                    video.play().catch(() => {
+                    });
+                    item.classList.remove("is-paused");
                   });
-                });
-                item.classList.remove("is-paused");
-                if (playPulse) playPulse.classList.remove("show");
-                this.showToast("Playing Reel \u25B6\uFE0F", "\u25B6\uFE0F");
+                }
               } else {
                 video.pause();
                 item.classList.add("is-paused");
                 if (playPulse) playPulse.classList.add("show");
-                this.showToast("Reel Paused \u23F8\uFE0F", "\u23F8\uFE0F");
               }
-            }, 240);
+            }, 180);
           }
         }
       });
@@ -2133,7 +2189,17 @@ ${shareUrl}`);
           const vinyl = entry.target.querySelector(".dock-vinyl-disc");
           const playPulse = entry.target.querySelector(".feed-play-pulse");
           if (!video) return;
+          const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
+          const reelsView = document.getElementById("view-reels");
+          const isReelsVisible = reelsView && reelsView.style.display === "block";
+          if (!isReelsTab || !isReelsVisible) {
+            video.pause();
+            video.removeAttribute("src");
+            video.load();
+            return;
+          }
           if (entry.isIntersecting) {
+            const isSameItem = this.activeItem === entry.target;
             this.activeItem = entry.target;
             this.activeVideo = video;
             entry.target.classList.add("active-playing");
@@ -2149,7 +2215,9 @@ ${shareUrl}`);
                 if (nextSrc) nextVideo.src = nextSrc;
               }
             }
-            video.currentTime = 0;
+            if (!isSameItem) {
+              video.currentTime = 0;
+            }
             video.playsInline = true;
             video.setAttribute("playsinline", "");
             video.setAttribute("webkit-playsinline", "");
@@ -2176,7 +2244,7 @@ ${shareUrl}`);
             if (vinyl) vinyl.classList.add("paused");
             const activeIndex = this.activeItem ? parseInt(this.activeItem.getAttribute("data-index") || "0", 10) : -1;
             const thisIndex = parseInt(entry.target.getAttribute("data-index") || "0", 10);
-            if (Math.abs(thisIndex - activeIndex) > 2) {
+            if (Math.abs(thisIndex - activeIndex) > 1) {
               video.removeAttribute("src");
               video.load();
             }
@@ -2187,25 +2255,63 @@ ${shareUrl}`);
       items.forEach((item) => this.observer.observe(item));
     }
     pauseAll() {
+      this.activeItem = null;
+      this.activeVideo = null;
       const videos = this.container.querySelectorAll("video");
       videos.forEach((v) => {
-        v.pause();
-        v.removeAttribute("src");
-        v.load();
+        try {
+          v.pause();
+          v.removeAttribute("src");
+          v.load();
+        } catch (e) {
+        }
       });
-      soundEngine.stop();
+      const items = this.container.querySelectorAll(".feed-reel-item");
+      items.forEach((item) => {
+        item.classList.remove("active-playing");
+        item.classList.add("is-paused");
+        const vinyl = item.querySelector(".dock-vinyl-disc");
+        if (vinyl) vinyl.classList.add("paused");
+      });
+      try {
+        soundEngine.stop();
+      } catch (e) {
+      }
     }
     resumeActive() {
-      if (this.activeItem) {
-        const video = this.activeItem.querySelector("video");
+      const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
+      const reelsView = document.getElementById("view-reels");
+      const isReelsVisible = reelsView && reelsView.style.display === "block";
+      if (!isReelsTab || !isReelsVisible) {
+        this.pauseAll();
+        return;
+      }
+      const item = this.activeItem || this.container.querySelector(".feed-reel-item");
+      if (item) {
+        this.activeItem = item;
+        const video = item.querySelector("video");
         if (video) {
+          this.activeVideo = video;
           const dataSrc = video.getAttribute("data-src");
-          if (dataSrc && (!video.src || video.src === "")) {
+          if (dataSrc && (!video.src || video.src === "" || video.src === window.location.href)) {
             video.src = dataSrc;
           }
+          video.playsInline = true;
           video.muted = this.isMuted;
-          video.volume = 1;
-          video.play().catch((e) => console.warn(e));
+          video.volume = this.isMuted ? 0 : 1;
+          const p = video.play();
+          if (p !== void 0) {
+            p.then(() => {
+              item.classList.add("active-playing");
+              item.classList.remove("is-paused");
+              const vinyl = item.querySelector(".dock-vinyl-disc");
+              if (vinyl) vinyl.classList.remove("paused");
+            }).catch(() => {
+              video.muted = true;
+              video.play().catch(() => {
+              });
+            });
+          }
         }
       }
     }
@@ -2221,13 +2327,12 @@ ${shareUrl}`);
       const isSaved = storage.isSaved(reel.content_id);
       const catKey = `category_${reel.category_id.replace(/-/g, "_")}`;
       const catLabel = i18n.t(catKey, reel.category_id);
-      const initialSrc = index === 0 ? reel.video_url : "";
       item.innerHTML = `
       <!-- Fast 0ms Poster -->
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? "eager" : "lazy"}" />
 
-      <!-- 9:16 Video Canvas (Unmuted by default for authentic audio) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline preload="${index === 0 ? "auto" : "none"}" poster="${reel.thumbnail_url}" data-src="${reel.video_url}" ${initialSrc ? `src="${initialSrc}"` : ""}>
+      <!-- 9:16 Video Canvas (No src until Reels tab is activated - 100% zero background noise!) -->
+      <video class="feed-reel-video" loop playsinline webkit-playsinline preload="none" poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
@@ -2286,6 +2391,16 @@ ${shareUrl}`);
             </svg>
           </button>
           <span class="dock-label" data-i18n="action_download">${i18n.t("action_download")}</span>
+        </div>
+
+        <!-- Audio Mute / Unmute Toggle Button -->
+        <div class="dock-action-item">
+          <button class="dock-btn feed-mute-btn ${this.isMuted ? "muted" : ""}" data-id="${reel.content_id}" title="Sound Mute/Unmute">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              ${this.isMuted ? '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line>' : '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>'}
+            </svg>
+          </button>
+          <span class="dock-label mute-label-display">${this.isMuted ? "Muted" : "Sound"}</span>
         </div>
 
         <!-- Spinning Vinyl Disc -->
@@ -2365,33 +2480,14 @@ ${shareUrl}`);
       this.renderedCount = initialBatch;
       this._initObserver();
       setTimeout(() => {
-        const firstItem = this.container.querySelector(".feed-reel-item");
-        if (firstItem) {
-          const firstVideo = firstItem.querySelector("video");
-          if (firstVideo) {
-            const dataSrc = firstVideo.getAttribute("data-src");
-            if (dataSrc && !firstVideo.src) firstVideo.src = dataSrc;
-            firstVideo.currentTime = 0;
-            firstVideo.muted = this.isMuted;
-            firstVideo.volume = 1;
-            firstVideo.playsInline = true;
-            firstVideo.setAttribute("playsinline", "");
-            firstVideo.setAttribute("webkit-playsinline", "");
-            firstVideo.setAttribute("x5-playsinline", "");
-            const p = firstVideo.play();
-            if (p !== void 0) {
-              p.catch((e) => {
-                firstVideo.muted = true;
-                firstVideo.play().catch(() => {
-                });
-              });
-            }
-            this.activeItem = firstItem;
-            this.activeVideo = firstVideo;
-            firstItem.classList.add("active-playing");
-          }
+        const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
+        const reelsView = document.getElementById("view-reels");
+        if (isReelsTab && reelsView && reelsView.style.display === "block") {
+          this.resumeActive();
+        } else {
+          this.pauseAll();
         }
-      }, 60);
+      }, 50);
     }
     _updateLanguageUI() {
       this._initCategoryHeader();
@@ -3146,12 +3242,47 @@ ${shareUrl}`);
     constructor() {
       this.currentView = "home";
       this.currentCategory = "trending";
+      window.natureAppInstance = this;
+      window.pauseAllMedia = () => {
+        document.querySelectorAll("video").forEach((v) => {
+          try {
+            v.pause();
+            v.muted = true;
+          } catch (e) {
+          }
+        });
+        if (this.reelsFeed) {
+          try {
+            this.reelsFeed.pauseAll();
+          } catch (e) {
+          }
+        }
+        if (this.player && this.player.video) {
+          try {
+            this.player.video.pause();
+            this.player.video.muted = true;
+          } catch (e) {
+          }
+        }
+        try {
+          soundEngine.stop();
+        } catch (e) {
+        }
+      };
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          window.pauseAllMedia();
+        }
+      });
+      window.addEventListener("pagehide", () => window.pauseAllMedia());
+      window.addEventListener("blur", () => window.pauseAllMedia());
       this._initToast();
       this._initDomReferences();
       this._initComponents();
       this._initHomeCategories();
       this._bindNavigation();
       this._checkUrlParameters();
+      window.pauseAllMedia();
     }
     _initToast() {
       this.toastContainer = document.getElementById("toast-container");
@@ -3346,6 +3477,8 @@ ${shareUrl}`);
         if (this.saveView) this.saveView.style.display = "none";
         if (floatingHeader) floatingHeader.style.display = "none";
         if (this.reelsFeed) this.reelsFeed.pauseAll();
+        if (this.player && this.player.video) this.player.video.pause();
+        if (window.pauseAllMedia) window.pauseAllMedia();
       } else if (viewName === "reels") {
         if (bottomNav) {
           bottomNav.classList.remove("bottom-nav-light");
@@ -3374,6 +3507,8 @@ ${shareUrl}`);
         if (this.saveView) this.saveView.style.display = "block";
         if (floatingHeader) floatingHeader.style.display = "none";
         if (this.reelsFeed) this.reelsFeed.pauseAll();
+        if (this.player && this.player.video) this.player.video.pause();
+        if (window.pauseAllMedia) window.pauseAllMedia();
         this.saveScreen.render();
       }
     }

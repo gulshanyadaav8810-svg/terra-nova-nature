@@ -19,18 +19,24 @@ class NatureMomentsApp {
   constructor() {
     this.currentView = 'home'; // Default to Home view with top categories & trending cards
     this.currentCategory = 'trending';
-    
-    this._initToast();
-    this._initDomReferences();
-    this._initComponents();
-    this._initHomeCategories();
-    this._bindNavigation();
-    this._checkUrlParameters();
     window.natureAppInstance = this;
+
     window.pauseAllMedia = () => {
       document.querySelectorAll('video').forEach(v => {
-        try { v.pause(); } catch(e) {}
+        try {
+          v.pause();
+          v.muted = true;
+        } catch(e) {}
       });
+      if (this.reelsFeed) {
+        try { this.reelsFeed.pauseAll(); } catch(e) {}
+      }
+      if (this.player && this.player.video) {
+        try {
+          this.player.video.pause();
+          this.player.video.muted = true;
+        } catch(e) {}
+      }
       try { soundEngine.stop(); } catch(e) {}
     };
 
@@ -41,6 +47,16 @@ class NatureMomentsApp {
     });
     window.addEventListener('pagehide', () => window.pauseAllMedia());
     window.addEventListener('blur', () => window.pauseAllMedia());
+
+    this._initToast();
+    this._initDomReferences();
+    this._initComponents();
+    this._initHomeCategories();
+    this._bindNavigation();
+    this._checkUrlParameters();
+
+    // Ensure 100% strict silence on app boot
+    window.pauseAllMedia();
 
   }
 

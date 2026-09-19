@@ -29,11 +29,13 @@ export class ReelsFeed {
     this._bindContainerDelegation();
     this.filterCategory('trending');
 
-    // Unmute on first user touch to satisfy any mobile audio policy
+    // Unmute on first user touch ONLY IF user is in reels view
     const unmuteOnInteraction = () => {
-      if (!this.isMuted && this.activeVideo) {
-        this.activeVideo.muted = false;
-        this.activeVideo.volume = 1.0;
+      if (window.natureAppInstance && window.natureAppInstance.currentView === 'reels') {
+        if (!this.isMuted && this.activeVideo) {
+          this.activeVideo.muted = false;
+          this.activeVideo.volume = 1.0;
+        }
       }
       window.removeEventListener('pointerdown', unmuteOnInteraction);
       window.removeEventListener('touchstart', unmuteOnInteraction);
@@ -401,14 +403,19 @@ export class ReelsFeed {
         const playPulse = entry.target.querySelector('.feed-play-pulse');
         if (!video) return;
 
-        if (entry.isIntersecting) {
-          // CRITICAL: If app is on Home tab or Save tab, DO NOT play video or audio!
-          const reelsView = document.getElementById('view-reels');
-          if (!reelsView || reelsView.style.display === 'none') {
-            video.pause();
-            return;
-          }
+        // CRITICAL: Only allow playback if actively viewing the Reels tab!
+        const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
+        const reelsView = document.getElementById('view-reels');
+        const isReelsVisible = reelsView && reelsView.style.display === 'block';
 
+        if (!isReelsTab || !isReelsVisible) {
+          video.pause();
+          video.removeAttribute('src');
+          video.load();
+          return;
+        }
+
+        if (entry.isIntersecting) {
           const isSameItem = this.activeItem === entry.target;
           this.activeItem = entry.target;
           this.activeVideo = video;
@@ -464,7 +471,7 @@ export class ReelsFeed {
           // Free hardware decoder on Android if far from active
           const activeIndex = this.activeItem ? parseInt(this.activeItem.getAttribute('data-index') || '0', 10) : -1;
           const thisIndex = parseInt(entry.target.getAttribute('data-index') || '0', 10);
-          if (Math.abs(thisIndex - activeIndex) > 2) {
+          if (Math.abs(thisIndex - activeIndex) > 1) {
             video.removeAttribute('src');
             video.load();
           }
@@ -477,16 +484,32 @@ export class ReelsFeed {
   }
 
   pauseAll() {
+    this.activeItem = null;
+    this.activeVideo = null;
     const videos = this.container.querySelectorAll('video');
     videos.forEach(v => {
-      try { v.pause(); } catch(e) {}
+      try {
+        v.pause();
+        v.removeAttribute('src');
+        v.load();
+      } catch(e) {}
+    });
+    const items = this.container.querySelectorAll('.feed-reel-item');
+    items.forEach(item => {
+      item.classList.remove('active-playing');
+      item.classList.add('is-paused');
+      const vinyl = item.querySelector('.dock-vinyl-disc');
+      if (vinyl) vinyl.classList.add('paused');
     });
     try { soundEngine.stop(); } catch(e) {}
   }
 
   resumeActive() {
+    const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
     const reelsView = document.getElementById('view-reels');
-    if (reelsView && reelsView.style.display === 'none') {
+    const isReelsVisible = reelsView && reelsView.style.display === 'block';
+
+    if (!isReelsTab || !isReelsVisible) {
       this.pauseAll();
       return;
     }
@@ -498,7 +521,7 @@ export class ReelsFeed {
       if (video) {
         this.activeVideo = video;
         const dataSrc = video.getAttribute('data-src');
-        if (dataSrc && (!video.src || video.src === '')) {
+        if (dataSrc && (!video.src || video.src === '' || video.src === window.location.href)) {
           video.src = dataSrc;
         }
         video.playsInline = true;
@@ -509,6 +532,8 @@ export class ReelsFeed {
           p.then(() => {
             item.classList.add('active-playing');
             item.classList.remove('is-paused');
+            const vinyl = item.querySelector('.dock-vinyl-disc');
+            if (vinyl) vinyl.classList.remove('paused');
           }).catch(() => {
             video.muted = true;
             video.play().catch(() => {});
@@ -532,15 +557,12 @@ export class ReelsFeed {
     const catKey = `category_${reel.category_id.replace(/-/g, '_')}`;
     const catLabel = i18n.t(catKey, reel.category_id);
 
-    // Initial src: only the very first reel loads src immediately
-    const initialSrc = index === 0 ? reel.video_url : '';
-
     item.innerHTML = `
       <!-- Fast 0ms Poster -->
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? 'eager' : 'lazy'}" />
 
-      <!-- 9:16 Video Canvas (Unmuted by default for authentic audio) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline preload="${index === 0 ? 'auto' : 'none'}" poster="${reel.thumbnail_url}" data-src="${reel.video_url}" ${initialSrc ? `src="${initialSrc}"` : ''}>
+      <!-- 9:16 Video Canvas (No src until Reels tab is activated - 100% zero background noise!) -->
+      <video class="feed-reel-video" loop playsinline webkit-playsinline preload="none" poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
@@ -704,8 +726,9 @@ export class ReelsFeed {
     // NEVER autoplay on render if app is on Home tab!
     // Video will ONLY play when user explicitly navigates to Reels tab!
     setTimeout(() => {
+      const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
       const reelsView = document.getElementById('view-reels');
-      if (reelsView && reelsView.style.display === 'block') {
+      if (isReelsTab && reelsView && reelsView.style.display === 'block') {
         this.resumeActive();
       } else {
         this.pauseAll();

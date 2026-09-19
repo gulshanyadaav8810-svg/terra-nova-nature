@@ -19,13 +19,45 @@ class NatureMomentsApp {
   constructor() {
     this.currentView = 'home'; // Default to Home view with top categories & trending cards
     this.currentCategory = 'trending';
-    
+    window.natureAppInstance = this;
+
+    window.pauseAllMedia = () => {
+      document.querySelectorAll('video').forEach(v => {
+        try {
+          v.pause();
+          v.muted = true;
+        } catch(e) {}
+      });
+      if (this.reelsFeed) {
+        try { this.reelsFeed.pauseAll(); } catch(e) {}
+      }
+      if (this.player && this.player.video) {
+        try {
+          this.player.video.pause();
+          this.player.video.muted = true;
+        } catch(e) {}
+      }
+      try { soundEngine.stop(); } catch(e) {}
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        window.pauseAllMedia();
+      }
+    });
+    window.addEventListener('pagehide', () => window.pauseAllMedia());
+    window.addEventListener('blur', () => window.pauseAllMedia());
+
     this._initToast();
     this._initDomReferences();
     this._initComponents();
     this._initHomeCategories();
     this._bindNavigation();
     this._checkUrlParameters();
+
+    // Ensure 100% strict silence on app boot
+    window.pauseAllMedia();
+
   }
 
   _initToast() {
@@ -271,6 +303,8 @@ class NatureMomentsApp {
       if (this.saveView) this.saveView.style.display = 'none';
       if (floatingHeader) floatingHeader.style.display = 'none';
       if (this.reelsFeed) this.reelsFeed.pauseAll();
+      if (this.player && this.player.video) this.player.video.pause();
+      if (window.pauseAllMedia) window.pauseAllMedia();
     } else if (viewName === 'reels') {
       if (bottomNav) {
         bottomNav.classList.remove('bottom-nav-light');
@@ -299,6 +333,8 @@ class NatureMomentsApp {
       if (this.saveView) this.saveView.style.display = 'block';
       if (floatingHeader) floatingHeader.style.display = 'none';
       if (this.reelsFeed) this.reelsFeed.pauseAll();
+      if (this.player && this.player.video) this.player.video.pause();
+      if (window.pauseAllMedia) window.pauseAllMedia();
       this.saveScreen.render();
     }
   }

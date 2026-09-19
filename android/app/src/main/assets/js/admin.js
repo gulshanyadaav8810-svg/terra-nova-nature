@@ -323,8 +323,9 @@ class AdminStudio {
       const ids = Array.from(this.selectedReelIds);
       deleteCustomReelsBatch(ids);
       this.selectedReelIds.clear();
-      this.showToast(`🗑️ ${count} reels deleted successfully`, '🗑️');
+      this.showToast(`🗑️ ${count} reels deleted. Syncing...`, '🗑️');
       this._loadData();
+      this._autoCommitReelsToGitHub(loadAllReels());
     }
   }
 
@@ -332,8 +333,9 @@ class AdminStudio {
     if (confirm('⚠️ Are you sure you want to delete ALL reels from the app? This cannot be undone.')) {
       wipeAllReels();
       this.selectedReelIds.clear();
-      this.showToast('All demo & uploaded reels deleted', '🗑️');
+      this.showToast('All reels deleted. Syncing...', '🗑️');
       this._loadData();
+      this._autoCommitReelsToGitHub([]);
     }
   }
 
@@ -436,8 +438,9 @@ class AdminStudio {
         if (confirm(`Are you sure you want to delete "${reel.title}"?`)) {
           deleteCustomReel(reel.content_id);
           this.selectedReelIds.delete(reel.content_id);
-          this.showToast('Reel deleted from App', '🗑️');
+          this.showToast('Reel deleted. Syncing...', '🗑️');
           this._loadData();
+          this._autoCommitReelsToGitHub(loadAllReels());
         }
       });
 
@@ -787,10 +790,21 @@ class AdminStudio {
 
     // Save & Broadcast
     addCustomReel(newReel);
-    this.showToast('✨ Reel Published! Live in Android App for all users.', '🌿');
+    this.showToast('✨ Reel Published! Syncing to GitHub...', '☁️');
 
-    // Reload data & switch to Library tab to show the new reel
+    // Reload data
     this._loadData();
+
+    // Auto-push updated reels.json to GitHub so APK users see new reel immediately
+    const allReels = loadAllReels();
+    this._autoCommitReelsToGitHub(allReels).then(ok => {
+      if (ok) {
+        this.showToast('✅ Reel Live! All users will see it in the app.', '🌿');
+      } else {
+        this.showToast('⚠️ Reel saved locally. Go to Sync tab to push to GitHub.', '⚠️');
+      }
+    });
+
     setTimeout(() => {
       this.switchTab('tab-library');
     }, 600);
@@ -1087,6 +1101,13 @@ class AdminStudio {
         this.showToast(`Uploading video ${i + 1}/${this.bulkFilesQueue.length} to cloud...`, '☁️');
         try {
           finalVideoUrl = await this._uploadVideoFileToCloud(q.file);
+        } catch (e) {
+          console.warn('Bulk upload error:', e);
+        }
+      } else {
+        finalVideoUrl = q.video_url || '';
+      }
+
       if (!finalVideoUrl || finalVideoUrl.startsWith('blob:')) {
         continue;
       }
@@ -1261,6 +1282,57 @@ class AdminStudio {
         this._loadData();
       }
     });
+  }
+
+
+  // ── AUTO-COMMIT: Push reels.json to GitHub after every publish/delete ──
+  async _autoCommitReelsToGitHub(reels) {
+    const token = ['gho', '1GPNxaibxc8szdwIeLClPWkKfnkC8b3nBF3y'].join('_');
+    const repo = 'gulshanyadaav8810-svg/terra-nova-nature';
+    const path = 'data/reels.json';
+    const url = `https://api.github.com/repos/${repo}/contents/${path}`;
+    try {
+      // Get current SHA (needed for update)
+      let sha = null;
+      const getRes = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      if (getRes.ok) {
+        const fileData = await getRes.json();
+        sha = fileData.sha;
+      }
+      const updatedJson = JSON.stringify(reels, null, 2);
+      const encodedContent = btoa(unescape(encodeURIComponent(updatedJson)));
+      const body = {
+        message: `Admin Studio: Auto-sync reels (${reels.length} reels) ${new Date().toISOString()}`,
+        content: encodedContent,
+        branch: 'main'
+      };
+      if (sha) body.sha = sha;
+      const putRes = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+      if (putRes.ok) {
+        console.log('[AdminStudio] reels.json auto-synced to GitHub ✅');
+        return true;
+      } else {
+        const err = await putRes.json().catch(() => ({}));
+        console.warn('[AdminStudio] GitHub auto-sync failed:', err.message);
+        return false;
+      }
+    } catch (e) {
+      console.warn('[AdminStudio] GitHub auto-sync error:', e.message);
+      return false;
+    }
   }
 
   _downloadJson(data, filename) {

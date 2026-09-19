@@ -1877,9 +1877,11 @@ ${shareUrl}`);
       this._bindContainerDelegation();
       this.filterCategory("trending");
       const unmuteOnInteraction = () => {
-        if (!this.isMuted && this.activeVideo) {
-          this.activeVideo.muted = false;
-          this.activeVideo.volume = 1;
+        if (window.natureAppInstance && window.natureAppInstance.currentView === "reels") {
+          if (!this.isMuted && this.activeVideo) {
+            this.activeVideo.muted = false;
+            this.activeVideo.volume = 1;
+          }
         }
         window.removeEventListener("pointerdown", unmuteOnInteraction);
         window.removeEventListener("touchstart", unmuteOnInteraction);
@@ -2187,12 +2189,16 @@ ${shareUrl}`);
           const vinyl = entry.target.querySelector(".dock-vinyl-disc");
           const playPulse = entry.target.querySelector(".feed-play-pulse");
           if (!video) return;
+          const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
+          const reelsView = document.getElementById("view-reels");
+          const isReelsVisible = reelsView && reelsView.style.display === "block";
+          if (!isReelsTab || !isReelsVisible) {
+            video.pause();
+            video.removeAttribute("src");
+            video.load();
+            return;
+          }
           if (entry.isIntersecting) {
-            const reelsView = document.getElementById("view-reels");
-            if (!reelsView || reelsView.style.display === "none") {
-              video.pause();
-              return;
-            }
             const isSameItem = this.activeItem === entry.target;
             this.activeItem = entry.target;
             this.activeVideo = video;
@@ -2238,7 +2244,7 @@ ${shareUrl}`);
             if (vinyl) vinyl.classList.add("paused");
             const activeIndex = this.activeItem ? parseInt(this.activeItem.getAttribute("data-index") || "0", 10) : -1;
             const thisIndex = parseInt(entry.target.getAttribute("data-index") || "0", 10);
-            if (Math.abs(thisIndex - activeIndex) > 2) {
+            if (Math.abs(thisIndex - activeIndex) > 1) {
               video.removeAttribute("src");
               video.load();
             }
@@ -2249,12 +2255,23 @@ ${shareUrl}`);
       items.forEach((item) => this.observer.observe(item));
     }
     pauseAll() {
+      this.activeItem = null;
+      this.activeVideo = null;
       const videos = this.container.querySelectorAll("video");
       videos.forEach((v) => {
         try {
           v.pause();
+          v.removeAttribute("src");
+          v.load();
         } catch (e) {
         }
+      });
+      const items = this.container.querySelectorAll(".feed-reel-item");
+      items.forEach((item) => {
+        item.classList.remove("active-playing");
+        item.classList.add("is-paused");
+        const vinyl = item.querySelector(".dock-vinyl-disc");
+        if (vinyl) vinyl.classList.add("paused");
       });
       try {
         soundEngine.stop();
@@ -2262,8 +2279,10 @@ ${shareUrl}`);
       }
     }
     resumeActive() {
+      const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
       const reelsView = document.getElementById("view-reels");
-      if (reelsView && reelsView.style.display === "none") {
+      const isReelsVisible = reelsView && reelsView.style.display === "block";
+      if (!isReelsTab || !isReelsVisible) {
         this.pauseAll();
         return;
       }
@@ -2274,7 +2293,7 @@ ${shareUrl}`);
         if (video) {
           this.activeVideo = video;
           const dataSrc = video.getAttribute("data-src");
-          if (dataSrc && (!video.src || video.src === "")) {
+          if (dataSrc && (!video.src || video.src === "" || video.src === window.location.href)) {
             video.src = dataSrc;
           }
           video.playsInline = true;
@@ -2285,6 +2304,8 @@ ${shareUrl}`);
             p.then(() => {
               item.classList.add("active-playing");
               item.classList.remove("is-paused");
+              const vinyl = item.querySelector(".dock-vinyl-disc");
+              if (vinyl) vinyl.classList.remove("paused");
             }).catch(() => {
               video.muted = true;
               video.play().catch(() => {
@@ -2306,13 +2327,12 @@ ${shareUrl}`);
       const isSaved = storage.isSaved(reel.content_id);
       const catKey = `category_${reel.category_id.replace(/-/g, "_")}`;
       const catLabel = i18n.t(catKey, reel.category_id);
-      const initialSrc = index === 0 ? reel.video_url : "";
       item.innerHTML = `
       <!-- Fast 0ms Poster -->
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? "eager" : "lazy"}" />
 
-      <!-- 9:16 Video Canvas (Unmuted by default for authentic audio) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline preload="${index === 0 ? "auto" : "none"}" poster="${reel.thumbnail_url}" data-src="${reel.video_url}" ${initialSrc ? `src="${initialSrc}"` : ""}>
+      <!-- 9:16 Video Canvas (No src until Reels tab is activated - 100% zero background noise!) -->
+      <video class="feed-reel-video" loop playsinline webkit-playsinline preload="none" poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
@@ -2460,8 +2480,9 @@ ${shareUrl}`);
       this.renderedCount = initialBatch;
       this._initObserver();
       setTimeout(() => {
+        const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
         const reelsView = document.getElementById("view-reels");
-        if (reelsView && reelsView.style.display === "block") {
+        if (isReelsTab && reelsView && reelsView.style.display === "block") {
           this.resumeActive();
         } else {
           this.pauseAll();
@@ -3221,20 +3242,28 @@ ${shareUrl}`);
     constructor() {
       this.currentView = "home";
       this.currentCategory = "trending";
-      this._initToast();
-      this._initDomReferences();
-      this._initComponents();
-      this._initHomeCategories();
-      this._bindNavigation();
-      this._checkUrlParameters();
       window.natureAppInstance = this;
       window.pauseAllMedia = () => {
         document.querySelectorAll("video").forEach((v) => {
           try {
             v.pause();
+            v.muted = true;
           } catch (e) {
           }
         });
+        if (this.reelsFeed) {
+          try {
+            this.reelsFeed.pauseAll();
+          } catch (e) {
+          }
+        }
+        if (this.player && this.player.video) {
+          try {
+            this.player.video.pause();
+            this.player.video.muted = true;
+          } catch (e) {
+          }
+        }
         try {
           soundEngine.stop();
         } catch (e) {
@@ -3247,6 +3276,13 @@ ${shareUrl}`);
       });
       window.addEventListener("pagehide", () => window.pauseAllMedia());
       window.addEventListener("blur", () => window.pauseAllMedia());
+      this._initToast();
+      this._initDomReferences();
+      this._initComponents();
+      this._initHomeCategories();
+      this._bindNavigation();
+      this._checkUrlParameters();
+      window.pauseAllMedia();
     }
     _initToast() {
       this.toastContainer = document.getElementById("toast-container");

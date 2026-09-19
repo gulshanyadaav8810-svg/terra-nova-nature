@@ -159,7 +159,9 @@ export class VideoPlayer {
     // Mute Action
     this.muteBtn.addEventListener('click', () => {
       this.video.muted = !this.video.muted;
+      this.video.volume = this.video.muted ? 0 : 1.0;
       this._updateMuteState(this.video.muted);
+      this.showToast(this.video.muted ? '🔇 Audio Muted' : '🔊 Audio Active', this.video.muted ? '🔇' : '🔊');
     });
 
     // Fullscreen Action
@@ -210,6 +212,11 @@ export class VideoPlayer {
     }
 
     // Set Video Source
+    // Pause any background reels feed video before opening player!
+    if (window.natureAppInstance && window.natureAppInstance.reelsFeed) {
+      window.natureAppInstance.reelsFeed.pauseAll();
+    }
+
     this.spinner.classList.add('loading');
     let videoSourceUrl = reel.video_url;
 
@@ -270,6 +277,11 @@ export class VideoPlayer {
     this.dlProgressOverlay.classList.remove('show');
     this.currentReel = null;
     this.isOffline = false;
+
+    // Resume reel only if user was in reels view
+    if (window.natureAppInstance && window.natureAppInstance.currentView === 'reels' && window.natureAppInstance.reelsFeed) {
+      window.natureAppInstance.reelsFeed.resumeActive();
+    }
   }
 
   togglePlay() {
