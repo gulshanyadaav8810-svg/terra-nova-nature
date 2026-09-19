@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "content_id": "reel-user-nature-1",
+    "title": "Untamed Wild Waterfall",
+    "description": "Experience pure serene cascading water in high-definition.",
+    "category_id": "waterfall",
+    "thumbnail_url": "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=600&q=80",
+    "video_url": "https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4",
+    "duration": "0:13",
+    "likes_count": 85,
+    "shares_count": 22,
+    "downloads_count": 40,
+    "views_count": 310,
+    "is_downloadable": true,
+    "is_trending": true,
+    "created_at": "2026-09-20T02:30:00.000Z"
+  }
+]
