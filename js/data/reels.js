@@ -275,7 +275,7 @@ loadAllReels();
 export async function syncRemoteReels() {
   const urls = [
     'data/reels.json?t=' + Date.now(),
-    'https://raw.githubusercontent.com/Gulshan8285/terra-nova-nature/main/data/reels.json?t=' + Date.now()
+    'https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=' + Date.now()
   ];
 
   for (const url of urls) {

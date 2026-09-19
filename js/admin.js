@@ -615,7 +615,7 @@ class AdminStudio {
       this.showToast('Connecting to GitHub API...', '☁️');
 
       try {
-        const repo = 'Gulshan8285/terra-nova-nature';
+        const repo = 'gulshanyadaav8810-svg/terra-nova-nature';
         const path = 'data/reels.json';
         const url = `https://api.github.com/repos/${repo}/contents/${path}`;
 
