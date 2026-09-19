@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nature Moments — Admin Studio & Live Content Manager</title>
-  <meta name="description" content="Official Admin Portal for Nature Moments. Manage 20+ nature categories, upload 9:16 vertical reels, and push instant live updates to users." />
+  <title>WhatsApp Status — Admin Studio & Live Content Manager</title>
+  <meta name="description" content="Official Admin Portal for WhatsApp Status. Manage categories, upload vertical reels, and push instant live updates to users." />
   <meta name="theme-color" content="#12241f" />
 
   <!-- Favicon -->
@@ -25,9 +25,9 @@
     <!-- 1. STUDIO SIDEBAR -->
     <aside class="admin-sidebar" id="admin-sidebar">
       <div class="brand-header">
-        <img class="brand-logo" src="assets/logo.svg" alt="Nature Moments Logo" />
+        <img class="brand-logo" src="assets/logo.svg" alt="WhatsApp Status Logo" />
         <div>
-          <div class="brand-title">Nature Moments</div>
+          <div class="brand-title">WhatsApp Status</div>
           <div class="brand-tag">Studio Admin Portal</div>
         </div>
       </div>
@@ -529,6 +529,22 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- Thumbnail Generation & Selection Options for Bulk Upload -->
+                <div class="form-group" style="margin-top: 16px; padding: 14px; background: rgba(0,0,0,0.2); border: 1px solid var(--admin-border); border-radius: 12px;">
+                  <label class="form-label" style="margin-bottom: 8px; font-weight: 700;">Thumbnail Option for Bulk Videos</label>
+                  <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                    <button type="button" class="btn btn-primary" id="btn-bulk-thumb-auto" style="flex: 1; font-size: 0.82rem; padding: 8px 10px;">
+                      <span>🤖 Auto Video Frame (Recommended)</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btn-bulk-thumb-custom" style="flex: 1; font-size: 0.82rem; padding: 8px 10px;">
+                      <span>🖼️ Custom Per-Video</span>
+                    </button>
+                  </div>
+                  <div id="bulk-thumb-mode-desc" style="font-size: 0.78rem; color: var(--admin-text-muted);">
+                    ✨ Each video gets its own unique high-definition thumbnail extracted automatically from the video.
+                  </div>
+                </div>
               </div>
 
               <!-- Batch Queue Summary -->
@@ -546,15 +562,18 @@
 
             <!-- Queue Items Preview -->
             <div id="bulk-files-queue-container" style="margin-top: 24px; display: none;">
-              <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px;">Selected Files Queue</h4>
-              <div style="max-height: 300px; overflow-y: auto;">
+              <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px;">Selected Files Queue (Review & Customize Thumbnails)</h4>
+              <div style="max-height: 380px; overflow-y: auto;">
                 <table class="bulk-queue-table">
                   <thead>
                     <tr>
-                      <th>File Name</th>
+                      <th style="width: 32px;">#</th>
+                      <th style="width: 70px;">Cover</th>
+                      <th>Title</th>
                       <th>Category</th>
                       <th>Duration</th>
-                      <th>Status</th>
+                      <th>Trending</th>
+                      <th style="width: 40px;">Remove</th>
                     </tr>
                   </thead>
                   <tbody id="bulk-files-queue-tbody">

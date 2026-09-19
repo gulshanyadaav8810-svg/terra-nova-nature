@@ -24,8 +24,8 @@ export const LANGUAGES = [
 
 export const TRANSLATIONS = {
   en: {
-    app_title: 'Nature Moments',
-    app_tagline: 'Peaceful Nature Short Reels',
+    app_title: 'WhatsApp Status',
+    app_tagline: 'WhatsApp Status & Short Reels',
     nav_home: 'Home',
     nav_reels: 'Reels',
     nav_save: 'Save',
@@ -91,7 +91,7 @@ export const TRANSLATIONS = {
     rate_button: 'Rate on Play Store'
   },
   hi: {
-    app_title: 'नेचर मोमेंट्स',
+    app_title: 'व्हाट्सएप स्टेटस',
     app_tagline: 'शांत और सुंदर प्राकृतिक रील्स',
     nav_home: 'होम',
     nav_reels: 'रील्स',
@@ -158,7 +158,7 @@ export const TRANSLATIONS = {
     rate_button: 'प्ले स्टोर पर रेट करें'
   },
   gu: {
-    app_title: 'નેચર મોમેન્ટ્સ',
+    app_title: 'વ્હોટ્સએપ સ્ટેટસ',
     app_tagline: 'શાંત અને સુંદર પ્રકૃતિ રીલ્સ',
     nav_home: 'હોમ',
     nav_reels: 'રીલ્સ',
@@ -225,7 +225,7 @@ export const TRANSLATIONS = {
     rate_button: 'પ્લે સ્ટોર પર રેટ કરો'
   },
   mr: {
-    app_title: 'नेचर मोमेंट्स',
+    app_title: 'व्हॉट्सअ‍ॅप स्टेटस',
     app_tagline: 'शांत व सुंदर निसर्ग रील्स',
     nav_home: 'होम',
     nav_reels: 'रील्स',
@@ -292,7 +292,7 @@ export const TRANSLATIONS = {
     rate_button: 'प्ले स्टोअरवर रेट करा'
   },
   ta: {
-    app_title: 'நேச்சர் மொமென்ட்ஸ்',
+    app_title: 'வாட்ஸ்அப் ஸ்டேட்டஸ்',
     app_tagline: 'அமைதியான இயற்கை ரீல்ஸ்',
     nav_home: 'முகப்பு',
     nav_reels: 'ரீல்ஸ்',
@@ -359,7 +359,7 @@ export const TRANSLATIONS = {
     rate_button: 'ப்ளே ஸ்டோரில் மதிப்பீடு'
   },
   te: {
-    app_title: 'నేచర్ మోమెంట్స్',
+    app_title: 'వాట్సాప్ స్టేటస్',
     app_tagline: 'ప్రశాంతమైన ప్రకృతి రీల్స్',
     nav_home: 'హోమ్',
     nav_reels: 'రీల్స్',
@@ -426,7 +426,7 @@ export const TRANSLATIONS = {
     rate_button: 'ప్లే స్టోర్‌లో రేట్ చేయండి'
   },
   kn: {
-    app_title: 'ನೇಚರ್ ಮೊಮೆಂಟ್ಸ್',
+    app_title: 'ವಾಟ್ಸಾಪ್ ಸ್ಟೇಟಸ್',
     app_tagline: 'ಶಾಂತಿಯುತ ಪ್ರಕೃತಿ ರೀಲ್ಸ್',
     nav_home: 'ಮುಖಪುಟ',
     nav_reels: 'ರೀಲ್ಸ್',

@@ -27,6 +27,7 @@ export class ReelsFeed {
     this._initCategoryHeader();
     this._bindSoundButton();
     this._bindContainerDelegation();
+    this._bindScrollSnapHandler();
     this.filterCategory('trending');
 
     // Unmute on first user touch ONLY IF user is in reels view
@@ -403,22 +404,175 @@ export class ReelsFeed {
     }
   }
 
+  _bindScrollSnapHandler() {
+    let scrollTimeout = null;
+    const onScroll = () => {
+      const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
+      const reelsView = document.getElementById('view-reels');
+      const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
+      if (!isReelsTab || !isReelsVisible) return;
+
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        this._detectAndPlaySnappedReel();
+      }, 60);
+    };
+
+    this.container.addEventListener('scroll', onScroll, { passive: true });
+    this.container.addEventListener('scrollend', () => {
+      this._detectAndPlaySnappedReel();
+    }, { passive: true });
+  }
+
+  _detectAndPlaySnappedReel() {
+    const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
+    const reelsView = document.getElementById('view-reels');
+    const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
+    if (!isReelsTab || !isReelsVisible) return;
+
+    const containerTop = this.container.scrollTop;
+    const containerHeight = this.container.clientHeight || window.innerHeight;
+    const centerPoint = containerTop + containerHeight / 2;
+
+    const items = Array.from(this.container.querySelectorAll('.feed-reel-item'));
+    if (!items.length) return;
+
+    let closestItem = null;
+    let minDistance = Infinity;
+
+    for (const item of items) {
+      const itemCenter = item.offsetTop + (item.clientHeight || containerHeight) / 2;
+      const dist = Math.abs(centerPoint - itemCenter);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestItem = item;
+      }
+    }
+
+    if (closestItem && (this.activeItem !== closestItem || !this.activeVideo || this.activeVideo.paused)) {
+      this._playReelItem(closestItem);
+    }
+  }
+
+  _playReelItem(targetItem) {
+    if (!targetItem) return;
+
+    const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
+    const reelsView = document.getElementById('view-reels');
+    const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
+    if (!isReelsTab || !isReelsVisible) {
+      this.pauseAll();
+      return;
+    }
+
+    const video = targetItem.querySelector('video');
+    if (!video) return;
+
+    // Pause all other items cleanly
+    const items = this.container.querySelectorAll('.feed-reel-item');
+    items.forEach(item => {
+      if (item !== targetItem) {
+        item.classList.remove('active-playing');
+        item.classList.remove('is-buffering');
+        const otherVideo = item.querySelector('video');
+        if (otherVideo) otherVideo.pause();
+        const otherVinyl = item.querySelector('.dock-vinyl-disc');
+        if (otherVinyl) otherVinyl.classList.add('paused');
+      }
+    });
+
+    this.activeItem = targetItem;
+    this.activeVideo = video;
+    targetItem.classList.add('active-playing');
+    targetItem.classList.remove('is-paused');
+
+    const vinyl = targetItem.querySelector('.dock-vinyl-disc');
+    const playPulse = targetItem.querySelector('.feed-play-pulse');
+    if (vinyl) vinyl.classList.remove('paused');
+    if (playPulse) playPulse.classList.remove('show');
+
+    // Ensure video has src
+    const dataSrc = video.getAttribute('data-src') || video.src;
+    if (dataSrc && (!video.src || video.src === '' || video.src === window.location.href)) {
+      video.src = dataSrc;
+    }
+
+    video.preload = 'auto';
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.setAttribute('x5-playsinline', '');
+    video.muted = this.isMuted;
+    video.volume = this.isMuted ? 0 : 1.0;
+
+    // Low-network resilience: buffering state without stopping or crashing
+    if (!video._bufferEngineBound) {
+      video._bufferEngineBound = true;
+      video.addEventListener('waiting', () => {
+        targetItem.classList.add('is-buffering');
+      });
+      video.addEventListener('playing', () => {
+        targetItem.classList.remove('is-buffering');
+      });
+      video.addEventListener('canplay', () => {
+        targetItem.classList.remove('is-buffering');
+        if (this.activeItem === targetItem && video.paused && !targetItem.classList.contains('is-paused')) {
+          video.play().catch(() => {});
+        }
+      });
+      video.addEventListener('error', () => {
+        targetItem.classList.remove('is-buffering');
+        const cur = video.src || '';
+        if (cur.includes('cdn.jsdelivr.net')) {
+          video.src = cur.replace('cdn.jsdelivr.net/gh/', 'raw.githubusercontent.com/').replace('@main/', '/main/');
+          video.play().catch(() => {});
+        } else if (cur.includes('raw.githubusercontent.com')) {
+          video.src = cur.replace('raw.githubusercontent.com/', 'cdn.jsdelivr.net/gh/').replace('/main/', '@main/');
+          video.play().catch(() => {});
+        }
+      });
+    }
+
+    const p = video.play();
+    if (p !== undefined) {
+      p.catch((err) => {
+        // Fallback to muted playback if user gesture required
+        video.muted = true;
+        video.play().catch(e => console.warn('Autoplay handled:', e));
+      });
+    }
+
+    // Preload ONLY the next 1 item with metadata so active video gets 100% bandwidth on low-net
+    const nextItem = targetItem.nextElementSibling;
+    if (nextItem) {
+      const nv = nextItem.querySelector('video');
+      if (nv) {
+        const nextSrc = nv.getAttribute('data-src');
+        if (nextSrc && (!nv.src || nv.src === window.location.href)) nv.src = nextSrc;
+        nv.preload = 'metadata';
+      }
+    }
+
+    // Batch append
+    const currentIndex = parseInt(targetItem.getAttribute('data-index') || '0', 10);
+    if (currentIndex >= this.renderedCount - 2) {
+      this.appendBatch();
+    }
+  }
+
   _initObserver() {
     if (this.observer) this.observer.disconnect();
 
     const options = {
       root: this.container,
-      threshold: 0.35
+      threshold: [0.1, 0.5, 0.8]
     };
 
     this.observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         const video = entry.target.querySelector('video');
-        const vinyl = entry.target.querySelector('.dock-vinyl-disc');
-        const playPulse = entry.target.querySelector('.feed-play-pulse');
         if (!video) return;
 
-        // CRITICAL: Only allow playback if actively viewing the Reels tab!
         const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
         const reelsView = document.getElementById('view-reels');
         const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
@@ -428,121 +582,21 @@ export class ReelsFeed {
           return;
         }
 
-        if (entry.isIntersecting) {
-          // If this reel is already active and playing, DO NOT restart or reset it!
-          if (this.activeItem === entry.target && !video.paused) {
-            return;
-          }
-
-          // If the user manually paused this reel, respect the pause!
-          if (entry.target.classList.contains('is-paused')) {
-            return;
-          }
-
-          const isSameItem = this.activeItem === entry.target;
-          this.activeItem = entry.target;
-          this.activeVideo = video;
-          entry.target.classList.add('active-playing');
-
-          // Ensure video has src loaded
-          const dataSrc = video.getAttribute('data-src');
-          if (dataSrc && (!video.src || video.src === window.location.href || video.src === '')) {
-            video.src = dataSrc;
-          }
-          video.preload = 'auto';
-
-          if (!video._hasFallbackHandler) {
-            video._hasFallbackHandler = true;
-            video.addEventListener('error', () => {
-              const cur = video.src || '';
-              console.warn('Video failed to load:', cur);
-              if (cur.includes('cdn.jsdelivr.net')) {
-                const rawUrl = cur.replace('cdn.jsdelivr.net/gh/', 'raw.githubusercontent.com/').replace('@main/', '/main/');
-                console.log('Trying raw GitHub fallback:', rawUrl);
-                video.src = rawUrl;
-                video.play().catch(() => {});
-              } else if (cur.includes('raw.githubusercontent.com')) {
-                const jsdUrl = cur.replace('raw.githubusercontent.com/', 'cdn.jsdelivr.net/gh/').replace('/main/', '@main/');
-                console.log('Trying jsDelivr fallback:', jsdUrl);
-                video.src = jsdUrl;
-                video.play().catch(() => {});
-              }
-            });
-          }
-
-          // Preload next 2 adjacent videos and previous video for instant 0ms swipe
-          const nextItem = entry.target.nextElementSibling;
-          if (nextItem) {
-            const nextVideo = nextItem.querySelector('video');
-            if (nextVideo) {
-              const nextSrc = nextVideo.getAttribute('data-src');
-              if (nextSrc && (!nextVideo.src || nextVideo.src === window.location.href)) {
-                nextVideo.src = nextSrc;
-              }
-              nextVideo.preload = 'auto';
-            }
-            const nextNextItem = nextItem.nextElementSibling;
-            if (nextNextItem) {
-              const nnVideo = nextNextItem.querySelector('video');
-              if (nnVideo) {
-                const nnSrc = nnVideo.getAttribute('data-src');
-                if (nnSrc && (!nnVideo.src || nnVideo.src === window.location.href)) {
-                  nnVideo.src = nnSrc;
-                }
-                nnVideo.preload = 'auto';
-              }
-            }
-          }
-
-          const prevItem = entry.target.previousElementSibling;
-          if (prevItem) {
-            const prevVideo = prevItem.querySelector('video');
-            if (prevVideo) {
-              const prevSrc = prevVideo.getAttribute('data-src');
-              if (prevSrc && (!prevVideo.src || prevVideo.src === window.location.href)) {
-                prevVideo.src = prevSrc;
-              }
-              prevVideo.preload = 'auto';
-            }
-          }
-
-          if (!isSameItem && video.currentTime > 0) {
-            video.currentTime = 0;
-          }
-          video.playsInline = true;
-          video.setAttribute('playsinline', '');
-          video.setAttribute('webkit-playsinline', '');
-          video.setAttribute('x5-playsinline', '');
-          video.muted = this.isMuted;
-          video.volume = this.isMuted ? 0 : 1.0;
-          const playPromise = video.play();
-          if (playPromise !== undefined) {
-            playPromise.catch(() => {
+        // When entry dominates viewport (> 50% visible)
+        if (entry.intersectionRatio >= 0.5) {
+          if (this.activeItem !== entry.target) {
+            this._playReelItem(entry.target);
+          } else if (video.paused && !entry.target.classList.contains('is-paused')) {
+            video.play().catch(() => {
               video.muted = true;
-              video.play().catch(e => console.log('Autoplay handled:', e));
+              video.play().catch(() => {});
             });
           }
-
-          if (vinyl) vinyl.classList.remove('paused');
-          if (playPulse) playPulse.classList.remove('show');
-          entry.target.classList.remove('is-paused');
-
-          // Batch append when reaching near end
-          const currentIndex = parseInt(entry.target.getAttribute('data-index') || '0', 10);
-          if (currentIndex >= this.renderedCount - 2) {
-            this.appendBatch();
-          }
-        } else {
-          entry.target.classList.remove('active-playing');
-          video.pause();
-          if (vinyl) vinyl.classList.add('paused');
-
-          // Free hardware decoder on Android ONLY if far (> 3 items) from active
-          const activeIndex = this.activeItem ? parseInt(this.activeItem.getAttribute('data-index') || '0', 10) : -1;
-          const thisIndex = parseInt(entry.target.getAttribute('data-index') || '0', 10);
-          if (Math.abs(thisIndex - activeIndex) > 3) {
-            video.removeAttribute('src');
-            video.load();
+        } else if (entry.intersectionRatio < 0.2) {
+          if (this.activeItem === entry.target) {
+            // User scrolled away
+            entry.target.classList.remove('active-playing');
+            video.pause();
           }
         }
       });
@@ -559,12 +613,12 @@ export class ReelsFeed {
     videos.forEach(v => {
       try {
         v.pause();
-        // Keep buffered src intact for top reels so reopening Reels tab is 0ms instant!
       } catch(e) {}
     });
     const items = this.container.querySelectorAll('.feed-reel-item');
     items.forEach(item => {
       item.classList.remove('active-playing');
+      item.classList.remove('is-buffering');
       item.classList.add('is-paused');
       const vinyl = item.querySelector('.dock-vinyl-disc');
       if (vinyl) vinyl.classList.add('paused');
@@ -593,59 +647,7 @@ export class ReelsFeed {
     }
 
     if (item) {
-      this.activeItem = item;
-      const video = item.querySelector('video');
-      if (video) {
-        this.activeVideo = video;
-        const dataSrc = video.getAttribute('data-src') || video.src;
-        if (!video.src || video.src === '' || video.src === window.location.href) {
-          video.src = dataSrc;
-        }
-        video.preload = 'auto';
-        video.playsInline = true;
-        video.setAttribute('playsinline', '');
-        video.setAttribute('webkit-playsinline', '');
-        video.setAttribute('x5-playsinline', '');
-        video.muted = this.isMuted;
-        video.volume = this.isMuted ? 0 : 1.0;
-
-        item.classList.remove('is-paused');
-        item.classList.add('active-playing');
-        const playPulse = item.querySelector('.feed-play-pulse');
-        if (playPulse) playPulse.classList.remove('show');
-        const vinyl = item.querySelector('.dock-vinyl-disc');
-        if (vinyl) vinyl.classList.remove('paused');
-
-        // Play synchronously for instant 0ms playback
-        const p = video.play();
-        if (p !== undefined) {
-          p.catch((err) => {
-            console.log('Unmuted autoplay prevented, playing muted:', err);
-            video.muted = true;
-            video.play().catch(e => console.warn('Autoplay error:', e));
-          });
-        }
-
-        // Pre-buffer next 2 adjacent reels immediately
-        const nextItem = item.nextElementSibling;
-        if (nextItem) {
-          const nv = nextItem.querySelector('video');
-          if (nv) {
-            const nextSrc = nv.getAttribute('data-src');
-            if (nextSrc && (!nv.src || nv.src === window.location.href)) nv.src = nextSrc;
-            nv.preload = 'auto';
-          }
-          const nextNextItem = nextItem.nextElementSibling;
-          if (nextNextItem) {
-            const nnv = nextNextItem.querySelector('video');
-            if (nnv) {
-              const nnSrc = nnv.getAttribute('data-src');
-              if (nnSrc && (!nnv.src || nnv.src === window.location.href)) nnv.src = nnSrc;
-              nnv.preload = 'auto';
-            }
-          }
-        }
-      }
+      this._playReelItem(item);
     }
   }
 
@@ -679,6 +681,9 @@ export class ReelsFeed {
           <polygon points="6 3 20 12 6 21 6 3"></polygon>
         </svg>
       </div>
+
+      <!-- Low-Network Buffering Spinner -->
+      <div class="feed-buffering-spinner"></div>
 
       <!-- Right-Side Instagram Action Dock -->
       <div class="feed-actions-dock">

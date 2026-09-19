@@ -1084,6 +1084,30 @@ class AdminStudio {
       if (secJson) secJson.style.display = 'block';
     });
 
+    // Thumbnail Generation Mode for Bulk Upload
+    const btnThumbAuto = document.getElementById('btn-bulk-thumb-auto');
+    const btnThumbCustom = document.getElementById('btn-bulk-thumb-custom');
+    const thumbDesc = document.getElementById('bulk-thumb-mode-desc');
+    this.bulkThumbMode = 'auto'; // 'auto' | 'custom'
+
+    btnThumbAuto?.addEventListener('click', () => {
+      this.bulkThumbMode = 'auto';
+      btnThumbAuto.classList.add('btn-primary');
+      btnThumbAuto.classList.remove('btn-secondary');
+      btnThumbCustom?.classList.remove('btn-primary');
+      btnThumbCustom?.classList.add('btn-secondary');
+      if (thumbDesc) thumbDesc.textContent = '✨ Each video gets its own unique high-definition thumbnail extracted automatically from the video.';
+    });
+
+    btnThumbCustom?.addEventListener('click', () => {
+      this.bulkThumbMode = 'custom';
+      btnThumbCustom.classList.add('btn-primary');
+      btnThumbCustom.classList.remove('btn-secondary');
+      btnThumbAuto?.classList.remove('btn-primary');
+      btnThumbAuto?.classList.add('btn-secondary');
+      if (thumbDesc) thumbDesc.textContent = '🖼️ Upload custom image for each video or edit individual covers in the table below.';
+    });
+
     // Dropzone & File Input
     const dropzone = document.getElementById('bulk-video-dropzone');
     const inputFiles = document.getElementById('input-bulk-videos');
@@ -1191,9 +1215,51 @@ class AdminStudio {
     });
   }
 
+  _extractVideoFrame(blobUrl, seekSec = 1.5) {
+    return new Promise((resolve) => {
+      const v = document.createElement('video');
+      v.muted = true;
+      v.preload = 'auto';
+      v.src = blobUrl;
+      
+      let resolved = false;
+      const finish = (result) => {
+        if (!resolved) {
+          resolved = true;
+          try { v.removeAttribute('src'); v.load(); } catch(e) {}
+          resolve(result);
+        }
+      };
+
+      v.onloadeddata = () => {
+        const targetTime = (v.duration && seekSec >= v.duration) ? Math.max(0.2, v.duration / 2) : seekSec;
+        v.currentTime = targetTime;
+      };
+
+      v.onseeked = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 540;
+          canvas.height = 960;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(v, 0, 0, 540, 960);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          finish(dataUrl);
+        } catch (e) {
+          finish(null);
+        }
+      };
+
+      v.onerror = () => finish(null);
+      setTimeout(() => finish(null), 3000);
+    });
+  }
+
   async _processBulkFiles(files) {
     const defaultCat = document.getElementById('bulk-batch-category')?.value || 'forest';
     const isTrending = document.getElementById('bulk-batch-trending')?.checked ?? true;
+
+    this.showToast('Extracting thumbnails and processing videos...', '🎬');
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -1211,17 +1277,22 @@ class AdminStudio {
       // Read duration
       const duration = await this._getVideoDuration(blobUrl);
 
+      // Automatically extract video frame for thumbnail
+      const frameDataUrl = await this._extractVideoFrame(blobUrl, 1.5);
+
       this.bulkFilesQueue.push({
         id: `reel-${defaultCat}-${randomSuffix}`,
         title: cleanTitle,
         file: file,
         blobUrl: blobUrl,
         category_id: defaultCat,
-        thumbnail_url: cat.image_url,
+        thumbnail_data_url: frameDataUrl,
+        thumbnail_file: null,
+        thumbnail_url: frameDataUrl || (cat ? cat.image_url : ''),
         duration: duration,
         is_trending: isTrending,
         is_downloadable: true,
-        description: `Peaceful nature reel: ${cleanTitle}`
+        description: `Trending WhatsApp Status video: ${cleanTitle}`
       });
     }
 
@@ -1267,9 +1338,19 @@ class AdminStudio {
 
     tbody.innerHTML = '';
     this.bulkFilesQueue.forEach((item, index) => {
+      const catObj = getCategoryById(item.category_id);
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td style="font-weight: 700; color: var(--admin-text-dim); width: 32px;">${index + 1}</td>
+        <td style="width: 70px;">
+          <div style="position: relative; width: 48px; height: 72px; border-radius: 6px; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.25); background: #111;">
+            <img src="${item.thumbnail_data_url || item.thumbnail_url || (catObj && catObj.image_url)}" class="bulk-thumb-preview" data-index="${index}" style="width: 100%; height: 100%; object-fit: cover;" alt="Cover" />
+            <label style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); color: #25D366; font-size: 0.65rem; font-weight: 700; text-align: center; padding: 2px 0; cursor: pointer;" title="Change / Upload Custom Photo">
+              ✏️ Edit
+              <input type="file" class="bulk-custom-thumb-input" data-index="${index}" accept="image/*" style="display: none;" />
+            </label>
+          </div>
+        </td>
         <td>
           <input type="text" class="form-input bulk-queue-title" data-index="${index}" value="${item.title}" style="padding: 6px 10px; font-size: 0.85rem;" />
         </td>
@@ -1293,14 +1374,30 @@ class AdminStudio {
       `;
 
       // Listeners for inline modifications in queue
+      tr.querySelector('.bulk-custom-thumb-input').addEventListener('change', (e) => {
+        const thumbFile = e.target.files[0];
+        if (!thumbFile) return;
+        const reader = new FileReader();
+        reader.onload = (re) => {
+          this.bulkFilesQueue[index].thumbnail_file = thumbFile;
+          this.bulkFilesQueue[index].thumbnail_data_url = re.target.result;
+          this.bulkFilesQueue[index].thumbnail_url = re.target.result;
+          this._renderBulkFilesQueue();
+          this.showToast(`Custom thumbnail updated for row #${index + 1}!`, '🖼️');
+        };
+        reader.readAsDataURL(thumbFile);
+      });
+
       tr.querySelector('.bulk-queue-title').addEventListener('input', (e) => {
         this.bulkFilesQueue[index].title = e.target.value.trim();
       });
       tr.querySelector('.bulk-queue-cat').addEventListener('change', (e) => {
         const newCat = e.target.value;
         this.bulkFilesQueue[index].category_id = newCat;
-        const catObj = getCategoryById(newCat);
-        if (catObj) this.bulkFilesQueue[index].thumbnail_url = catObj.image_url;
+        if (!this.bulkFilesQueue[index].thumbnail_file && !this.bulkFilesQueue[index].thumbnail_data_url) {
+          const cObj = getCategoryById(newCat);
+          if (cObj) this.bulkFilesQueue[index].thumbnail_url = cObj.image_url;
+        }
       });
       tr.querySelector('.bulk-queue-trending').addEventListener('change', (e) => {
         this.bulkFilesQueue[index].is_trending = e.target.checked;
@@ -1342,12 +1439,25 @@ class AdminStudio {
         continue;
       }
 
+      // Upload thumbnail frame or custom image if provided
+      let finalThumbUrl = q.thumbnail_url;
+      if (q.thumbnail_file || (q.thumbnail_data_url && q.thumbnail_data_url.startsWith('data:'))) {
+        try {
+          const uploadedThumb = await this._uploadImageFileToCloud(q.thumbnail_file || q.thumbnail_data_url);
+          if (uploadedThumb && !uploadedThumb.startsWith('data:')) {
+            finalThumbUrl = uploadedThumb;
+          }
+        } catch (te) {
+          console.warn('Bulk thumb upload error:', te);
+        }
+      }
+
       reelsToPublish.push({
         content_id: q.id,
         title: q.title,
         description: q.description,
         category_id: q.category_id,
-        thumbnail_url: q.thumbnail_url,
+        thumbnail_url: finalThumbUrl || q.thumbnail_url,
         video_url: finalVideoUrl,
         duration: q.duration,
         likes_count: 0,

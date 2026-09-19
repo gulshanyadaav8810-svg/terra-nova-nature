@@ -6,7 +6,7 @@
 class ShareService {
   // Share specific Reel
   async shareReel(reel) {
-    const text = `Check out this beautiful nature reel on Nature Moments! 🌿✨\n\n"${reel.title}"\nCategory: ${reel.category_id.toUpperCase()}\n\nWatch more peaceful nature moments!`;
+    const text = `Check out this trending video on WhatsApp Status! ✨📲\n\n"${reel.title}"\nCategory: ${reel.category_id.toUpperCase()}\n\nWatch more WhatsApp Status reels!`;
     const shareUrl = window.location.origin + window.location.pathname + `?reel=${reel.content_id}`;
 
     // 1. Android Native Bridge
@@ -23,7 +23,7 @@ class ShareService {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Nature Moments — ${reel.title}`,
+          title: `WhatsApp Status — ${reel.title}`,
           text: text,
           url: shareUrl
         });
@@ -50,7 +50,7 @@ class ShareService {
 
   // Share Application
   async shareApp() {
-    const appText = 'Experience peaceful nature reels, mountain streams, and serene forests on Nature Moments application! 🌲🍃';
+    const appText = 'Watch, download, and share trending short video reels on WhatsApp Status application! 📲✨';
     const appUrl = window.location.href;
 
     if (window.AndroidBridge && typeof window.AndroidBridge.shareApp === 'function') {
@@ -63,7 +63,7 @@ class ShareService {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Nature Moments App',
+          title: 'WhatsApp Status App',
           text: appText,
           url: appUrl
         });

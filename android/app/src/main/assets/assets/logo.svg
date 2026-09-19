@@ -1,52 +1,57 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <defs>
-    <linearGradient id="nm-bg-grad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#245C4E"/>
-      <stop offset="100%" stop-color="#17483C"/>
+    <!-- WhatsApp Official Vibrant Green Gradient -->
+    <linearGradient id="wa-bg-grad" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#25D366"/>
+      <stop offset="45%" stop-color="#128C7E"/>
+      <stop offset="100%" stop-color="#075E54"/>
     </linearGradient>
-    <linearGradient id="nm-sun-grad" x1="24" y1="6" x2="24" y2="20" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#E9E85B"/>
-      <stop offset="100%" stop-color="#D4D342"/>
+
+    <!-- Glowing Rim Light -->
+    <linearGradient id="wa-rim-grad" x1="120" y1="40" x2="392" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#DCF8C6" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#25D366" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#054D44" stop-opacity="0.8"/>
     </linearGradient>
-    <linearGradient id="nm-mtn-back" x1="16" y1="14" x2="28" y2="34" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#3A7D6B"/>
-      <stop offset="100%" stop-color="#1E5244"/>
+
+    <!-- Center Play White/Mint Gradient -->
+    <linearGradient id="wa-play-grad" x1="220" y1="180" x2="330" y2="332" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E1FFC7"/>
     </linearGradient>
-    <linearGradient id="nm-mtn-front" x1="12" y1="20" x2="36" y2="38" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#2B6B5B"/>
-      <stop offset="100%" stop-color="#143E33"/>
-    </linearGradient>
-    <filter id="nm-shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#17483C" flood-opacity="0.3"/>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="wa-shadow" x="0" y="8" width="512" height="504" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#075E54" flood-opacity="0.45"/>
     </filter>
   </defs>
 
-  <!-- Circular background badge with smooth border -->
-  <rect width="48" height="48" rx="24" fill="url(#nm-bg-grad)" filter="url(#nm-shadow)"/>
-  <rect x="1" y="1" width="46" height="46" rx="23" stroke="#E9E85B" stroke-opacity="0.35" stroke-width="1.5"/>
+  <!-- Main Circular Badge with Shadow -->
+  <circle cx="256" cy="248" r="216" fill="url(#wa-bg-grad)" filter="url(#wa-shadow)"/>
+  <circle cx="256" cy="248" r="212" stroke="url(#wa-rim-grad)" stroke-width="4" stroke-opacity="0.6"/>
 
-  <!-- Morning Golden Sun -->
-  <circle cx="28" cy="15" r="6" fill="url(#nm-sun-grad)"/>
+  <!-- Segmented WhatsApp Status Story Ring (4 Arcs) -->
+  <!-- Arc 1: Top-Right -->
+  <path d="M256 64 A184 184 0 0 1 440 248" stroke="#DCF8C6" stroke-width="12" stroke-linecap="round" stroke-dasharray="130 18" opacity="0.95"/>
+  <!-- Arc 2: Bottom-Right -->
+  <path d="M440 248 A184 184 0 0 1 256 432" stroke="#DCF8C6" stroke-width="12" stroke-linecap="round" stroke-dasharray="130 18" opacity="0.95"/>
+  <!-- Arc 3: Bottom-Left -->
+  <path d="M256 432 A184 184 0 0 1 72 248" stroke="#DCF8C6" stroke-width="12" stroke-linecap="round" stroke-dasharray="130 18" opacity="0.95"/>
+  <!-- Arc 4: Top-Left -->
+  <path d="M72 248 A184 184 0 0 1 256 64" stroke="#DCF8C6" stroke-width="12" stroke-linecap="round" stroke-dasharray="130 18" opacity="0.95"/>
 
-  <!-- Back Mountain -->
-  <path d="M19 14L33 34H11L19 14Z" fill="url(#nm-mtn-back)" opacity="0.9"/>
-  <!-- Back Mountain snow/ridge peak highlight -->
-  <path d="M19 14L22 19L19 21L17 19L19 14Z" fill="#FAF5F2" opacity="0.85"/>
+  <!-- Center Frosted Glass Plate -->
+  <circle cx="256" cy="248" r="132" fill="#FFFFFF" fill-opacity="0.14"/>
+  <circle cx="256" cy="248" r="132" stroke="#FFFFFF" stroke-width="3" stroke-opacity="0.35"/>
 
-  <!-- Front Mountain with peaks -->
-  <path d="M29 18L41 36H19L29 18Z" fill="url(#nm-mtn-front)"/>
-  <path d="M29 18L32 24L29 26L26 23L29 18Z" fill="#FAF5F2" opacity="0.9"/>
+  <!-- WhatsApp Chat Bubble Base Silhouette -->
+  <path d="M256 138 C195.2 138 146 187.2 146 248 C146 270.4 152.6 291.2 164.2 308.8 L152 354 L198.8 341.8 C215.6 352.2 235.2 358 256 358 C316.8 358 366 308.8 366 248 C366 187.2 316.8 138 256 138 Z" fill="#075E54" fill-opacity="0.5"/>
 
-  <!-- Lush Pine Trees -->
-  <!-- Left Tree -->
-  <path d="M14 26L17 31H15.5L18 35H10L12.5 31H11L14 26Z" fill="#17483C"/>
-  <rect x="13.3" y="35" width="1.4" height="2" fill="#E9E85B" opacity="0.7"/>
+  <!-- Dynamic Status Video Play Arrow inside Bubble -->
+  <polygon points="230,192 316,248 230,304" fill="url(#wa-play-grad)" stroke="#FFFFFF" stroke-width="4" stroke-linejoin="round"/>
 
-  <!-- Center Tree -->
-  <path d="M22 23L25.5 29H23.8L27 34H17L20.2 29H18.5L22 23Z" fill="#E9E85B" opacity="0.95"/>
-  <path d="M22 24.5L24.5 29.5H23.2L25.8 33.5H18.2L20.8 29.5H19.5L22 24.5Z" fill="#245C4E"/>
-
-  <!-- Organic Green Water / Meadow ripples at bottom -->
-  <path d="M6 38C12 36 18 39 24 37C30 35 36 38 42 36" stroke="#FAF5F2" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.8"/>
-  <path d="M10 41C16 39.5 22 42 28 40.5C34 39 38 41 40 40" stroke="#E9E85B" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.9"/>
+  <!-- Status Camera / Star Sparkle Badge at Top Right of Center -->
+  <circle cx="330" cy="180" r="22" fill="#25D366" stroke="#FFFFFF" stroke-width="3.5"/>
+  <!-- Play/Camera Dot -->
+  <circle cx="330" cy="180" r="8" fill="#FFFFFF"/>
 </svg>

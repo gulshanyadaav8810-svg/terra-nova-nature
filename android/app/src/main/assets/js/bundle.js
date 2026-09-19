@@ -132,8 +132,8 @@
   ];
   var TRANSLATIONS = {
     en: {
-      app_title: "Nature Moments",
-      app_tagline: "Peaceful Nature Short Reels",
+      app_title: "WhatsApp Status",
+      app_tagline: "WhatsApp Status & Short Reels",
       nav_home: "Home",
       nav_reels: "Reels",
       nav_save: "Save",
@@ -199,7 +199,7 @@
       rate_button: "Rate on Play Store"
     },
     hi: {
-      app_title: "\u0928\u0947\u091A\u0930 \u092E\u094B\u092E\u0947\u0902\u091F\u094D\u0938",
+      app_title: "\u0935\u094D\u0939\u093E\u091F\u094D\u0938\u090F\u092A \u0938\u094D\u091F\u0947\u091F\u0938",
       app_tagline: "\u0936\u093E\u0902\u0924 \u0914\u0930 \u0938\u0941\u0902\u0926\u0930 \u092A\u094D\u0930\u093E\u0915\u0943\u0924\u093F\u0915 \u0930\u0940\u0932\u094D\u0938",
       nav_home: "\u0939\u094B\u092E",
       nav_reels: "\u0930\u0940\u0932\u094D\u0938",
@@ -266,7 +266,7 @@
       rate_button: "\u092A\u094D\u0932\u0947 \u0938\u094D\u091F\u094B\u0930 \u092A\u0930 \u0930\u0947\u091F \u0915\u0930\u0947\u0902"
     },
     gu: {
-      app_title: "\u0AA8\u0AC7\u0A9A\u0AB0 \u0AAE\u0ACB\u0AAE\u0AC7\u0AA8\u0ACD\u0A9F\u0ACD\u0AB8",
+      app_title: "\u0AB5\u0ACD\u0AB9\u0ACB\u0A9F\u0ACD\u0AB8\u0A8F\u0AAA \u0AB8\u0ACD\u0A9F\u0AC7\u0A9F\u0AB8",
       app_tagline: "\u0AB6\u0ABE\u0A82\u0AA4 \u0A85\u0AA8\u0AC7 \u0AB8\u0AC1\u0A82\u0AA6\u0AB0 \u0AAA\u0ACD\u0AB0\u0A95\u0AC3\u0AA4\u0ABF \u0AB0\u0AC0\u0AB2\u0ACD\u0AB8",
       nav_home: "\u0AB9\u0ACB\u0AAE",
       nav_reels: "\u0AB0\u0AC0\u0AB2\u0ACD\u0AB8",
@@ -333,7 +333,7 @@
       rate_button: "\u0AAA\u0ACD\u0AB2\u0AC7 \u0AB8\u0ACD\u0A9F\u0ACB\u0AB0 \u0AAA\u0AB0 \u0AB0\u0AC7\u0A9F \u0A95\u0AB0\u0ACB"
     },
     mr: {
-      app_title: "\u0928\u0947\u091A\u0930 \u092E\u094B\u092E\u0947\u0902\u091F\u094D\u0938",
+      app_title: "\u0935\u094D\u0939\u0949\u091F\u094D\u0938\u0905\u200D\u0945\u092A \u0938\u094D\u091F\u0947\u091F\u0938",
       app_tagline: "\u0936\u093E\u0902\u0924 \u0935 \u0938\u0941\u0902\u0926\u0930 \u0928\u093F\u0938\u0930\u094D\u0917 \u0930\u0940\u0932\u094D\u0938",
       nav_home: "\u0939\u094B\u092E",
       nav_reels: "\u0930\u0940\u0932\u094D\u0938",
@@ -400,7 +400,7 @@
       rate_button: "\u092A\u094D\u0932\u0947 \u0938\u094D\u091F\u094B\u0905\u0930\u0935\u0930 \u0930\u0947\u091F \u0915\u0930\u093E"
     },
     ta: {
-      app_title: "\u0BA8\u0BC7\u0B9A\u0BCD\u0B9A\u0BB0\u0BCD \u0BAE\u0BCA\u0BAE\u0BC6\u0BA9\u0BCD\u0B9F\u0BCD\u0BB8\u0BCD",
+      app_title: "\u0BB5\u0BBE\u0B9F\u0BCD\u0BB8\u0BCD\u0B85\u0BAA\u0BCD \u0BB8\u0BCD\u0B9F\u0BC7\u0B9F\u0BCD\u0B9F\u0BB8\u0BCD",
       app_tagline: "\u0B85\u0BAE\u0BC8\u0BA4\u0BBF\u0BAF\u0BBE\u0BA9 \u0B87\u0BAF\u0BB1\u0BCD\u0B95\u0BC8 \u0BB0\u0BC0\u0BB2\u0BCD\u0BB8\u0BCD",
       nav_home: "\u0BAE\u0BC1\u0B95\u0BAA\u0BCD\u0BAA\u0BC1",
       nav_reels: "\u0BB0\u0BC0\u0BB2\u0BCD\u0BB8\u0BCD",
@@ -467,7 +467,7 @@
       rate_button: "\u0BAA\u0BCD\u0BB3\u0BC7 \u0BB8\u0BCD\u0B9F\u0BCB\u0BB0\u0BBF\u0BB2\u0BCD \u0BAE\u0BA4\u0BBF\u0BAA\u0BCD\u0BAA\u0BC0\u0B9F\u0BC1"
     },
     te: {
-      app_title: "\u0C28\u0C47\u0C1A\u0C30\u0C4D \u0C2E\u0C4B\u0C2E\u0C46\u0C02\u0C1F\u0C4D\u0C38\u0C4D",
+      app_title: "\u0C35\u0C3E\u0C1F\u0C4D\u0C38\u0C3E\u0C2A\u0C4D \u0C38\u0C4D\u0C1F\u0C47\u0C1F\u0C38\u0C4D",
       app_tagline: "\u0C2A\u0C4D\u0C30\u0C36\u0C3E\u0C02\u0C24\u0C2E\u0C48\u0C28 \u0C2A\u0C4D\u0C30\u0C15\u0C43\u0C24\u0C3F \u0C30\u0C40\u0C32\u0C4D\u0C38\u0C4D",
       nav_home: "\u0C39\u0C4B\u0C2E\u0C4D",
       nav_reels: "\u0C30\u0C40\u0C32\u0C4D\u0C38\u0C4D",
@@ -534,7 +534,7 @@
       rate_button: "\u0C2A\u0C4D\u0C32\u0C47 \u0C38\u0C4D\u0C1F\u0C4B\u0C30\u0C4D\u200C\u0C32\u0C4B \u0C30\u0C47\u0C1F\u0C4D \u0C1A\u0C47\u0C2F\u0C02\u0C21\u0C3F"
     },
     kn: {
-      app_title: "\u0CA8\u0CC7\u0C9A\u0CB0\u0CCD \u0CAE\u0CCA\u0CAE\u0CC6\u0C82\u0C9F\u0CCD\u0CB8\u0CCD",
+      app_title: "\u0CB5\u0CBE\u0C9F\u0CCD\u0CB8\u0CBE\u0CAA\u0CCD \u0CB8\u0CCD\u0C9F\u0CC7\u0C9F\u0CB8\u0CCD",
       app_tagline: "\u0CB6\u0CBE\u0C82\u0CA4\u0CBF\u0CAF\u0CC1\u0CA4 \u0CAA\u0CCD\u0CB0\u0C95\u0CC3\u0CA4\u0CBF \u0CB0\u0CC0\u0CB2\u0CCD\u0CB8\u0CCD",
       nav_home: "\u0CAE\u0CC1\u0C96\u0CAA\u0CC1\u0C9F",
       nav_reels: "\u0CB0\u0CC0\u0CB2\u0CCD\u0CB8\u0CCD",
@@ -1317,12 +1317,12 @@
   var ShareService = class {
     // Share specific Reel
     async shareReel(reel) {
-      const text = `Check out this beautiful nature reel on Nature Moments! \u{1F33F}\u2728
+      const text = `Check out this trending video on WhatsApp Status! \u2728\u{1F4F2}
 
 "${reel.title}"
 Category: ${reel.category_id.toUpperCase()}
 
-Watch more peaceful nature moments!`;
+Watch more WhatsApp Status reels!`;
       const shareUrl = window.location.origin + window.location.pathname + `?reel=${reel.content_id}`;
       if (window.AndroidBridge && typeof window.AndroidBridge.shareWhatsApp === "function") {
         try {
@@ -1335,7 +1335,7 @@ Watch more peaceful nature moments!`;
       if (navigator.share) {
         try {
           await navigator.share({
-            title: `Nature Moments \u2014 ${reel.title}`,
+            title: `WhatsApp Status \u2014 ${reel.title}`,
             text,
             url: shareUrl
           });
@@ -1360,7 +1360,7 @@ ${shareUrl}`);
     }
     // Share Application
     async shareApp() {
-      const appText = "Experience peaceful nature reels, mountain streams, and serene forests on Nature Moments application! \u{1F332}\u{1F343}";
+      const appText = "Watch, download, and share trending short video reels on WhatsApp Status application! \u{1F4F2}\u2728";
       const appUrl = window.location.href;
       if (window.AndroidBridge && typeof window.AndroidBridge.shareApp === "function") {
         try {
@@ -1372,7 +1372,7 @@ ${shareUrl}`);
       if (navigator.share) {
         try {
           await navigator.share({
-            title: "Nature Moments App",
+            title: "WhatsApp Status App",
             text: appText,
             url: appUrl
           });
@@ -1927,6 +1927,7 @@ ${shareUrl}`);
       this._initCategoryHeader();
       this._bindSoundButton();
       this._bindContainerDelegation();
+      this._bindScrollSnapHandler();
       this.filterCategory("trending");
       const unmuteOnInteraction = () => {
         if (window.natureAppInstance && window.natureAppInstance.currentView === "reels") {
@@ -2241,17 +2242,147 @@ ${shareUrl}`);
         this.onCategoryChange(categoryId);
       }
     }
+    _bindScrollSnapHandler() {
+      let scrollTimeout = null;
+      const onScroll = () => {
+        const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
+        const reelsView = document.getElementById("view-reels");
+        const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
+        if (!isReelsTab || !isReelsVisible) return;
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          this._detectAndPlaySnappedReel();
+        }, 60);
+      };
+      this.container.addEventListener("scroll", onScroll, { passive: true });
+      this.container.addEventListener("scrollend", () => {
+        this._detectAndPlaySnappedReel();
+      }, { passive: true });
+    }
+    _detectAndPlaySnappedReel() {
+      const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
+      const reelsView = document.getElementById("view-reels");
+      const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
+      if (!isReelsTab || !isReelsVisible) return;
+      const containerTop = this.container.scrollTop;
+      const containerHeight = this.container.clientHeight || window.innerHeight;
+      const centerPoint = containerTop + containerHeight / 2;
+      const items = Array.from(this.container.querySelectorAll(".feed-reel-item"));
+      if (!items.length) return;
+      let closestItem = null;
+      let minDistance = Infinity;
+      for (const item of items) {
+        const itemCenter = item.offsetTop + (item.clientHeight || containerHeight) / 2;
+        const dist = Math.abs(centerPoint - itemCenter);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestItem = item;
+        }
+      }
+      if (closestItem && (this.activeItem !== closestItem || !this.activeVideo || this.activeVideo.paused)) {
+        this._playReelItem(closestItem);
+      }
+    }
+    _playReelItem(targetItem) {
+      if (!targetItem) return;
+      const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
+      const reelsView = document.getElementById("view-reels");
+      const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
+      if (!isReelsTab || !isReelsVisible) {
+        this.pauseAll();
+        return;
+      }
+      const video = targetItem.querySelector("video");
+      if (!video) return;
+      const items = this.container.querySelectorAll(".feed-reel-item");
+      items.forEach((item) => {
+        if (item !== targetItem) {
+          item.classList.remove("active-playing");
+          item.classList.remove("is-buffering");
+          const otherVideo = item.querySelector("video");
+          if (otherVideo) otherVideo.pause();
+          const otherVinyl = item.querySelector(".dock-vinyl-disc");
+          if (otherVinyl) otherVinyl.classList.add("paused");
+        }
+      });
+      this.activeItem = targetItem;
+      this.activeVideo = video;
+      targetItem.classList.add("active-playing");
+      targetItem.classList.remove("is-paused");
+      const vinyl = targetItem.querySelector(".dock-vinyl-disc");
+      const playPulse = targetItem.querySelector(".feed-play-pulse");
+      if (vinyl) vinyl.classList.remove("paused");
+      if (playPulse) playPulse.classList.remove("show");
+      const dataSrc = video.getAttribute("data-src") || video.src;
+      if (dataSrc && (!video.src || video.src === "" || video.src === window.location.href)) {
+        video.src = dataSrc;
+      }
+      video.preload = "auto";
+      video.playsInline = true;
+      video.setAttribute("playsinline", "");
+      video.setAttribute("webkit-playsinline", "");
+      video.setAttribute("x5-playsinline", "");
+      video.muted = this.isMuted;
+      video.volume = this.isMuted ? 0 : 1;
+      if (!video._bufferEngineBound) {
+        video._bufferEngineBound = true;
+        video.addEventListener("waiting", () => {
+          targetItem.classList.add("is-buffering");
+        });
+        video.addEventListener("playing", () => {
+          targetItem.classList.remove("is-buffering");
+        });
+        video.addEventListener("canplay", () => {
+          targetItem.classList.remove("is-buffering");
+          if (this.activeItem === targetItem && video.paused && !targetItem.classList.contains("is-paused")) {
+            video.play().catch(() => {
+            });
+          }
+        });
+        video.addEventListener("error", () => {
+          targetItem.classList.remove("is-buffering");
+          const cur = video.src || "";
+          if (cur.includes("cdn.jsdelivr.net")) {
+            video.src = cur.replace("cdn.jsdelivr.net/gh/", "raw.githubusercontent.com/").replace("@main/", "/main/");
+            video.play().catch(() => {
+            });
+          } else if (cur.includes("raw.githubusercontent.com")) {
+            video.src = cur.replace("raw.githubusercontent.com/", "cdn.jsdelivr.net/gh/").replace("/main/", "@main/");
+            video.play().catch(() => {
+            });
+          }
+        });
+      }
+      const p = video.play();
+      if (p !== void 0) {
+        p.catch((err) => {
+          video.muted = true;
+          video.play().catch((e) => console.warn("Autoplay handled:", e));
+        });
+      }
+      const nextItem = targetItem.nextElementSibling;
+      if (nextItem) {
+        const nv = nextItem.querySelector("video");
+        if (nv) {
+          const nextSrc = nv.getAttribute("data-src");
+          if (nextSrc && (!nv.src || nv.src === window.location.href)) nv.src = nextSrc;
+          nv.preload = "metadata";
+        }
+      }
+      const currentIndex = parseInt(targetItem.getAttribute("data-index") || "0", 10);
+      if (currentIndex >= this.renderedCount - 2) {
+        this.appendBatch();
+      }
+    }
     _initObserver() {
       if (this.observer) this.observer.disconnect();
       const options = {
         root: this.container,
-        threshold: 0.35
+        threshold: [0.1, 0.5, 0.8]
       };
       this.observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           const video = entry.target.querySelector("video");
-          const vinyl = entry.target.querySelector(".dock-vinyl-disc");
-          const playPulse = entry.target.querySelector(".feed-play-pulse");
           if (!video) return;
           const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
           const reelsView = document.getElementById("view-reels");
@@ -2260,107 +2391,20 @@ ${shareUrl}`);
             video.pause();
             return;
           }
-          if (entry.isIntersecting) {
-            if (this.activeItem === entry.target && !video.paused) {
-              return;
-            }
-            if (entry.target.classList.contains("is-paused")) {
-              return;
-            }
-            const isSameItem = this.activeItem === entry.target;
-            this.activeItem = entry.target;
-            this.activeVideo = video;
-            entry.target.classList.add("active-playing");
-            const dataSrc = video.getAttribute("data-src");
-            if (dataSrc && (!video.src || video.src === window.location.href || video.src === "")) {
-              video.src = dataSrc;
-            }
-            video.preload = "auto";
-            if (!video._hasFallbackHandler) {
-              video._hasFallbackHandler = true;
-              video.addEventListener("error", () => {
-                const cur = video.src || "";
-                console.warn("Video failed to load:", cur);
-                if (cur.includes("cdn.jsdelivr.net")) {
-                  const rawUrl = cur.replace("cdn.jsdelivr.net/gh/", "raw.githubusercontent.com/").replace("@main/", "/main/");
-                  console.log("Trying raw GitHub fallback:", rawUrl);
-                  video.src = rawUrl;
-                  video.play().catch(() => {
-                  });
-                } else if (cur.includes("raw.githubusercontent.com")) {
-                  const jsdUrl = cur.replace("raw.githubusercontent.com/", "cdn.jsdelivr.net/gh/").replace("/main/", "@main/");
-                  console.log("Trying jsDelivr fallback:", jsdUrl);
-                  video.src = jsdUrl;
-                  video.play().catch(() => {
-                  });
-                }
-              });
-            }
-            const nextItem = entry.target.nextElementSibling;
-            if (nextItem) {
-              const nextVideo = nextItem.querySelector("video");
-              if (nextVideo) {
-                const nextSrc = nextVideo.getAttribute("data-src");
-                if (nextSrc && (!nextVideo.src || nextVideo.src === window.location.href)) {
-                  nextVideo.src = nextSrc;
-                }
-                nextVideo.preload = "auto";
-              }
-              const nextNextItem = nextItem.nextElementSibling;
-              if (nextNextItem) {
-                const nnVideo = nextNextItem.querySelector("video");
-                if (nnVideo) {
-                  const nnSrc = nnVideo.getAttribute("data-src");
-                  if (nnSrc && (!nnVideo.src || nnVideo.src === window.location.href)) {
-                    nnVideo.src = nnSrc;
-                  }
-                  nnVideo.preload = "auto";
-                }
-              }
-            }
-            const prevItem = entry.target.previousElementSibling;
-            if (prevItem) {
-              const prevVideo = prevItem.querySelector("video");
-              if (prevVideo) {
-                const prevSrc = prevVideo.getAttribute("data-src");
-                if (prevSrc && (!prevVideo.src || prevVideo.src === window.location.href)) {
-                  prevVideo.src = prevSrc;
-                }
-                prevVideo.preload = "auto";
-              }
-            }
-            if (!isSameItem && video.currentTime > 0) {
-              video.currentTime = 0;
-            }
-            video.playsInline = true;
-            video.setAttribute("playsinline", "");
-            video.setAttribute("webkit-playsinline", "");
-            video.setAttribute("x5-playsinline", "");
-            video.muted = this.isMuted;
-            video.volume = this.isMuted ? 0 : 1;
-            const playPromise = video.play();
-            if (playPromise !== void 0) {
-              playPromise.catch(() => {
+          if (entry.intersectionRatio >= 0.5) {
+            if (this.activeItem !== entry.target) {
+              this._playReelItem(entry.target);
+            } else if (video.paused && !entry.target.classList.contains("is-paused")) {
+              video.play().catch(() => {
                 video.muted = true;
-                video.play().catch((e) => console.log("Autoplay handled:", e));
+                video.play().catch(() => {
+                });
               });
             }
-            if (vinyl) vinyl.classList.remove("paused");
-            if (playPulse) playPulse.classList.remove("show");
-            entry.target.classList.remove("is-paused");
-            const currentIndex = parseInt(entry.target.getAttribute("data-index") || "0", 10);
-            if (currentIndex >= this.renderedCount - 2) {
-              this.appendBatch();
-            }
-          } else {
-            entry.target.classList.remove("active-playing");
-            video.pause();
-            if (vinyl) vinyl.classList.add("paused");
-            const activeIndex = this.activeItem ? parseInt(this.activeItem.getAttribute("data-index") || "0", 10) : -1;
-            const thisIndex = parseInt(entry.target.getAttribute("data-index") || "0", 10);
-            if (Math.abs(thisIndex - activeIndex) > 3) {
-              video.removeAttribute("src");
-              video.load();
+          } else if (entry.intersectionRatio < 0.2) {
+            if (this.activeItem === entry.target) {
+              entry.target.classList.remove("active-playing");
+              video.pause();
             }
           }
         });
@@ -2381,6 +2425,7 @@ ${shareUrl}`);
       const items = this.container.querySelectorAll(".feed-reel-item");
       items.forEach((item) => {
         item.classList.remove("active-playing");
+        item.classList.remove("is-buffering");
         item.classList.add("is-paused");
         const vinyl = item.querySelector(".dock-vinyl-disc");
         if (vinyl) vinyl.classList.add("paused");
@@ -2408,54 +2453,7 @@ ${shareUrl}`);
         }) || items[0];
       }
       if (item) {
-        this.activeItem = item;
-        const video = item.querySelector("video");
-        if (video) {
-          this.activeVideo = video;
-          const dataSrc = video.getAttribute("data-src") || video.src;
-          if (!video.src || video.src === "" || video.src === window.location.href) {
-            video.src = dataSrc;
-          }
-          video.preload = "auto";
-          video.playsInline = true;
-          video.setAttribute("playsinline", "");
-          video.setAttribute("webkit-playsinline", "");
-          video.setAttribute("x5-playsinline", "");
-          video.muted = this.isMuted;
-          video.volume = this.isMuted ? 0 : 1;
-          item.classList.remove("is-paused");
-          item.classList.add("active-playing");
-          const playPulse = item.querySelector(".feed-play-pulse");
-          if (playPulse) playPulse.classList.remove("show");
-          const vinyl = item.querySelector(".dock-vinyl-disc");
-          if (vinyl) vinyl.classList.remove("paused");
-          const p = video.play();
-          if (p !== void 0) {
-            p.catch((err) => {
-              console.log("Unmuted autoplay prevented, playing muted:", err);
-              video.muted = true;
-              video.play().catch((e) => console.warn("Autoplay error:", e));
-            });
-          }
-          const nextItem = item.nextElementSibling;
-          if (nextItem) {
-            const nv = nextItem.querySelector("video");
-            if (nv) {
-              const nextSrc = nv.getAttribute("data-src");
-              if (nextSrc && (!nv.src || nv.src === window.location.href)) nv.src = nextSrc;
-              nv.preload = "auto";
-            }
-            const nextNextItem = nextItem.nextElementSibling;
-            if (nextNextItem) {
-              const nnv = nextNextItem.querySelector("video");
-              if (nnv) {
-                const nnSrc = nnv.getAttribute("data-src");
-                if (nnSrc && (!nnv.src || nnv.src === window.location.href)) nnv.src = nnSrc;
-                nnv.preload = "auto";
-              }
-            }
-          }
-        }
+        this._playReelItem(item);
       }
     }
     // Create individual 9:16 vertical reel DOM node
@@ -2486,6 +2484,9 @@ ${shareUrl}`);
           <polygon points="6 3 20 12 6 21 6 3"></polygon>
         </svg>
       </div>
+
+      <!-- Low-Network Buffering Spinner -->
+      <div class="feed-buffering-spinner"></div>
 
       <!-- Right-Side Instagram Action Dock -->
       <div class="feed-actions-dock">
