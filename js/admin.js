@@ -1101,6 +1101,13 @@ class AdminStudio {
         this.showToast(`Uploading video ${i + 1}/${this.bulkFilesQueue.length} to cloud...`, '☁️');
         try {
           finalVideoUrl = await this._uploadVideoFileToCloud(q.file);
+        } catch (e) {
+          console.warn('Bulk upload error:', e);
+        }
+      } else {
+        finalVideoUrl = q.video_url || '';
+      }
+
       if (!finalVideoUrl || finalVideoUrl.startsWith('blob:')) {
         continue;
       }
