@@ -22,12 +22,24 @@ export class ReelsFeed {
     this.observer = null;
     this.activeItem = null;
     this.activeVideo = null;
-    this.isMuted = true;
+    this.isMuted = false; // Audio & voice enabled by default for authentic reels sound
 
     this._initCategoryHeader();
     this._bindSoundButton();
     this._bindContainerDelegation();
     this.filterCategory('trending');
+
+    // Unmute on first user touch to satisfy any mobile audio policy
+    const unmuteOnInteraction = () => {
+      if (!this.isMuted && this.activeVideo) {
+        this.activeVideo.muted = false;
+        this.activeVideo.volume = 1.0;
+      }
+      window.removeEventListener('pointerdown', unmuteOnInteraction);
+      window.removeEventListener('touchstart', unmuteOnInteraction);
+    };
+    window.addEventListener('pointerdown', unmuteOnInteraction, { passive: true });
+    window.addEventListener('touchstart', unmuteOnInteraction, { passive: true });
 
     window.addEventListener('languageChanged', () => {
       this._updateLanguageUI();
@@ -76,29 +88,39 @@ export class ReelsFeed {
     });
   }
 
-  // Bind Voice / Sound Equalizer Toggle
+  // Bind Voice / Sound Equalizer Toggle directly to Video Native Audio
   _bindSoundButton() {
     this.soundBtn = document.getElementById('reels-sound-toggle-btn');
     this.soundEq = document.getElementById('reels-sound-eq');
     this.soundLabel = document.getElementById('reels-sound-label');
 
+    // Initial state: Audio On by default!
+    if (this.soundEq) this.soundEq.classList.add('active');
+    if (this.soundLabel) this.soundLabel.textContent = 'Audio On';
+
     if (this.soundBtn) {
       this.soundBtn.addEventListener('click', () => {
-        const isAudioActive = soundEngine.toggleSound(this.activeCategory);
-        this.isMuted = !isAudioActive;
+        this.isMuted = !this.isMuted;
 
         if (this.activeVideo) {
           this.activeVideo.muted = this.isMuted;
+          this.activeVideo.volume = 1.0;
         }
 
-        if (isAudioActive) {
+        const allVideos = this.container.querySelectorAll('video');
+        allVideos.forEach(v => {
+          v.muted = this.isMuted;
+          v.volume = 1.0;
+        });
+
+        if (!this.isMuted) {
           if (this.soundEq) this.soundEq.classList.add('active');
           if (this.soundLabel) this.soundLabel.textContent = 'Audio On';
-          this.showToast(`🔊 Nature Audio: ${this.activeCategory.toUpperCase()} Soundscape active`, '🌿');
+          this.showToast('🔊 Video Sound & Voice Active', '🔊');
         } else {
           if (this.soundEq) this.soundEq.classList.remove('active');
           if (this.soundLabel) this.soundLabel.textContent = 'Muted';
-          this.showToast('🔇 Audio Muted', 'ℹ️');
+          this.showToast('🔇 Audio Muted', '🔇');
         }
       });
     }
@@ -230,6 +252,8 @@ export class ReelsFeed {
               video.setAttribute('playsinline', '');
               video.setAttribute('webkit-playsinline', '');
               video.setAttribute('x5-playsinline', '');
+              video.muted = this.isMuted;
+              video.volume = 1.0;
               video.play().catch(err => {
                 video.muted = true;
                 video.play().catch(() => {});
@@ -302,11 +326,6 @@ export class ReelsFeed {
     // Scroll container back to first reel
     this.container.scrollTo({ top: 0, behavior: 'instant' });
 
-    // Update sound engine mode if active
-    if (!this.isMuted && soundEngine.isPlaying) {
-      soundEngine.play(categoryId);
-    }
-
     if (typeof this.onCategoryChange === 'function') {
       this.onCategoryChange(categoryId);
     }
@@ -354,6 +373,7 @@ export class ReelsFeed {
           video.setAttribute('webkit-playsinline', '');
           video.setAttribute('x5-playsinline', '');
           video.muted = this.isMuted;
+          video.volume = 1.0;
           const playPromise = video.play();
           if (playPromise !== undefined) {
             playPromise.catch(() => {
@@ -365,12 +385,6 @@ export class ReelsFeed {
           if (vinyl) vinyl.classList.remove('paused');
           if (playPulse) playPulse.classList.remove('show');
           entry.target.classList.remove('is-paused');
-
-          // Update sound engine category
-          const reelCat = entry.target.getAttribute('data-cat') || this.activeCategory;
-          if (!this.isMuted) {
-            soundEngine.play(reelCat);
-          }
 
           // Batch append when reaching near end
           const currentIndex = parseInt(entry.target.getAttribute('data-index') || '0', 10);
@@ -415,8 +429,9 @@ export class ReelsFeed {
         if (dataSrc && (!video.src || video.src === '')) {
           video.src = dataSrc;
         }
+        video.muted = this.isMuted;
+        video.volume = 1.0;
         video.play().catch(e => console.warn(e));
-        if (!this.isMuted) soundEngine.play(this.activeCategory);
       }
     }
   }
@@ -442,8 +457,8 @@ export class ReelsFeed {
       <!-- Fast 0ms Poster -->
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? 'eager' : 'lazy'}" />
 
-      <!-- 9:16 Video Canvas -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline muted preload="${index === 0 ? 'auto' : 'none'}" poster="${reel.thumbnail_url}" data-src="${reel.video_url}" ${initialSrc ? `src="${initialSrc}"` : ''}>
+      <!-- 9:16 Video Canvas (Unmuted by default for authentic audio) -->
+      <video class="feed-reel-video" loop playsinline webkit-playsinline preload="${index === 0 ? 'auto' : 'none'}" poster="${reel.thumbnail_url}" data-src="${reel.video_url}" ${initialSrc ? `src="${initialSrc}"` : ''}>
       </video>
       
       <div class="feed-reel-overlay"></div>
@@ -540,12 +555,8 @@ export class ReelsFeed {
           progressBar.style.width = `${(video.currentTime / video.duration) * 100}%`;
         }
       });
-      video.addEventListener('error', () => {
-        const cdnFallback = 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
-        if (video.src && !video.src.includes('cdn.jsdelivr.net') && video.src !== cdnFallback) {
-          video.src = cdnFallback;
-          video.play().catch(() => {});
-        }
+      video.addEventListener('error', (e) => {
+        console.warn('Feed video error:', e);
       });
     }
 
@@ -596,7 +607,7 @@ export class ReelsFeed {
 
     this._initObserver();
 
-    // Auto-start the very first reel immediately
+    // Auto-start the very first reel unmuted
     setTimeout(() => {
       const firstItem = this.container.querySelector('.feed-reel-item');
       if (firstItem) {
@@ -605,12 +616,19 @@ export class ReelsFeed {
           const dataSrc = firstVideo.getAttribute('data-src');
           if (dataSrc && !firstVideo.src) firstVideo.src = dataSrc;
           firstVideo.currentTime = 0;
-          firstVideo.muted = true;
+          firstVideo.muted = this.isMuted;
+          firstVideo.volume = 1.0;
           firstVideo.playsInline = true;
           firstVideo.setAttribute('playsinline', '');
           firstVideo.setAttribute('webkit-playsinline', '');
           firstVideo.setAttribute('x5-playsinline', '');
-          firstVideo.play().catch(e => console.log('Initial autoplay:', e));
+          const p = firstVideo.play();
+          if (p !== undefined) {
+            p.catch(e => {
+              firstVideo.muted = true;
+              firstVideo.play().catch(() => {});
+            });
+          }
           this.activeItem = firstItem;
           this.activeVideo = firstVideo;
           firstItem.classList.add('active-playing');

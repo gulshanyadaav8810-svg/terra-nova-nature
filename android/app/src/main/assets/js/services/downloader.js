@@ -59,10 +59,7 @@ class DownloaderService {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
       } catch (fetchErr) {
         if (fetchErr.name === 'AbortError') throw fetchErr;
-        console.warn('Direct stream fetch failed, falling back to verified nature media:', fetchErr);
-        response = await fetch('assets/videos/nature_stream.mp4', {
-          signal: controller.signal
-        });
+        throw new Error('Download failed: unable to fetch video stream from remote server.');
       }
 
       if (!response.ok) {

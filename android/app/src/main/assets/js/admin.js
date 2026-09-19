@@ -644,7 +644,7 @@ class AdminStudio {
     
     let videoSrc = this.videoMode === 'file' && this.uploadedVideoBlobUrl 
       ? this.uploadedVideoBlobUrl 
-      : (this.inputVideoUrl?.value || 'assets/videos/nature_stream.mp4');
+      : (this.inputVideoUrl?.value || '');
 
     let thumbSrc = this.thumbMode === 'file' && this.uploadedThumbBlobUrl
       ? this.uploadedThumbBlobUrl
@@ -664,11 +664,11 @@ class AdminStudio {
   }
 
   async _uploadVideoFileToCloud(file) {
-    if (!file) return 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
+    if (!file) return '';
     const filename = file.name || `video_${Date.now()}.mp4`;
     const safeName = `reel_${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
 
-    // 1. Direct GitHub REST API upload (supports up to 100MB, full CORS, bypasses Vercel 4.5MB limit)
+    // 1. Direct GitHub REST API upload (supports up to 25MB via Contents API, instant CORS & Byte Ranges)
     try {
       const base64 = await this._fileToBase64(file);
       const token = ['gho', '1GPNxaibxc8szdwIeLClPWkKfnkC8b3nBF3y'].join('_');
@@ -689,49 +689,31 @@ class AdminStudio {
       });
 
       if (res.ok) {
-        return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeName}`;
+        // Return raw GitHub URL which is live immediately with HTTP 206 range streaming!
+        return `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${safeName}`;
       }
       console.warn('GitHub direct upload HTTP status:', res.status);
     } catch (err) {
       console.warn('GitHub direct upload failed:', err);
     }
 
-    // 2. Free Cloud Video Host (Catbox/Litterbox) Fallback for files
-    try {
-      const formData = new FormData();
-      formData.append('reqtype', 'fileupload');
-      formData.append('time', '72h');
-      formData.append('fileToUpload', file);
-
-      const catboxRes = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (catboxRes.ok) {
-        const url = (await catboxRes.text()).trim();
-        if (url.startsWith('http')) {
-          return url;
-        }
-      }
-    } catch (e) {}
-
-    // 3. Fallback: /api/reels serverless function
+    // 2. Fallback: /api/reels serverless function on Vercel
     try {
       const base64 = await this._fileToBase64(file);
-      const res = await fetch('/api/reels', {
+      const res = await fetch('https://nature-moments-app.vercel.app/api/reels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'upload_video', filename, base64 })
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.cdn_url || data.url) return data.cdn_url || data.url;
+        if (data.url || data.cdn_url) return data.url || data.cdn_url;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Vercel API upload error:', e);
+    }
 
-    // 4. Reliable CDN fallback stream
-    return 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
+    return '';
   }
 
   async _handlePublishReel() {
@@ -779,9 +761,10 @@ class AdminStudio {
       videoUrl = this.inputVideoUrl.value.trim();
     }
 
-    // Ensure videoUrl is a real public URL and never a blob:
+    // Validate videoUrl
     if (!videoUrl || videoUrl.startsWith('blob:')) {
-      videoUrl = 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
+      alert('Please provide a valid streaming video URL (e.g. https://.../video.mp4) or select an MP4 file to upload.');
+      return;
     }
     if (!thumbUrl) thumbUrl = 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';
 
@@ -816,8 +799,13 @@ class AdminStudio {
   _openPlayerModal(reel) {
     if (!this.modalPlayer || !this.modalVideoEl) return;
     this.modalVideoEl.src = reel.video_url;
+    this.modalVideoEl.muted = false;
+    this.modalVideoEl.volume = 1.0;
     this.modalPlayer.classList.add('show');
-    this.modalVideoEl.play().catch(() => {});
+    this.modalVideoEl.play().catch(() => {
+      this.modalVideoEl.muted = true;
+      this.modalVideoEl.play().catch(() => {});
+    });
 
     this.modalCloseVideo.onclick = () => {
       this.modalVideoEl.pause();
@@ -940,7 +928,7 @@ class AdminStudio {
             description: item.description || 'Authentic nature moment recorded in high definition.',
             category_id: catId,
             thumbnail_url: item.thumbnail_url || cat.image_url,
-            video_url: item.video_url || 'assets/videos/nature_stream.mp4',
+            video_url: item.video_url || '',
             duration: item.duration || '0:20',
             is_downloadable: item.is_downloadable !== false,
             is_trending: Boolean(item.is_trending),
@@ -1099,15 +1087,8 @@ class AdminStudio {
         this.showToast(`Uploading video ${i + 1}/${this.bulkFilesQueue.length} to cloud...`, '☁️');
         try {
           finalVideoUrl = await this._uploadVideoFileToCloud(q.file);
-        } catch (e) {
-          finalVideoUrl = 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
-        }
-      } else {
-        finalVideoUrl = q.video_url || 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
-      }
-
       if (!finalVideoUrl || finalVideoUrl.startsWith('blob:')) {
-        finalVideoUrl = 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
+        continue;
       }
 
       reelsToPublish.push({

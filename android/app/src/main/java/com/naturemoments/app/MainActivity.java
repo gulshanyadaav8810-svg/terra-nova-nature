@@ -111,10 +111,9 @@ public class MainActivity extends Activity {
                             }
                         });
                     } else {
-                        // Local asset file (e.g. assets/videos/nature_stream.mp4 or videos/nature_stream.mp4)
                         String assetPath = videoUrl;
                         if (assetPath == null || assetPath.isEmpty()) {
-                            assetPath = "assets/videos/nature_stream.mp4";
+                            return;
                         }
                         if (assetPath.startsWith("/")) {
                             assetPath = assetPath.substring(1);

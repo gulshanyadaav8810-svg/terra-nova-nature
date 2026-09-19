@@ -643,16 +643,42 @@
 
   // js/data/reels.js
   var REELS_DATA = [];
+  var APP_STORAGE_VERSION = "v5_clean_no_demo";
   var DEMO_REEL_IDS = /* @__PURE__ */ new Set([
+    "reel-forest-01",
+    "reel-flowers-01",
+    "reel-waterfall-01",
+    "reel-ocean-01",
     "reel-forest-0262u",
     "reel-mountains-z3ycr",
     "reel-ocean-1t68t",
     "reel-rain-ydez8",
     "reel-forest-z3ycr",
     "reel-forest-1t68t",
-    "reel-forest-ydez8"
+    "reel-forest-ydez8",
+    "reel-user-nature-1"
   ]);
-  var FALLBACK_STREAM = "https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4";
+  function isDemoReel(r) {
+    if (!r || !r.content_id) return true;
+    if (DEMO_REEL_IDS.has(r.content_id)) return true;
+    const url = (r.video_url || "").toLowerCase();
+    if (url.includes("nature_stream.mp4") || url.includes("flower.mp4")) return true;
+    const title = (r.title || "").toLowerCase();
+    if (title.includes("spring wildflowers") || title.includes("alpine meadows")) return true;
+    return false;
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const currentVer = localStorage.getItem("nature_storage_version");
+      if (currentVer !== APP_STORAGE_VERSION) {
+        localStorage.removeItem("nature_remote_reels");
+        localStorage.removeItem("nature_custom_reels");
+        localStorage.removeItem("nature_deleted_reels");
+        localStorage.setItem("nature_storage_version", APP_STORAGE_VERSION);
+      }
+    } catch (e) {
+    }
+  }
   function loadAllReels() {
     const mergedMap = /* @__PURE__ */ new Map();
     let deletedIds = new Set(DEMO_REEL_IDS);
@@ -671,15 +697,14 @@
       if (remote) {
         const parsed = JSON.parse(remote);
         if (Array.isArray(parsed)) {
-          const sanitizedRemote = parsed.filter((r) => r && r.content_id && !deletedIds.has(r.content_id));
+          const sanitizedRemote = parsed.filter((r) => !isDemoReel(r) && !deletedIds.has(r.content_id));
           if (sanitizedRemote.length !== parsed.length) {
             localStorage.setItem("nature_remote_reels", JSON.stringify(sanitizedRemote));
           }
           sanitizedRemote.forEach((r) => {
-            if (!r.video_url || r.video_url.startsWith("blob:")) {
-              r.video_url = FALLBACK_STREAM;
+            if (r.video_url && !r.video_url.startsWith("blob:")) {
+              mergedMap.set(r.content_id, { ...r });
             }
-            mergedMap.set(r.content_id, { ...r });
           });
         }
       }
@@ -691,15 +716,14 @@
       if (custom) {
         const parsed = JSON.parse(custom);
         if (Array.isArray(parsed)) {
-          const sanitizedCustom = parsed.filter((r) => r && r.content_id && !deletedIds.has(r.content_id));
+          const sanitizedCustom = parsed.filter((r) => !isDemoReel(r) && !deletedIds.has(r.content_id));
           if (sanitizedCustom.length !== parsed.length) {
             localStorage.setItem("nature_custom_reels", JSON.stringify(sanitizedCustom));
           }
           sanitizedCustom.forEach((r) => {
-            if (!r.video_url || r.video_url.startsWith("blob:")) {
-              r.video_url = FALLBACK_STREAM;
+            if (r.video_url && !r.video_url.startsWith("blob:")) {
+              mergedMap.set(r.content_id, { ...r });
             }
-            mergedMap.set(r.content_id, { ...r });
           });
         }
       }
@@ -708,11 +732,10 @@
     }
     if (Array.isArray(REELS_DATA) && REELS_DATA.length > 0) {
       REELS_DATA.forEach((r) => {
-        if (r && r.content_id && !deletedIds.has(r.content_id)) {
-          if (!r.video_url || r.video_url.startsWith("blob:")) {
-            r.video_url = FALLBACK_STREAM;
+        if (r && r.content_id && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
+          if (r.video_url && !r.video_url.startsWith("blob:")) {
+            mergedMap.set(r.content_id, { ...r });
           }
-          mergedMap.set(r.content_id, { ...r });
         }
       });
     }
@@ -760,17 +783,16 @@
         if (res.ok) {
           const remoteReels = await res.json();
           if (Array.isArray(remoteReels)) {
-            const cleanRemote = remoteReels.filter((r) => r && r.content_id && !deletedIds.has(r.content_id));
+            const cleanRemote = remoteReels.filter((r) => !isDemoReel(r) && !deletedIds.has(r.content_id));
             try {
               localStorage.setItem("nature_remote_reels", JSON.stringify(cleanRemote));
             } catch (e) {
             }
             const merged = /* @__PURE__ */ new Map();
             cleanRemote.forEach((r) => {
-              if (!r.video_url || r.video_url.startsWith("blob:")) {
-                r.video_url = FALLBACK_STREAM;
+              if (r.video_url && !r.video_url.startsWith("blob:")) {
+                merged.set(r.content_id, { ...r });
               }
-              merged.set(r.content_id, { ...r });
             });
             const custom = localStorage.getItem("nature_custom_reels");
             if (custom) {
@@ -778,11 +800,10 @@
                 const parsed = JSON.parse(custom);
                 if (Array.isArray(parsed)) {
                   parsed.forEach((r) => {
-                    if (r && r.content_id && !deletedIds.has(r.content_id)) {
-                      if (!r.video_url || r.video_url.startsWith("blob:")) {
-                        r.video_url = FALLBACK_STREAM;
+                    if (r && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
+                      if (r.video_url && !r.video_url.startsWith("blob:")) {
+                        merged.set(r.content_id, { ...r });
                       }
-                      merged.set(r.content_id, { ...r });
                     }
                   });
                 }
@@ -823,13 +844,13 @@
     let lastTouchSync = 0;
     window.addEventListener("touchstart", () => {
       const now = Date.now();
-      if (now - lastTouchSync > 3e3) {
+      if (now - lastTouchSync > 1200) {
         lastTouchSync = now;
         syncRemoteReels();
       }
     }, { passive: true });
     syncRemoteReels();
-    setInterval(() => syncRemoteReels(), 2500);
+    setInterval(() => syncRemoteReels(), 1500);
     if ("BroadcastChannel" in window) {
       const channel = new BroadcastChannel("nature_moments_sync");
       channel.onmessage = (event) => {
@@ -1162,10 +1183,7 @@
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
         } catch (fetchErr) {
           if (fetchErr.name === "AbortError") throw fetchErr;
-          console.warn("Direct stream fetch failed, falling back to verified nature media:", fetchErr);
-          response = await fetch("assets/videos/nature_stream.mp4", {
-            signal: controller.signal
-          });
+          throw new Error("Download failed: unable to fetch video stream from remote server.");
         }
         if (!response.ok) {
           throw new Error(`Download failed with server status ${response.status} ${response.statusText}`);
@@ -1365,14 +1383,7 @@ ${shareUrl}`);
       this.video.addEventListener("error", (e) => {
         this.spinner.classList.remove("loading");
         console.warn("Video playback error", e);
-        const cdnFallback = "https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4";
-        if (this.video.src && !this.video.src.includes("cdn.jsdelivr.net") && this.video.src !== cdnFallback) {
-          this.video.src = cdnFallback;
-          this.video.play().catch(() => {
-          });
-          return;
-        }
-        this.showToast("Unable to stream video. Using offline preview.", "\u26A0\uFE0F");
+        this.showToast("Unable to stream video. Please check your connection.", "\u26A0\uFE0F");
       });
       let isDragging = false;
       const seekToPosition = (e) => {
@@ -1467,7 +1478,9 @@ ${shareUrl}`);
       this.catEl.textContent = i18n.t(catKey, reel.category_id);
       this._updateLikeState(storage.isLiked(reel.content_id));
       this._updateSaveState(storage.isSaved(reel.content_id));
-      this._updateMuteState(this.video.muted);
+      this.video.muted = false;
+      this.video.volume = 1;
+      this._updateMuteState(false);
       if (this.isOffline) {
         this.catEl.textContent = `\u26A1 OFFLINE \u2022 ${i18n.t(catKey, reel.category_id)}`;
       }
@@ -1495,6 +1508,8 @@ ${shareUrl}`);
       this.overlay.classList.add("active");
       document.body.style.overflow = "hidden";
       try {
+        this.video.muted = false;
+        this.video.volume = 1;
         await this.video.play();
         this.centerPlay.classList.remove("show");
         this.spinner.classList.remove("loading");
@@ -1848,11 +1863,21 @@ ${shareUrl}`);
       this.observer = null;
       this.activeItem = null;
       this.activeVideo = null;
-      this.isMuted = true;
+      this.isMuted = false;
       this._initCategoryHeader();
       this._bindSoundButton();
       this._bindContainerDelegation();
       this.filterCategory("trending");
+      const unmuteOnInteraction = () => {
+        if (!this.isMuted && this.activeVideo) {
+          this.activeVideo.muted = false;
+          this.activeVideo.volume = 1;
+        }
+        window.removeEventListener("pointerdown", unmuteOnInteraction);
+        window.removeEventListener("touchstart", unmuteOnInteraction);
+      };
+      window.addEventListener("pointerdown", unmuteOnInteraction, { passive: true });
+      window.addEventListener("touchstart", unmuteOnInteraction, { passive: true });
       window.addEventListener("languageChanged", () => {
         this._updateLanguageUI();
       });
@@ -1892,26 +1917,33 @@ ${shareUrl}`);
         scroller.appendChild(pill);
       });
     }
-    // Bind Voice / Sound Equalizer Toggle
+    // Bind Voice / Sound Equalizer Toggle directly to Video Native Audio
     _bindSoundButton() {
       this.soundBtn = document.getElementById("reels-sound-toggle-btn");
       this.soundEq = document.getElementById("reels-sound-eq");
       this.soundLabel = document.getElementById("reels-sound-label");
+      if (this.soundEq) this.soundEq.classList.add("active");
+      if (this.soundLabel) this.soundLabel.textContent = "Audio On";
       if (this.soundBtn) {
         this.soundBtn.addEventListener("click", () => {
-          const isAudioActive = soundEngine.toggleSound(this.activeCategory);
-          this.isMuted = !isAudioActive;
+          this.isMuted = !this.isMuted;
           if (this.activeVideo) {
             this.activeVideo.muted = this.isMuted;
+            this.activeVideo.volume = 1;
           }
-          if (isAudioActive) {
+          const allVideos = this.container.querySelectorAll("video");
+          allVideos.forEach((v) => {
+            v.muted = this.isMuted;
+            v.volume = 1;
+          });
+          if (!this.isMuted) {
             if (this.soundEq) this.soundEq.classList.add("active");
             if (this.soundLabel) this.soundLabel.textContent = "Audio On";
-            this.showToast(`\u{1F50A} Nature Audio: ${this.activeCategory.toUpperCase()} Soundscape active`, "\u{1F33F}");
+            this.showToast("\u{1F50A} Video Sound & Voice Active", "\u{1F50A}");
           } else {
             if (this.soundEq) this.soundEq.classList.remove("active");
             if (this.soundLabel) this.soundLabel.textContent = "Muted";
-            this.showToast("\u{1F507} Audio Muted", "\u2139\uFE0F");
+            this.showToast("\u{1F507} Audio Muted", "\u{1F507}");
           }
         });
       }
@@ -2021,6 +2053,8 @@ ${shareUrl}`);
                 video.setAttribute("playsinline", "");
                 video.setAttribute("webkit-playsinline", "");
                 video.setAttribute("x5-playsinline", "");
+                video.muted = this.isMuted;
+                video.volume = 1;
                 video.play().catch((err) => {
                   video.muted = true;
                   video.play().catch(() => {
@@ -2083,9 +2117,6 @@ ${shareUrl}`);
       this.filteredReels = getReelsByCategory(categoryId);
       this.render();
       this.container.scrollTo({ top: 0, behavior: "instant" });
-      if (!this.isMuted && soundEngine.isPlaying) {
-        soundEngine.play(categoryId);
-      }
       if (typeof this.onCategoryChange === "function") {
         this.onCategoryChange(categoryId);
       }
@@ -2124,6 +2155,7 @@ ${shareUrl}`);
             video.setAttribute("webkit-playsinline", "");
             video.setAttribute("x5-playsinline", "");
             video.muted = this.isMuted;
+            video.volume = 1;
             const playPromise = video.play();
             if (playPromise !== void 0) {
               playPromise.catch(() => {
@@ -2134,10 +2166,6 @@ ${shareUrl}`);
             if (vinyl) vinyl.classList.remove("paused");
             if (playPulse) playPulse.classList.remove("show");
             entry.target.classList.remove("is-paused");
-            const reelCat = entry.target.getAttribute("data-cat") || this.activeCategory;
-            if (!this.isMuted) {
-              soundEngine.play(reelCat);
-            }
             const currentIndex = parseInt(entry.target.getAttribute("data-index") || "0", 10);
             if (currentIndex >= this.renderedCount - 2) {
               this.appendBatch();
@@ -2175,8 +2203,9 @@ ${shareUrl}`);
           if (dataSrc && (!video.src || video.src === "")) {
             video.src = dataSrc;
           }
+          video.muted = this.isMuted;
+          video.volume = 1;
           video.play().catch((e) => console.warn(e));
-          if (!this.isMuted) soundEngine.play(this.activeCategory);
         }
       }
     }
@@ -2197,8 +2226,8 @@ ${shareUrl}`);
       <!-- Fast 0ms Poster -->
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? "eager" : "lazy"}" />
 
-      <!-- 9:16 Video Canvas -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline muted preload="${index === 0 ? "auto" : "none"}" poster="${reel.thumbnail_url}" data-src="${reel.video_url}" ${initialSrc ? `src="${initialSrc}"` : ""}>
+      <!-- 9:16 Video Canvas (Unmuted by default for authentic audio) -->
+      <video class="feed-reel-video" loop playsinline webkit-playsinline preload="${index === 0 ? "auto" : "none"}" poster="${reel.thumbnail_url}" data-src="${reel.video_url}" ${initialSrc ? `src="${initialSrc}"` : ""}>
       </video>
       
       <div class="feed-reel-overlay"></div>
@@ -2292,13 +2321,8 @@ ${shareUrl}`);
             progressBar.style.width = `${video.currentTime / video.duration * 100}%`;
           }
         });
-        video.addEventListener("error", () => {
-          const cdnFallback = "https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4";
-          if (video.src && !video.src.includes("cdn.jsdelivr.net") && video.src !== cdnFallback) {
-            video.src = cdnFallback;
-            video.play().catch(() => {
-            });
-          }
+        video.addEventListener("error", (e) => {
+          console.warn("Feed video error:", e);
         });
       }
       return item;
@@ -2348,12 +2372,20 @@ ${shareUrl}`);
             const dataSrc = firstVideo.getAttribute("data-src");
             if (dataSrc && !firstVideo.src) firstVideo.src = dataSrc;
             firstVideo.currentTime = 0;
-            firstVideo.muted = true;
+            firstVideo.muted = this.isMuted;
+            firstVideo.volume = 1;
             firstVideo.playsInline = true;
             firstVideo.setAttribute("playsinline", "");
             firstVideo.setAttribute("webkit-playsinline", "");
             firstVideo.setAttribute("x5-playsinline", "");
-            firstVideo.play().catch((e) => console.log("Initial autoplay:", e));
+            const p = firstVideo.play();
+            if (p !== void 0) {
+              p.catch((e) => {
+                firstVideo.muted = true;
+                firstVideo.play().catch(() => {
+                });
+              });
+            }
             this.activeItem = firstItem;
             this.activeVideo = firstVideo;
             firstItem.classList.add("active-playing");
@@ -3282,7 +3314,7 @@ ${shareUrl}`);
           this.sideDrawer.close();
           return;
         }
-        if (this.currentView === "save") {
+        if (this.currentView === "save" || this.currentView === "reels") {
           this.switchView("home");
           return;
         }

@@ -233,7 +233,7 @@ class NatureMomentsApp {
         this.sideDrawer.close();
         return;
       }
-      if (this.currentView === 'save') {
+      if (this.currentView === 'save' || this.currentView === 'reels') {
         this.switchView('home');
         return;
       }

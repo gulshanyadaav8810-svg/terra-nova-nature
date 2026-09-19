@@ -222,9 +222,9 @@
                 </div>
 
                 <div id="video-url-input-container">
-                  <input type="text" id="input-video-url" class="form-input" placeholder="https://.../video.mp4 or assets/videos/nature_stream.mp4" value="assets/videos/nature_stream.mp4" />
+                  <input type="text" id="input-video-url" class="form-input" placeholder="https://.../video.mp4" value="" />
                   <div style="font-size: 0.75rem; color: var(--admin-text-dim); margin-top: 5px;">
-                    💡 Supports direct MP4, Cloudinary, Pexels CDN, Supabase, or workspace asset paths.
+                    💡 Supports direct MP4, Cloudinary, Pexels CDN, Supabase, or any high-definition video URL.
                   </div>
                 </div>
 
@@ -319,7 +319,6 @@
               <div class="phone-screen" id="preview-phone-screen">
                 <!-- Video / Poster Element -->
                 <video id="preview-video-element" class="phone-video-bg" playsinline muted loop poster="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80">
-                  <source src="assets/videos/nature_stream.mp4" type="video/mp4" />
                 </video>
 
                 <!-- Center Play Indicator -->
@@ -520,7 +519,7 @@
   {
     "title": "Glacial Waterfall Stream",
     "category_id": "waterfall",
-    "video_url": "assets/videos/nature_stream.mp4",
+    "video_url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
     "thumbnail_url": "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=600&q=80",
     "duration": "0:25",
     "is_trending": true

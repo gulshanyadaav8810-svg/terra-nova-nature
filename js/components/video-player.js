@@ -77,13 +77,7 @@ export class VideoPlayer {
     this.video.addEventListener('error', (e) => {
       this.spinner.classList.remove('loading');
       console.warn('Video playback error', e);
-      const cdnFallback = 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
-      if (this.video.src && !this.video.src.includes('cdn.jsdelivr.net') && this.video.src !== cdnFallback) {
-        this.video.src = cdnFallback;
-        this.video.play().catch(() => {});
-        return;
-      }
-      this.showToast('Unable to stream video. Using offline preview.', '⚠️');
+      this.showToast('Unable to stream video. Please check your connection.', '⚠️');
     });
 
     // Scrubber scrub/drag
@@ -206,7 +200,9 @@ export class VideoPlayer {
     // Update states
     this._updateLikeState(storage.isLiked(reel.content_id));
     this._updateSaveState(storage.isSaved(reel.content_id));
-    this._updateMuteState(this.video.muted);
+    this.video.muted = false;
+    this.video.volume = 1.0;
+    this._updateMuteState(false);
 
     // Offline badge or online indicator
     if (this.isOffline) {
@@ -245,6 +241,8 @@ export class VideoPlayer {
 
     // Play video with audio/muted fallback for Android
     try {
+      this.video.muted = false;
+      this.video.volume = 1.0;
       await this.video.play();
       this.centerPlay.classList.remove('show');
       this.spinner.classList.remove('loading');

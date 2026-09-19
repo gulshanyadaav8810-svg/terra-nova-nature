@@ -9,17 +9,45 @@ export const INITIAL_REELS = [];
 
 export let REELS_DATA = [];
 
+const APP_STORAGE_VERSION = 'v5_clean_no_demo';
+
 const DEMO_REEL_IDS = new Set([
+  'reel-forest-01',
+  'reel-flowers-01',
+  'reel-waterfall-01',
+  'reel-ocean-01',
   'reel-forest-0262u',
   'reel-mountains-z3ycr',
   'reel-ocean-1t68t',
   'reel-rain-ydez8',
   'reel-forest-z3ycr',
   'reel-forest-1t68t',
-  'reel-forest-ydez8'
+  'reel-forest-ydez8',
+  'reel-user-nature-1'
 ]);
 
-const FALLBACK_STREAM = 'https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/assets/videos/nature_stream.mp4';
+export function isDemoReel(r) {
+  if (!r || !r.content_id) return true;
+  if (DEMO_REEL_IDS.has(r.content_id)) return true;
+  const url = (r.video_url || '').toLowerCase();
+  if (url.includes('nature_stream.mp4') || url.includes('flower.mp4')) return true;
+  const title = (r.title || '').toLowerCase();
+  if (title.includes('spring wildflowers') || title.includes('alpine meadows')) return true;
+  return false;
+}
+
+// Storage version check: purge any legacy cached demo reels on new app version
+if (typeof window !== 'undefined') {
+  try {
+    const currentVer = localStorage.getItem('nature_storage_version');
+    if (currentVer !== APP_STORAGE_VERSION) {
+      localStorage.removeItem('nature_remote_reels');
+      localStorage.removeItem('nature_custom_reels');
+      localStorage.removeItem('nature_deleted_reels');
+      localStorage.setItem('nature_storage_version', APP_STORAGE_VERSION);
+    }
+  } catch (e) {}
+}
 
 // Dynamic merge function
 export function loadAllReels() {
@@ -44,15 +72,14 @@ export function loadAllReels() {
       const parsed = JSON.parse(remote);
       if (Array.isArray(parsed)) {
         // Purge any demo reels from localStorage
-        const sanitizedRemote = parsed.filter(r => r && r.content_id && !deletedIds.has(r.content_id));
+        const sanitizedRemote = parsed.filter(r => !isDemoReel(r) && !deletedIds.has(r.content_id));
         if (sanitizedRemote.length !== parsed.length) {
           localStorage.setItem('nature_remote_reels', JSON.stringify(sanitizedRemote));
         }
         sanitizedRemote.forEach(r => {
-          if (!r.video_url || r.video_url.startsWith('blob:')) {
-            r.video_url = FALLBACK_STREAM;
+          if (r.video_url && !r.video_url.startsWith('blob:')) {
+            mergedMap.set(r.content_id, { ...r });
           }
-          mergedMap.set(r.content_id, { ...r });
         });
       }
     }
@@ -66,15 +93,14 @@ export function loadAllReels() {
     if (custom) {
       const parsed = JSON.parse(custom);
       if (Array.isArray(parsed)) {
-        const sanitizedCustom = parsed.filter(r => r && r.content_id && !deletedIds.has(r.content_id));
+        const sanitizedCustom = parsed.filter(r => !isDemoReel(r) && !deletedIds.has(r.content_id));
         if (sanitizedCustom.length !== parsed.length) {
           localStorage.setItem('nature_custom_reels', JSON.stringify(sanitizedCustom));
         }
         sanitizedCustom.forEach(r => {
-          if (!r.video_url || r.video_url.startsWith('blob:')) {
-            r.video_url = FALLBACK_STREAM;
+          if (r.video_url && !r.video_url.startsWith('blob:')) {
+            mergedMap.set(r.content_id, { ...r });
           }
-          mergedMap.set(r.content_id, { ...r });
         });
       }
     }
@@ -85,11 +111,10 @@ export function loadAllReels() {
   // 4. Preserve existing in-memory REELS_DATA if populated
   if (Array.isArray(REELS_DATA) && REELS_DATA.length > 0) {
     REELS_DATA.forEach(r => {
-      if (r && r.content_id && !deletedIds.has(r.content_id)) {
-        if (!r.video_url || r.video_url.startsWith('blob:')) {
-          r.video_url = FALLBACK_STREAM;
+      if (r && r.content_id && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
+        if (r.video_url && !r.video_url.startsWith('blob:')) {
+          mergedMap.set(r.content_id, { ...r });
         }
-        mergedMap.set(r.content_id, { ...r });
       }
     });
   }
@@ -150,7 +175,7 @@ export async function syncRemoteReels() {
         const remoteReels = await res.json();
         if (Array.isArray(remoteReels)) {
           // Filter out demo reels
-          const cleanRemote = remoteReels.filter(r => r && r.content_id && !deletedIds.has(r.content_id));
+          const cleanRemote = remoteReels.filter(r => !isDemoReel(r) && !deletedIds.has(r.content_id));
 
           // Persist raw remote dataset to localStorage
           try {
@@ -159,12 +184,11 @@ export async function syncRemoteReels() {
 
           const merged = new Map();
 
-          // Sanitize remote reels (replace dead blob URLs with real CDN streaming URLs)
+          // Add valid remote reels
           cleanRemote.forEach(r => {
-            if (!r.video_url || r.video_url.startsWith('blob:')) {
-              r.video_url = FALLBACK_STREAM;
+            if (r.video_url && !r.video_url.startsWith('blob:')) {
+              merged.set(r.content_id, { ...r });
             }
-            merged.set(r.content_id, { ...r });
           });
           
           // Also persist any local customs
@@ -174,11 +198,10 @@ export async function syncRemoteReels() {
               const parsed = JSON.parse(custom);
               if (Array.isArray(parsed)) {
                 parsed.forEach(r => {
-                  if (r && r.content_id && !deletedIds.has(r.content_id)) {
-                    if (!r.video_url || r.video_url.startsWith('blob:')) {
-                      r.video_url = FALLBACK_STREAM;
+                  if (r && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
+                    if (r.video_url && !r.video_url.startsWith('blob:')) {
+                      merged.set(r.content_id, { ...r });
                     }
-                    merged.set(r.content_id, { ...r });
                   }
                 });
               }
@@ -214,7 +237,7 @@ export async function syncRemoteReels() {
   return REELS_DATA;
 }
 
-// Automatically sync when online, on window focus, touch, and 2.5s live polling
+// Automatically sync when online, on window focus, touch, and 1.5s live polling
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => syncRemoteReels());
   window.addEventListener('focus', () => syncRemoteReels());
@@ -222,19 +245,19 @@ if (typeof window !== 'undefined') {
     if (!document.hidden) syncRemoteReels();
   });
   
-  // Throttle touch sync
+  // Fast touch sync for 1-second responsiveness
   let lastTouchSync = 0;
   window.addEventListener('touchstart', () => {
     const now = Date.now();
-    if (now - lastTouchSync > 3000) {
+    if (now - lastTouchSync > 1200) {
       lastTouchSync = now;
       syncRemoteReels();
     }
   }, { passive: true });
 
-  // Immediate launch sync & fast 2.5s polling for 1-second APK sync
+  // Immediate launch sync & fast 1.5s polling for near-instant app updates
   syncRemoteReels();
-  setInterval(() => syncRemoteReels(), 2500);
+  setInterval(() => syncRemoteReels(), 1500);
 
   // BroadcastChannel for 0-millisecond cross-tab admin sync
   if ('BroadcastChannel' in window) {
