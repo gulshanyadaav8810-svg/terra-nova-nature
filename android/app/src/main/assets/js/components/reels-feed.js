@@ -119,17 +119,18 @@ export class ReelsFeed {
       if (likeBtn) {
         e.stopPropagation();
         const isNowLiked = storage.toggleLike(reel.content_id);
-        trackEngagement(reel.content_id, isNowLiked ? 'like' : 'unlike');
+        const result = trackEngagement(reel.content_id, isNowLiked ? 'like' : 'unlike');
+        reel.likes_count = result ? result.likes_count : (reel.likes_count || 0);
         const likeCountLabel = item.querySelector('.like-count-display');
         if (isNowLiked) {
           likeBtn.classList.add('liked');
           likeBtn.querySelector('svg').setAttribute('fill', 'currentColor');
-          if (likeCountLabel) likeCountLabel.textContent = (reel.likes_count || 0);
+          if (likeCountLabel) likeCountLabel.textContent = reel.likes_count;
           this.showToast('Added to Liked Nature Reels ❤️', '❤️');
         } else {
           likeBtn.classList.remove('liked');
           likeBtn.querySelector('svg').setAttribute('fill', 'none');
-          if (likeCountLabel) likeCountLabel.textContent = (reel.likes_count || 0);
+          if (likeCountLabel) likeCountLabel.textContent = reel.likes_count;
           this.showToast('Removed from Liked', '🤍');
         }
         return;
@@ -165,9 +166,10 @@ export class ReelsFeed {
       const shareBtn = e.target.closest('.feed-share-btn');
       if (shareBtn) {
         e.stopPropagation();
-        trackEngagement(reel.content_id, 'share');
+        const result = trackEngagement(reel.content_id, 'share');
+        reel.shares_count = result ? result.shares_count : ((reel.shares_count || 0) + 1);
         const shareCountLabel = item.querySelector('.share-count-display');
-        if (shareCountLabel) shareCountLabel.textContent = (reel.shares_count || 0);
+        if (shareCountLabel) shareCountLabel.textContent = reel.shares_count;
         shareService.shareReel(reel);
         return;
       }
@@ -242,7 +244,13 @@ export class ReelsFeed {
 
   // Instagram / TikTok style heart burst animation on double tap
   _triggerHeartBurst(item, reel) {
-    storage.toggleLike(reel.content_id);
+    const isNowLiked = storage.toggleLike(reel.content_id);
+    if (isNowLiked) {
+      const result = trackEngagement(reel.content_id, 'like');
+      reel.likes_count = result ? result.likes_count : ((reel.likes_count || 0) + 1);
+      const likeCountLabel = item.querySelector('.like-count-display');
+      if (likeCountLabel) likeCountLabel.textContent = reel.likes_count;
+    }
     const likeBtn = item.querySelector('.feed-like-btn');
     if (likeBtn) {
       likeBtn.classList.add('liked');

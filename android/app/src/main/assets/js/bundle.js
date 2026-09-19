@@ -662,6 +662,20 @@
     } catch (e) {
       console.warn("Error reading custom reels from localStorage:", e);
     }
+    try {
+      const engagements = JSON.parse(localStorage.getItem("nature_reels_engagement") || "{}");
+      mergedMap.forEach((r, id) => {
+        if (engagements[id]) {
+          const eng = engagements[id];
+          if (typeof eng.likes === "number") r.likes_count = eng.likes;
+          if (typeof eng.shares === "number") r.shares_count = eng.shares;
+          if (typeof eng.downloads === "number") r.downloads_count = eng.downloads;
+          if (typeof eng.views === "number") r.views_count = eng.views;
+        }
+      });
+    } catch (e) {
+      console.warn("Error applying engagement overrides:", e);
+    }
     const all = Array.from(mergedMap.values());
     all.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
     REELS_DATA = all;
@@ -694,6 +708,19 @@
               } catch (e) {
               }
             }
+            try {
+              const engagements = JSON.parse(localStorage.getItem("nature_reels_engagement") || "{}");
+              merged.forEach((r, id) => {
+                if (engagements[id]) {
+                  const eng = engagements[id];
+                  if (typeof eng.likes === "number") r.likes_count = Math.max(r.likes_count || 0, eng.likes);
+                  if (typeof eng.shares === "number") r.shares_count = Math.max(r.shares_count || 0, eng.shares);
+                  if (typeof eng.downloads === "number") r.downloads_count = Math.max(r.downloads_count || 0, eng.downloads);
+                  if (typeof eng.views === "number") r.views_count = Math.max(r.views_count || 0, eng.views);
+                }
+              });
+            } catch (e) {
+            }
             const all = Array.from(merged.values());
             all.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
             REELS_DATA = all;
@@ -724,6 +751,10 @@
         } else if (type === "ADD_REELS_BATCH" || type === "DELETE_REELS_BATCH" || type === "WIPE_ALL_REELS") {
           loadAllReels();
           window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
+        } else if (type === "ENGAGEMENT_TRACKED") {
+          loadAllReels();
+          window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
+          window.dispatchEvent(new CustomEvent("reelEngagementUpdated", { detail: event.data }));
         }
       };
     }
@@ -751,29 +782,69 @@
     }
   }
   function trackEngagement(contentId, metric) {
-    const reel = REELS_DATA.find((r) => r.content_id === contentId);
-    if (reel) {
-      if (metric === "like") reel.likes_count = (reel.likes_count || 0) + 1;
-      else if (metric === "unlike") reel.likes_count = Math.max(0, (reel.likes_count || 1) - 1);
-      else if (metric === "share") reel.shares_count = (reel.shares_count || 0) + 1;
-      else if (metric === "download") reel.downloads_count = (reel.downloads_count || 0) + 1;
-      else if (metric === "view") reel.views_count = (reel.views_count || 0) + 1;
-      try {
-        const custom = JSON.parse(localStorage.getItem("nature_custom_reels") || "[]");
-        const target = custom.find((r) => r.content_id === contentId);
-        if (target) {
-          if (metric === "like") target.likes_count = reel.likes_count;
-          else if (metric === "unlike") target.likes_count = reel.likes_count;
-          else if (metric === "share") target.shares_count = reel.shares_count;
-          else if (metric === "download") target.downloads_count = reel.downloads_count;
-          else if (metric === "view") target.views_count = reel.views_count;
-          localStorage.setItem("nature_custom_reels", JSON.stringify(custom));
-        }
-      } catch (e) {
-      }
-      window.dispatchEvent(new CustomEvent("reelEngagementUpdated", { detail: { content_id: contentId, metric, reel } }));
-      syncToCloudApi("track", { content_id: contentId, metric });
+    let reel = REELS_DATA.find((r) => r.content_id === contentId);
+    if (!reel) {
+      loadAllReels();
+      reel = REELS_DATA.find((r) => r.content_id === contentId);
     }
+    let likesCount = reel ? reel.likes_count || 0 : 0;
+    let sharesCount = reel ? reel.shares_count || 0 : 0;
+    let downloadsCount = reel ? reel.downloads_count || 0 : 0;
+    let viewsCount = reel ? reel.views_count || 0 : 0;
+    if (metric === "like") likesCount += 1;
+    else if (metric === "unlike") likesCount = Math.max(0, likesCount - 1);
+    else if (metric === "share") sharesCount += 1;
+    else if (metric === "download") downloadsCount += 1;
+    else if (metric === "view") viewsCount += 1;
+    if (reel) {
+      reel.likes_count = likesCount;
+      reel.shares_count = sharesCount;
+      reel.downloads_count = downloadsCount;
+      reel.views_count = viewsCount;
+    }
+    try {
+      const engagements = JSON.parse(localStorage.getItem("nature_reels_engagement") || "{}");
+      engagements[contentId] = {
+        likes: likesCount,
+        shares: sharesCount,
+        downloads: downloadsCount,
+        views: viewsCount
+      };
+      localStorage.setItem("nature_reels_engagement", JSON.stringify(engagements));
+      const custom = JSON.parse(localStorage.getItem("nature_custom_reels") || "[]");
+      const target = custom.find((r) => r.content_id === contentId);
+      if (target) {
+        target.likes_count = likesCount;
+        target.shares_count = sharesCount;
+        target.downloads_count = downloadsCount;
+        target.views_count = viewsCount;
+        localStorage.setItem("nature_custom_reels", JSON.stringify(custom));
+      }
+    } catch (e) {
+      console.warn("Error persisting engagement:", e);
+    }
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      const channel = new BroadcastChannel("nature_moments_sync");
+      channel.postMessage({
+        type: "ENGAGEMENT_TRACKED",
+        content_id: contentId,
+        metric,
+        likes_count: likesCount,
+        shares_count: sharesCount,
+        downloads_count: downloadsCount
+      });
+    }
+    window.dispatchEvent(new CustomEvent("reelEngagementUpdated", {
+      detail: { content_id: contentId, metric, likes_count: likesCount, shares_count: sharesCount, downloads_count: downloadsCount }
+    }));
+    syncToCloudApi("track", { content_id: contentId, metric });
+    return {
+      content_id: contentId,
+      metric,
+      likes_count: likesCount,
+      shares_count: sharesCount,
+      downloads_count: downloadsCount
+    };
   }
 
   // js/data/categories.js
@@ -1231,7 +1302,8 @@ ${shareUrl}`);
       this.likeBtn.addEventListener("click", () => {
         if (!this.currentReel) return;
         const isLiked = storage.toggleLike(this.currentReel.content_id);
-        trackEngagement(this.currentReel.content_id, isLiked ? "like" : "unlike");
+        const result = trackEngagement(this.currentReel.content_id, isLiked ? "like" : "unlike");
+        if (result) this.currentReel.likes_count = result.likes_count;
         this._updateLikeState(isLiked);
         this.showToast(isLiked ? "Added to Liked Reels \u2764\uFE0F" : "Removed from Liked", "\u2764\uFE0F");
       });
@@ -1243,7 +1315,8 @@ ${shareUrl}`);
       });
       this.shareBtn.addEventListener("click", async () => {
         if (!this.currentReel) return;
-        trackEngagement(this.currentReel.content_id, "share");
+        const result = trackEngagement(this.currentReel.content_id, "share");
+        if (result) this.currentReel.shares_count = result.shares_count;
         await shareService.shareReel(this.currentReel);
       });
       this.downloadBtn.addEventListener("click", () => {
@@ -1733,17 +1806,18 @@ ${shareUrl}`);
         if (likeBtn) {
           e.stopPropagation();
           const isNowLiked = storage.toggleLike(reel.content_id);
-          trackEngagement(reel.content_id, isNowLiked ? "like" : "unlike");
+          const result = trackEngagement(reel.content_id, isNowLiked ? "like" : "unlike");
+          reel.likes_count = result ? result.likes_count : reel.likes_count || 0;
           const likeCountLabel = item.querySelector(".like-count-display");
           if (isNowLiked) {
             likeBtn.classList.add("liked");
             likeBtn.querySelector("svg").setAttribute("fill", "currentColor");
-            if (likeCountLabel) likeCountLabel.textContent = reel.likes_count || 0;
+            if (likeCountLabel) likeCountLabel.textContent = reel.likes_count;
             this.showToast("Added to Liked Nature Reels \u2764\uFE0F", "\u2764\uFE0F");
           } else {
             likeBtn.classList.remove("liked");
             likeBtn.querySelector("svg").setAttribute("fill", "none");
-            if (likeCountLabel) likeCountLabel.textContent = reel.likes_count || 0;
+            if (likeCountLabel) likeCountLabel.textContent = reel.likes_count;
             this.showToast("Removed from Liked", "\u{1F90D}");
           }
           return;
@@ -1775,9 +1849,10 @@ ${shareUrl}`);
         const shareBtn = e.target.closest(".feed-share-btn");
         if (shareBtn) {
           e.stopPropagation();
-          trackEngagement(reel.content_id, "share");
+          const result = trackEngagement(reel.content_id, "share");
+          reel.shares_count = result ? result.shares_count : (reel.shares_count || 0) + 1;
           const shareCountLabel = item.querySelector(".share-count-display");
-          if (shareCountLabel) shareCountLabel.textContent = reel.shares_count || 0;
+          if (shareCountLabel) shareCountLabel.textContent = reel.shares_count;
           shareService.shareReel(reel);
           return;
         }
@@ -1838,7 +1913,13 @@ ${shareUrl}`);
     }
     // Instagram / TikTok style heart burst animation on double tap
     _triggerHeartBurst(item, reel) {
-      storage.toggleLike(reel.content_id);
+      const isNowLiked = storage.toggleLike(reel.content_id);
+      if (isNowLiked) {
+        const result = trackEngagement(reel.content_id, "like");
+        reel.likes_count = result ? result.likes_count : (reel.likes_count || 0) + 1;
+        const likeCountLabel = item.querySelector(".like-count-display");
+        if (likeCountLabel) likeCountLabel.textContent = reel.likes_count;
+      }
       const likeBtn = item.querySelector(".feed-like-btn");
       if (likeBtn) {
         likeBtn.classList.add("liked");

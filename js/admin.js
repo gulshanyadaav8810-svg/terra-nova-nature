@@ -28,6 +28,7 @@ class AdminStudio {
     this._bindCategoryModal();
     this._bindSyncEvents();
     this._bindSearchFilter();
+    this._bindEngagementEvents();
   }
 
   _initDom() {
@@ -115,6 +116,21 @@ class AdminStudio {
     document.getElementById('btn-wipe-all-reels')?.addEventListener('click', () => {
       this._handleWipeAllReels();
     });
+  }
+
+  _bindEngagementEvents() {
+    window.addEventListener('reelEngagementUpdated', () => {
+      this._loadData();
+    });
+    window.addEventListener('reelsUpdated', () => {
+      this._loadData();
+    });
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('nature_moments_sync');
+      channel.onmessage = () => {
+        this._loadData();
+      };
+    }
   }
 
   switchTab(tabId) {

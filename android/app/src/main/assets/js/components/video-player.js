@@ -118,7 +118,8 @@ export class VideoPlayer {
     this.likeBtn.addEventListener('click', () => {
       if (!this.currentReel) return;
       const isLiked = storage.toggleLike(this.currentReel.content_id);
-      trackEngagement(this.currentReel.content_id, isLiked ? 'like' : 'unlike');
+      const result = trackEngagement(this.currentReel.content_id, isLiked ? 'like' : 'unlike');
+      if (result) this.currentReel.likes_count = result.likes_count;
       this._updateLikeState(isLiked);
       this.showToast(isLiked ? 'Added to Liked Reels ❤️' : 'Removed from Liked', '❤️');
     });
@@ -134,7 +135,8 @@ export class VideoPlayer {
     // WhatsApp Share
     this.shareBtn.addEventListener('click', async () => {
       if (!this.currentReel) return;
-      trackEngagement(this.currentReel.content_id, 'share');
+      const result = trackEngagement(this.currentReel.content_id, 'share');
+      if (result) this.currentReel.shares_count = result.shares_count;
       await shareService.shareReel(this.currentReel);
     });
 
