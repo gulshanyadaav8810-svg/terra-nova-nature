@@ -1,57 +1,115 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <defs>
-    <!-- WhatsApp Official Vibrant Green Gradient -->
-    <linearGradient id="wa-bg-grad" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#25D366"/>
-      <stop offset="45%" stop-color="#128C7E"/>
-      <stop offset="100%" stop-color="#075E54"/>
+    <!-- Background Luxury Gradient -->
+    <radialGradient id="ns-bg-radial" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#144638"/>
+      <stop offset="60%" stop-color="#082820"/>
+      <stop offset="100%" stop-color="#041410"/>
+    </radialGradient>
+
+    <!-- Emerald Glow Ring Gradient -->
+    <linearGradient id="ns-ring-grad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="30%" stop-color="#10B981"/>
+      <stop offset="70%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+
+    <!-- Gold Sparkle Gradient -->
+    <linearGradient id="ns-gold-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="50%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+
+    <!-- Leaf 1 Emerald Gradient -->
+    <linearGradient id="ns-leaf-grad1" x1="160" y1="130" x2="340" y2="350" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6EE7B7"/>
+      <stop offset="40%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#065F46"/>
+    </linearGradient>
+
+    <!-- Leaf 2 Fresh Mint Gradient -->
+    <linearGradient id="ns-leaf-grad2" x1="280" y1="160" x2="380" y2="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A7F3D0"/>
+      <stop offset="60%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <!-- Glass Play Button Pure White Gradient -->
+    <linearGradient id="ns-play-grad" x1="215" y1="185" x2="315" y2="315" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="65%" stop-color="#ECFDF5"/>
+      <stop offset="100%" stop-color="#D1FAE5"/>
     </linearGradient>
 
     <!-- Glowing Rim Light -->
-    <linearGradient id="wa-rim-grad" x1="120" y1="40" x2="392" y2="472" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#DCF8C6" stop-opacity="0.9"/>
-      <stop offset="50%" stop-color="#25D366" stop-opacity="0.4"/>
-      <stop offset="100%" stop-color="#054D44" stop-opacity="0.8"/>
+    <linearGradient id="ns-rim-light" x1="120" y1="30" x2="400" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6EE7B7" stop-opacity="0.8"/>
+      <stop offset="40%" stop-color="#10B981" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#047857" stop-opacity="0.8"/>
     </linearGradient>
 
-    <!-- Center Play White/Mint Gradient -->
-    <linearGradient id="wa-play-grad" x1="220" y1="180" x2="330" y2="332" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="100%" stop-color="#E1FFC7"/>
-    </linearGradient>
+    <!-- Ambient Shadow Filter -->
+    <filter id="ns-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="22" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
 
-    <!-- Drop Shadow Filter -->
-    <filter id="wa-shadow" x="0" y="8" width="512" height="504" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#075E54" flood-opacity="0.45"/>
+    <filter id="ns-drop-shadow" x="-15%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#047857" flood-opacity="0.5"/>
+    </filter>
+
+    <filter id="ns-play-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#064E3B" flood-opacity="0.6"/>
     </filter>
   </defs>
 
-  <!-- Main Circular Badge with Shadow -->
-  <circle cx="256" cy="248" r="216" fill="url(#wa-bg-grad)" filter="url(#wa-shadow)"/>
-  <circle cx="256" cy="248" r="212" stroke="url(#wa-rim-grad)" stroke-width="4" stroke-opacity="0.6"/>
+  <!-- Outer Ambient Aura -->
+  <circle cx="256" cy="256" r="225" fill="none" stroke="url(#ns-ring-grad)" stroke-width="2" stroke-opacity="0.25"/>
 
-  <!-- Segmented WhatsApp Status Story Ring (4 Arcs) -->
-  <!-- Arc 1: Top-Right -->
-  <path d="M256 64 A184 184 0 0 1 440 248" stroke="#DCF8C6" stroke-width="12" stroke-linecap="round" stroke-dasharray="130 18" opacity="0.95"/>
-  <!-- Arc 2: Bottom-Right -->
-  <path d="M440 248 A184 184 0 0 1 256 432" stroke="#DCF8C6" stroke-width="12" stroke-linecap="round" stroke-dasharray="130 18" opacity="0.95"/>
-  <!-- Arc 3: Bottom-Left -->
-  <path d="M256 432 A184 184 0 0 1 72 248" stroke="#DCF8C6" stroke-width="12" stroke-linecap="round" stroke-dasharray="130 18" opacity="0.95"/>
-  <!-- Arc 4: Top-Left -->
-  <path d="M72 248 A184 184 0 0 1 256 64" stroke="#DCF8C6" stroke-width="12" stroke-linecap="round" stroke-dasharray="130 18" opacity="0.95"/>
+  <!-- Segmented Status Story Ring (4 High-Tech Rounded Arcs) -->
+  <circle cx="256" cy="256" r="216" stroke="url(#ns-ring-grad)" stroke-width="11" stroke-linecap="round" stroke-dasharray="146 24" fill="none" opacity="0.95"/>
 
-  <!-- Center Frosted Glass Plate -->
-  <circle cx="256" cy="248" r="132" fill="#FFFFFF" fill-opacity="0.14"/>
-  <circle cx="256" cy="248" r="132" stroke="#FFFFFF" stroke-width="3" stroke-opacity="0.35"/>
+  <!-- Main Luxury Dark Badge Base -->
+  <circle cx="256" cy="256" r="192" fill="url(#ns-bg-radial)" filter="url(#ns-drop-shadow)"/>
+  <circle cx="256" cy="256" r="190" stroke="url(#ns-rim-light)" stroke-width="3" fill="none"/>
 
-  <!-- WhatsApp Chat Bubble Base Silhouette -->
-  <path d="M256 138 C195.2 138 146 187.2 146 248 C146 270.4 152.6 291.2 164.2 308.8 L152 354 L198.8 341.8 C215.6 352.2 235.2 358 256 358 C316.8 358 366 308.8 366 248 C366 187.2 316.8 138 256 138 Z" fill="#075E54" fill-opacity="0.5"/>
+  <!-- Inner Subtle Glass Disc -->
+  <circle cx="256" cy="256" r="148" fill="#FFFFFF" fill-opacity="0.04" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
 
-  <!-- Dynamic Status Video Play Arrow inside Bubble -->
-  <polygon points="230,192 316,248 230,304" fill="url(#wa-play-grad)" stroke="#FFFFFF" stroke-width="4" stroke-linejoin="round"/>
+  <!-- NATURE MOTIF: Stylized Organic Leaves forming Status Circle -->
+  <!-- Primary Flourishing Nature Leaf (Left & Bottom arc) -->
+  <path d="M175 320 C145 270 155 195 210 155 C265 115 330 135 345 155 C335 195 305 240 260 270 C220 298 190 325 175 320 Z" 
+        fill="url(#ns-leaf-grad1)" opacity="0.92"/>
+  
+  <!-- Leaf Spine & Vein Glow -->
+  <path d="M185 310 C210 275 250 220 330 160" 
+        stroke="#A7F3D0" stroke-width="3.5" stroke-linecap="round" stroke-opacity="0.75"/>
 
-  <!-- Status Camera / Star Sparkle Badge at Top Right of Center -->
-  <circle cx="330" cy="180" r="22" fill="#25D366" stroke="#FFFFFF" stroke-width="3.5"/>
-  <!-- Play/Camera Dot -->
-  <circle cx="330" cy="180" r="8" fill="#FFFFFF"/>
+  <!-- Secondary Companion Sprout Leaf (Right Top arc) -->
+  <path d="M295 140 C340 130 380 165 375 210 C370 245 340 270 305 260 C300 225 315 170 295 140 Z" 
+        fill="url(#ns-leaf-grad2)" opacity="0.88"/>
+
+  <!-- Central Floating Glass Video Play Badge -->
+  <circle cx="264" cy="256" r="66" fill="rgba(6, 78, 59, 0.72)" stroke="rgba(255, 255, 255, 0.35)" stroke-width="2.5" filter="url(#ns-play-shadow)"/>
+
+  <!-- Precision High-Tech Play Triangle -->
+  <polygon points="246,224 300,256 246,288" 
+           fill="url(#ns-play-grad)" 
+           stroke="#FFFFFF" 
+           stroke-width="3.5" 
+           stroke-linejoin="round"/>
+
+  <!-- Pure Dewdrop Accent on Leaf Tip -->
+  <circle cx="344" cy="154" r="8.5" fill="#FFFFFF" opacity="0.95"/>
+  <circle cx="342" cy="152" r="3.5" fill="#A7F3D0"/>
+
+  <!-- Golden Nature Status Crown Sparkle (Top-Right) -->
+  <path d="M382 110 L386 98 L398 94 L386 90 L382 78 L378 90 L366 94 L378 98 Z" 
+        fill="url(#ns-gold-grad)"/>
+
+  <!-- Secondary Sparkle (Bottom-Left) -->
+  <path d="M128 352 L131 343 L140 340 L131 337 L128 328 L125 337 L116 340 L125 343 Z" 
+        fill="#34D399" opacity="0.85"/>
 </svg>

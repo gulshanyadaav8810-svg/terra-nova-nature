@@ -348,27 +348,15 @@ export async function syncRemoteReels() {
   return REELS_DATA;
 }
 
-// Automatically sync when online, on window focus, touch, and periodic live polling
+// Smooth, battery-optimized sync: sync on boot, online, and foreground return (zero scroll lag)
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => syncRemoteReels());
-  window.addEventListener('focus', () => syncRemoteReels());
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) syncRemoteReels();
   });
 
-  // Fast touch sync for 1-second responsiveness
-  let lastTouchSync = 0;
-  window.addEventListener('touchstart', () => {
-    const now = Date.now();
-    if (now - lastTouchSync > 3000) {
-      lastTouchSync = now;
-      syncRemoteReels();
-    }
-  }, { passive: true });
-
-  // Initial sync & steady 10s background sync
+  // Initial boot sync
   syncRemoteReels();
-  setInterval(() => syncRemoteReels(), 10000);
 
   // BroadcastChannel for 0-millisecond cross-tab admin sync
   if ('BroadcastChannel' in window) {

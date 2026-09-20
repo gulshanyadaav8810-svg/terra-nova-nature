@@ -49,6 +49,7 @@ class NatureMomentsApp {
     window.addEventListener('blur', () => window.pauseAllMedia());
 
     this._initToast();
+    this._initSplashScreen();
     this._initDomReferences();
     this._initComponents();
     this._initHomeCategories();
@@ -63,6 +64,25 @@ class NatureMomentsApp {
   _initToast() {
     this.toastContainer = document.getElementById('toast-container');
     this.toastTimer = null;
+  }
+
+  _initSplashScreen() {
+    const splash = document.getElementById('app-splash-screen');
+    if (!splash) return;
+
+    const dismiss = () => {
+      if (splash.classList.contains('splash-dismissed')) return;
+      splash.classList.add('splash-dismissed');
+      setTimeout(() => {
+        splash.style.display = 'none';
+      }, 500);
+    };
+
+    // Fast-tap skip
+    splash.addEventListener('click', dismiss);
+
+    // 2.6s cinematic intro duration matching user specification
+    setTimeout(dismiss, 2600);
   }
 
   showToast(message, icon = '✨') {
@@ -94,6 +114,7 @@ class NatureMomentsApp {
     this.reelsView = document.getElementById('view-reels');
     this.saveView = document.getElementById('view-save');
 
+    this.navBtnBack = document.getElementById('nav-item-back');
     this.navBtnHome = document.getElementById('nav-item-home');
     this.navBtnReels = document.getElementById('nav-item-reels');
     this.navBtnSave = document.getElementById('nav-item-save');
@@ -231,7 +252,6 @@ class NatureMomentsApp {
     const cat = getCategoryById(categoryId);
     const headingEl = document.getElementById('home-category-heading');
     const iconEl = document.getElementById('home-section-icon');
-    const countEl = document.getElementById('home-category-count');
     if (headingEl && cat) {
       headingEl.textContent = `${cat.name} Status & Reels`;
     }
@@ -243,9 +263,6 @@ class NatureMomentsApp {
     if (this.homeGrid) {
       const reels = getReelsByCategory(categoryId);
       this.homeGrid.setReels(reels, categoryId);
-      if (countEl) {
-        countEl.textContent = `${reels.length} Reels`;
-      }
     }
 
     // Sync reels feed category as well
@@ -255,6 +272,17 @@ class NatureMomentsApp {
   }
 
   _bindNavigation() {
+    if (this.navBtnBack) {
+      this.navBtnBack.addEventListener('click', () => {
+        if (this.currentView === 'reels' || this.currentView === 'save') {
+          this.switchView('home');
+        } else if (this.sideDrawer && this.sideDrawer.isOpen) {
+          this.sideDrawer.close();
+        } else {
+          this.switchView('home');
+        }
+      });
+    }
     if (this.navBtnHome) {
       this.navBtnHome.addEventListener('click', () => this.switchView('home'));
     }
@@ -317,6 +345,14 @@ class NatureMomentsApp {
 
     // Comprehensive Android System Back Button handler
     window.handleAndroidBack = () => {
+      // 0. If splash screen is still visible, dismiss it immediately
+      const splash = document.getElementById('app-splash-screen');
+      if (splash && !splash.classList.contains('splash-dismissed') && splash.style.display !== 'none') {
+        splash.classList.add('splash-dismissed');
+        setTimeout(() => { splash.style.display = 'none'; }, 500);
+        return true;
+      }
+
       // 1. If exit modal is already open, close it
       if (exitModal && (exitModal.classList.contains('open') || exitModal.style.display === 'flex')) {
         hideExitModal();
@@ -376,9 +412,10 @@ class NatureMomentsApp {
     const bottomNav = document.getElementById('bottom-nav-bar');
 
     // Reset bottom nav active classes
-    [this.navBtnHome, this.navBtnReels, this.navBtnSave].forEach(btn => {
+    [this.navBtnBack, this.navBtnHome, this.navBtnReels, this.navBtnSave].forEach(btn => {
       if (btn) {
         btn.classList.remove('active');
+        btn.classList.remove('highlight-back');
         btn.style.color = '';
       }
     });
@@ -407,6 +444,9 @@ class NatureMomentsApp {
       }
       if (this.navBtnReels) {
         this.navBtnReels.classList.add('active');
+      }
+      if (this.navBtnBack) {
+        this.navBtnBack.classList.add('highlight-back');
       }
       if (this.homeView) this.homeView.style.display = 'none';
       if (this.reelsView) this.reelsView.style.display = 'block';

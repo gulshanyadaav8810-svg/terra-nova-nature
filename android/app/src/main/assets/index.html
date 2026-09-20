@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>WhatsApp Status — Video Reels & Status Updates</title>
-  <meta name="description" content="Watch, share, and download trending WhatsApp Status videos and short reels in 9:16 full-screen." />
+  <title>Nature Status — Peaceful Nature Reels & Video Status</title>
+  <meta name="description" content="Watch, share, and download trending Nature Status videos and short reels in 9:16 full-screen." />
   <meta name="theme-color" content="#17483C" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -15,7 +15,7 @@
   <!-- Google Fonts: Plus Jakarta Sans & Caveat -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
   <!-- CSS Stylesheets -->
   <link rel="stylesheet" href="css/design-tokens.css" />
@@ -23,8 +23,54 @@
   <link rel="stylesheet" href="css/player.css" />
   <link rel="stylesheet" href="css/reels-feed.css" />
   <link rel="stylesheet" href="css/home-screen.css" />
+  <link rel="stylesheet" href="css/splash.css" />
 </head>
 <body>
+
+  <!-- 0. ULTRA-PREMIUM CINEMATIC SPLASH SCREEN (2.6s Pop-up Logo Animation) -->
+  <div id="app-splash-screen" class="app-splash-screen" aria-hidden="false">
+    <div class="splash-ambient-bg">
+      <div class="splash-ambient-glow"></div>
+      <div class="splash-particles">
+        <span class="particle p1"></span>
+        <span class="particle p2"></span>
+        <span class="particle p3"></span>
+        <span class="particle p4"></span>
+        <span class="particle p5"></span>
+        <span class="particle p6"></span>
+      </div>
+    </div>
+    
+    <div class="splash-content">
+      <!-- Signature Logo Pop-up Stage -->
+      <div class="splash-logo-stage">
+        <div class="splash-pulse-wave"></div>
+        <div class="splash-pulse-wave wave-2"></div>
+        <div class="splash-logo-wrapper">
+          <img src="assets/logo.svg" alt="Nature Status Logo" class="splash-logo-img" />
+          <div class="splash-logo-shine"></div>
+        </div>
+      </div>
+
+      <!-- Typography -->
+      <div class="splash-text-stage">
+        <h1 class="splash-title">
+          <span class="splash-word-nature">Nature</span> <span class="splash-word-status">Status</span>
+        </h1>
+        <p class="splash-tagline">
+          <span class="splash-sparkle">✦</span> Feel Nature's Pulse • Status Reels <span class="splash-sparkle">✦</span>
+        </p>
+      </div>
+
+      <!-- High-tech Progress Line -->
+      <div class="splash-loader-stage">
+        <div class="splash-progress-track">
+          <div class="splash-progress-fill"></div>
+        </div>
+        <div class="splash-loading-text">Loading Experience...</div>
+      </div>
+    </div>
+  </div>
 
   <!-- App Stage Frame (Responsive 9:16 Container) -->
   <div class="reels-app-stage">
@@ -41,8 +87,8 @@
 
         <!-- Brand Identity Pill -->
         <div class="header-brand-pill" onclick="window.app && window.app.switchView('home')" style="cursor: pointer;">
-          <img class="header-brand-logo" src="assets/logo.svg" alt="WhatsApp Status Logo" />
-          <span class="header-brand-name" data-i18n="app_title">WhatsApp Status</span>
+          <img class="header-brand-logo" src="assets/logo.svg" alt="Nature Status Logo" />
+          <span class="header-brand-name" data-i18n="app_title">Nature Status</span>
         </div>
 
         <!-- Hamburger Menu -->
@@ -76,10 +122,10 @@
             </svg>
           </button>
 
-          <!-- WhatsApp Status Title & Logo -->
+          <!-- Nature Status Title & Logo -->
           <div class="home-brand-container">
-            <img src="assets/logo.svg" alt="WhatsApp Status" class="home-brand-logo" />
-            <h1 class="home-app-title">WhatsApp Status</h1>
+            <img src="assets/logo.svg" alt="Nature Status" class="home-brand-logo" />
+            <h1 class="home-app-title">Nature Status</h1>
           </div>
 
           <!-- Right Sound Equalizer Button -->
@@ -107,9 +153,6 @@
             <h2 class="home-section-title" id="home-category-heading">Trending Status & Reels</h2>
           </div>
         </div>
-        <div class="home-section-right">
-          <span class="home-count-pill" id="home-category-count">108+ Reels</span>
-        </div>
       </div>
 
       <!-- 2-Column Vertical Reel Cards Grid -->
@@ -134,9 +177,17 @@
     </section>
 
 
-    <!-- 5. BOTTOM NAVIGATION BAR (HOME, REELS, SAVE) -->
+    <!-- 5. BOTTOM NAVIGATION BAR (BACK, HOME, REELS, SAVE) -->
     <nav id="bottom-nav-bar" class="bottom-nav bottom-nav-light" aria-label="Bottom Navigation">
       <div class="bottom-nav-inner">
+        <!-- Tab 0: Back Button (Instantly returns to Home from Reels/Save) -->
+        <button id="nav-item-back" class="bottom-nav-item nav-back-btn" type="button" aria-label="Go Back to Home" title="Back">
+          <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          <span class="bottom-nav-label">Back</span>
+        </button>
+
         <!-- Tab 1: Home (Default) -->
         <button id="nav-item-home" class="bottom-nav-item active" type="button" aria-label="Home">
           <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="currentColor">
@@ -314,12 +365,12 @@
       
       <div class="drawer-header">
         <div class="drawer-branding">
-          <img class="drawer-logo" src="assets/logo.svg" alt="WhatsApp Status Logo" />
+          <img class="drawer-logo" src="assets/logo.svg" alt="Nature Status Logo" />
           <div>
-            <div class="drawer-title-main" data-i18n="app_title">WhatsApp Status</div>
+            <div class="drawer-title-main" data-i18n="app_title">Nature Status</div>
             <div class="drawer-status-pill">
               <span class="drawer-status-dot"></span>
-              <span>v1.2.0 • Online & Synced</span>
+              <span>v2.5.0 • Online & Synced</span>
             </div>
           </div>
         </div>
@@ -438,7 +489,7 @@
       <div class="drawer-footer">
         <div class="drawer-footer-card">
           <div class="drawer-footer-highlight">⚡ 100% Free & Private • Ultra HD</div>
-          <div class="drawer-footer-sub">WhatsApp Status v1.2.0 • Live Content Sync</div>
+          <div class="drawer-footer-sub">Nature Status v2.5.0 • Live Content Sync</div>
         </div>
       </div>
 
@@ -510,7 +561,7 @@
   <div id="modal-rate" class="modal-overlay">
     <div class="modal-card" style="text-align: center;">
       <div class="modal-header">
-        <h3 class="modal-title" data-i18n="rate_title">Rate Nature Moments</h3>
+        <h3 class="modal-title" data-i18n="rate_title">Rate Nature Status</h3>
         <button id="rate-btn-close" class="btn-circle" style="width: 36px; height: 36px;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -552,7 +603,7 @@
       </div>
       <div class="modal-body" style="font-size: 0.88rem; line-height: 1.6; color: var(--color-text-dark);">
         <p style="margin-bottom: 12px;">
-          <strong>Zero Personal Data Collection:</strong> Nature Moments does not require or collect phone numbers, email addresses, names, contacts, or location data.
+          <strong>Zero Personal Data Collection:</strong> Nature Status does not require or collect phone numbers, email addresses, names, contacts, or location data.
         </p>
         <p style="margin-bottom: 12px;">
           <strong>Client-Side Storage:</strong> All likes, saved bookmarks, and downloaded video files are stored locally on your device using your browser's private localStorage and IndexedDB storage.
@@ -570,10 +621,10 @@
   <!-- Modal 6: Exit Confirmation -->
   <div id="modal-exit-confirm" class="modal-overlay" style="z-index: 9999;">
     <div class="modal-card" style="background: #111B21; border: 1px solid rgba(255,255,255,0.15); border-radius: 24px; padding: 28px 24px; text-align: center; max-width: 320px; width: 88%; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
-      <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 58px; height: 58px; margin: 0 auto 14px; display: block; border-radius: 50%;" />
-      <h3 style="color: #fff; font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">Exit WhatsApp Status?</h3>
+      <img src="assets/logo.svg" alt="Nature Status" style="width: 58px; height: 58px; margin: 0 auto 14px; display: block; border-radius: 50%;" />
+      <h3 style="color: #fff; font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">Exit Nature Status?</h3>
       <p style="color: rgba(255,255,255,0.7); font-size: 0.88rem; line-height: 1.45; margin-bottom: 22px;">
-        Are you sure you want to close and exit the application?
+        Are you sure you want to close and exit Nature Status?
       </p>
       <div style="display: flex; gap: 12px; justify-content: center;">
         <button id="btn-cancel-exit" type="button" onclick="document.getElementById('modal-exit-confirm').classList.remove('open');" style="flex: 1; padding: 12px; border-radius: 9999px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; font-weight: 600; cursor: pointer; font-size: 0.95rem;">

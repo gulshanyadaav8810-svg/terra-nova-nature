@@ -24,7 +24,7 @@ export const LANGUAGES = [
 
 export const TRANSLATIONS = {
   en: {
-    app_title: 'WhatsApp Status',
+    app_title: 'Nature Status',
     app_tagline: 'WhatsApp Status & Short Reels',
     nav_home: 'Home',
     nav_reels: 'Reels',
@@ -81,17 +81,17 @@ export const TRANSLATIONS = {
     offline_badge: 'Offline Playback',
     select_language_title: 'Select Language',
     feedback_title: 'Send Feedback',
-    feedback_placeholder: 'Tell us how we can make Nature Moments better for you...',
+    feedback_placeholder: 'Tell us how we can make Nature Status better for you...',
     feedback_rating_label: 'Your rating',
     feedback_thanks: 'Thank you for your valuable feedback!',
     privacy_title: 'Privacy Policy',
-    privacy_intro: 'Nature Moments is designed with 100% privacy at its core. No account or registration is required to use this application.',
-    rate_title: 'Rate Nature Moments',
+    privacy_intro: 'Nature Status is designed with 100% privacy at its core. No account or registration is required to use this application.',
+    rate_title: 'Rate Nature Status',
     rate_sub: 'If you enjoy watching peaceful nature reels, please take a moment to rate our app!',
     rate_button: 'Rate on Play Store'
   },
   hi: {
-    app_title: 'व्हाट्सएप स्टेटस',
+    app_title: 'नेचर स्टेटस',
     app_tagline: 'शांत और सुंदर प्राकृतिक रील्स',
     nav_home: 'होम',
     nav_reels: 'रील्स',
@@ -148,17 +148,17 @@ export const TRANSLATIONS = {
     offline_badge: 'ऑफ़लाइन प्लेबैक',
     select_language_title: 'भाषा चुनें',
     feedback_title: 'फीडबैक भेजें',
-    feedback_placeholder: 'नेचर मोमेंट्स को और बेहतर बनाने के लिए अपने सुझाव लिखें...',
+    feedback_placeholder: 'नेचर स्टेटस को और बेहतर बनाने के लिए अपने सुझाव लिखें...',
     feedback_rating_label: 'आपकी रेटिंग',
     feedback_thanks: 'आपके सुझाव के लिए बहुत धन्यवाद!',
     privacy_title: 'गोपनीयता नीति',
-    privacy_intro: 'नेचर मोमेंट्स आपकी पूर्ण गोपनीयता का सम्मान करता है। ऐप का उपयोग करने के लिए किसी खाते या लॉगिन की आवश्यकता नहीं है।',
-    rate_title: 'नेचर मोमेंट्स को रेट करें',
+    privacy_intro: 'नेचर स्टेटस आपकी पूर्ण गोपनीयता का सम्मान करता है। ऐप का उपयोग करने के लिए किसी खाते या लॉगिन की आवश्यकता नहीं है।',
+    rate_title: 'नेचर स्टेटस को रेट करें',
     rate_sub: 'यदि आपको प्रकृति रील्स पसंद हैं, तो कृपया हमें रेट करें!',
     rate_button: 'प्ले स्टोर पर रेट करें'
   },
   gu: {
-    app_title: 'વ્હોટ્સએપ સ્ટેટસ',
+    app_title: 'નેચર સ્ટેટસ',
     app_tagline: 'શાંત અને સુંદર પ્રકૃતિ રીલ્સ',
     nav_home: 'હોમ',
     nav_reels: 'રીલ્સ',
@@ -225,7 +225,7 @@ export const TRANSLATIONS = {
     rate_button: 'પ્લે સ્ટોર પર રેટ કરો'
   },
   mr: {
-    app_title: 'व्हॉट्सअ‍ॅप स्टेटस',
+    app_title: 'नेचर स्टेटस',
     app_tagline: 'शांत व सुंदर निसर्ग रील्स',
     nav_home: 'होम',
     nav_reels: 'रील्स',
@@ -286,13 +286,13 @@ export const TRANSLATIONS = {
     feedback_rating_label: 'तुमचे रेटिंग',
     feedback_thanks: 'तुमच्या मौल्यवान अभिप्रायाबद्दल धन्यवाद!',
     privacy_title: 'गोपनीयता धोरण',
-    privacy_intro: 'नेचर मोमेंट्समध्ये कोणत्याही खात्याची किंवा नोंदणीची आवश्यकता नाही.',
+    privacy_intro: 'नेचर स्टेटसमध्ये कोणत्याही खात्याची किंवा नोंदणीची आवश्यकता नाही.',
     rate_title: 'अ‍ॅपला रेटिंग द्या',
     rate_sub: 'कृपया प्ले स्टोअरवर आमचे अ‍ॅप रेट करा!',
     rate_button: 'प्ले स्टोअरवर रेट करा'
   },
   ta: {
-    app_title: 'வாட்ஸ்அப் ஸ்டேட்டஸ்',
+    app_title: 'நேச்சர் ஸ்டேட்டஸ்',
     app_tagline: 'அமைதியான இயற்கை ரீல்ஸ்',
     nav_home: 'முகப்பு',
     nav_reels: 'ரீல்ஸ்',
@@ -359,7 +359,7 @@ export const TRANSLATIONS = {
     rate_button: 'ப்ளே ஸ்டோரில் மதிப்பீடு'
   },
   te: {
-    app_title: 'వాట్సాప్ స్టేటస్',
+    app_title: 'నేచర్ స్టేటస్',
     app_tagline: 'ప్రశాంతమైన ప్రకృతి రీల్స్',
     nav_home: 'హోమ్',
     nav_reels: 'రీల్స్',
@@ -426,7 +426,7 @@ export const TRANSLATIONS = {
     rate_button: 'ప్లే స్టోర్‌లో రేట్ చేయండి'
   },
   kn: {
-    app_title: 'ವಾಟ್ಸಾಪ್ ಸ್ಟೇಟಸ್',
+    app_title: 'ನೇಚರ್ ಸ್ಟೇಟಸ್',
     app_tagline: 'ಶಾಂತಿಯುತ ಪ್ರಕೃತಿ ರೀಲ್ಸ್',
     nav_home: 'ಮುಖಪುಟ',
     nav_reels: 'ರೀಲ್ಸ್',

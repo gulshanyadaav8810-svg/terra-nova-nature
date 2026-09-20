@@ -533,14 +533,22 @@ export class ReelsFeed {
     const video = targetItem.querySelector('video');
     if (!video) return;
 
-    // Pause all other items cleanly
+    // Pause all other items cleanly and free decoder resources for distant items
+    const targetIdx = parseInt(targetItem.getAttribute('data-index') || '0', 10);
     const items = this.container.querySelectorAll('.feed-reel-item');
     items.forEach(item => {
       if (item !== targetItem) {
         item.classList.remove('active-playing');
         item.classList.remove('is-buffering');
         const otherVideo = item.querySelector('video');
-        if (otherVideo) otherVideo.pause();
+        if (otherVideo) {
+          otherVideo.pause();
+          const itemIdx = parseInt(item.getAttribute('data-index') || '0', 10);
+          if (Math.abs(itemIdx - targetIdx) > 1 && otherVideo.src) {
+            otherVideo.removeAttribute('src');
+            otherVideo.load();
+          }
+        }
         const otherVinyl = item.querySelector('.dock-vinyl-disc');
         if (otherVinyl) otherVinyl.classList.add('paused');
       }

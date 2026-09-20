@@ -132,7 +132,7 @@
   ];
   var TRANSLATIONS = {
     en: {
-      app_title: "WhatsApp Status",
+      app_title: "Nature Status",
       app_tagline: "WhatsApp Status & Short Reels",
       nav_home: "Home",
       nav_reels: "Reels",
@@ -189,17 +189,17 @@
       offline_badge: "Offline Playback",
       select_language_title: "Select Language",
       feedback_title: "Send Feedback",
-      feedback_placeholder: "Tell us how we can make Nature Moments better for you...",
+      feedback_placeholder: "Tell us how we can make Nature Status better for you...",
       feedback_rating_label: "Your rating",
       feedback_thanks: "Thank you for your valuable feedback!",
       privacy_title: "Privacy Policy",
-      privacy_intro: "Nature Moments is designed with 100% privacy at its core. No account or registration is required to use this application.",
-      rate_title: "Rate Nature Moments",
+      privacy_intro: "Nature Status is designed with 100% privacy at its core. No account or registration is required to use this application.",
+      rate_title: "Rate Nature Status",
       rate_sub: "If you enjoy watching peaceful nature reels, please take a moment to rate our app!",
       rate_button: "Rate on Play Store"
     },
     hi: {
-      app_title: "\u0935\u094D\u0939\u093E\u091F\u094D\u0938\u090F\u092A \u0938\u094D\u091F\u0947\u091F\u0938",
+      app_title: "\u0928\u0947\u091A\u0930 \u0938\u094D\u091F\u0947\u091F\u0938",
       app_tagline: "\u0936\u093E\u0902\u0924 \u0914\u0930 \u0938\u0941\u0902\u0926\u0930 \u092A\u094D\u0930\u093E\u0915\u0943\u0924\u093F\u0915 \u0930\u0940\u0932\u094D\u0938",
       nav_home: "\u0939\u094B\u092E",
       nav_reels: "\u0930\u0940\u0932\u094D\u0938",
@@ -256,17 +256,17 @@
       offline_badge: "\u0911\u092B\u093C\u0932\u093E\u0907\u0928 \u092A\u094D\u0932\u0947\u092C\u0948\u0915",
       select_language_title: "\u092D\u093E\u0937\u093E \u091A\u0941\u0928\u0947\u0902",
       feedback_title: "\u092B\u0940\u0921\u092C\u0948\u0915 \u092D\u0947\u091C\u0947\u0902",
-      feedback_placeholder: "\u0928\u0947\u091A\u0930 \u092E\u094B\u092E\u0947\u0902\u091F\u094D\u0938 \u0915\u094B \u0914\u0930 \u092C\u0947\u0939\u0924\u0930 \u092C\u0928\u093E\u0928\u0947 \u0915\u0947 \u0932\u093F\u090F \u0905\u092A\u0928\u0947 \u0938\u0941\u091D\u093E\u0935 \u0932\u093F\u0916\u0947\u0902...",
+      feedback_placeholder: "\u0928\u0947\u091A\u0930 \u0938\u094D\u091F\u0947\u091F\u0938 \u0915\u094B \u0914\u0930 \u092C\u0947\u0939\u0924\u0930 \u092C\u0928\u093E\u0928\u0947 \u0915\u0947 \u0932\u093F\u090F \u0905\u092A\u0928\u0947 \u0938\u0941\u091D\u093E\u0935 \u0932\u093F\u0916\u0947\u0902...",
       feedback_rating_label: "\u0906\u092A\u0915\u0940 \u0930\u0947\u091F\u093F\u0902\u0917",
       feedback_thanks: "\u0906\u092A\u0915\u0947 \u0938\u0941\u091D\u093E\u0935 \u0915\u0947 \u0932\u093F\u090F \u092C\u0939\u0941\u0924 \u0927\u0928\u094D\u092F\u0935\u093E\u0926!",
       privacy_title: "\u0917\u094B\u092A\u0928\u0940\u092F\u0924\u093E \u0928\u0940\u0924\u093F",
-      privacy_intro: "\u0928\u0947\u091A\u0930 \u092E\u094B\u092E\u0947\u0902\u091F\u094D\u0938 \u0906\u092A\u0915\u0940 \u092A\u0942\u0930\u094D\u0923 \u0917\u094B\u092A\u0928\u0940\u092F\u0924\u093E \u0915\u093E \u0938\u092E\u094D\u092E\u093E\u0928 \u0915\u0930\u0924\u093E \u0939\u0948\u0964 \u0910\u092A \u0915\u093E \u0909\u092A\u092F\u094B\u0917 \u0915\u0930\u0928\u0947 \u0915\u0947 \u0932\u093F\u090F \u0915\u093F\u0938\u0940 \u0916\u093E\u0924\u0947 \u092F\u093E \u0932\u0949\u0917\u093F\u0928 \u0915\u0940 \u0906\u0935\u0936\u094D\u092F\u0915\u0924\u093E \u0928\u0939\u0940\u0902 \u0939\u0948\u0964",
-      rate_title: "\u0928\u0947\u091A\u0930 \u092E\u094B\u092E\u0947\u0902\u091F\u094D\u0938 \u0915\u094B \u0930\u0947\u091F \u0915\u0930\u0947\u0902",
+      privacy_intro: "\u0928\u0947\u091A\u0930 \u0938\u094D\u091F\u0947\u091F\u0938 \u0906\u092A\u0915\u0940 \u092A\u0942\u0930\u094D\u0923 \u0917\u094B\u092A\u0928\u0940\u092F\u0924\u093E \u0915\u093E \u0938\u092E\u094D\u092E\u093E\u0928 \u0915\u0930\u0924\u093E \u0939\u0948\u0964 \u0910\u092A \u0915\u093E \u0909\u092A\u092F\u094B\u0917 \u0915\u0930\u0928\u0947 \u0915\u0947 \u0932\u093F\u090F \u0915\u093F\u0938\u0940 \u0916\u093E\u0924\u0947 \u092F\u093E \u0932\u0949\u0917\u093F\u0928 \u0915\u0940 \u0906\u0935\u0936\u094D\u092F\u0915\u0924\u093E \u0928\u0939\u0940\u0902 \u0939\u0948\u0964",
+      rate_title: "\u0928\u0947\u091A\u0930 \u0938\u094D\u091F\u0947\u091F\u0938 \u0915\u094B \u0930\u0947\u091F \u0915\u0930\u0947\u0902",
       rate_sub: "\u092F\u0926\u093F \u0906\u092A\u0915\u094B \u092A\u094D\u0930\u0915\u0943\u0924\u093F \u0930\u0940\u0932\u094D\u0938 \u092A\u0938\u0902\u0926 \u0939\u0948\u0902, \u0924\u094B \u0915\u0943\u092A\u092F\u093E \u0939\u092E\u0947\u0902 \u0930\u0947\u091F \u0915\u0930\u0947\u0902!",
       rate_button: "\u092A\u094D\u0932\u0947 \u0938\u094D\u091F\u094B\u0930 \u092A\u0930 \u0930\u0947\u091F \u0915\u0930\u0947\u0902"
     },
     gu: {
-      app_title: "\u0AB5\u0ACD\u0AB9\u0ACB\u0A9F\u0ACD\u0AB8\u0A8F\u0AAA \u0AB8\u0ACD\u0A9F\u0AC7\u0A9F\u0AB8",
+      app_title: "\u0AA8\u0AC7\u0A9A\u0AB0 \u0AB8\u0ACD\u0A9F\u0AC7\u0A9F\u0AB8",
       app_tagline: "\u0AB6\u0ABE\u0A82\u0AA4 \u0A85\u0AA8\u0AC7 \u0AB8\u0AC1\u0A82\u0AA6\u0AB0 \u0AAA\u0ACD\u0AB0\u0A95\u0AC3\u0AA4\u0ABF \u0AB0\u0AC0\u0AB2\u0ACD\u0AB8",
       nav_home: "\u0AB9\u0ACB\u0AAE",
       nav_reels: "\u0AB0\u0AC0\u0AB2\u0ACD\u0AB8",
@@ -333,7 +333,7 @@
       rate_button: "\u0AAA\u0ACD\u0AB2\u0AC7 \u0AB8\u0ACD\u0A9F\u0ACB\u0AB0 \u0AAA\u0AB0 \u0AB0\u0AC7\u0A9F \u0A95\u0AB0\u0ACB"
     },
     mr: {
-      app_title: "\u0935\u094D\u0939\u0949\u091F\u094D\u0938\u0905\u200D\u0945\u092A \u0938\u094D\u091F\u0947\u091F\u0938",
+      app_title: "\u0928\u0947\u091A\u0930 \u0938\u094D\u091F\u0947\u091F\u0938",
       app_tagline: "\u0936\u093E\u0902\u0924 \u0935 \u0938\u0941\u0902\u0926\u0930 \u0928\u093F\u0938\u0930\u094D\u0917 \u0930\u0940\u0932\u094D\u0938",
       nav_home: "\u0939\u094B\u092E",
       nav_reels: "\u0930\u0940\u0932\u094D\u0938",
@@ -394,13 +394,13 @@
       feedback_rating_label: "\u0924\u0941\u092E\u091A\u0947 \u0930\u0947\u091F\u093F\u0902\u0917",
       feedback_thanks: "\u0924\u0941\u092E\u091A\u094D\u092F\u093E \u092E\u094C\u0932\u094D\u092F\u0935\u093E\u0928 \u0905\u092D\u093F\u092A\u094D\u0930\u093E\u092F\u093E\u092C\u0926\u094D\u0926\u0932 \u0927\u0928\u094D\u092F\u0935\u093E\u0926!",
       privacy_title: "\u0917\u094B\u092A\u0928\u0940\u092F\u0924\u093E \u0927\u094B\u0930\u0923",
-      privacy_intro: "\u0928\u0947\u091A\u0930 \u092E\u094B\u092E\u0947\u0902\u091F\u094D\u0938\u092E\u0927\u094D\u092F\u0947 \u0915\u094B\u0923\u0924\u094D\u092F\u093E\u0939\u0940 \u0916\u093E\u0924\u094D\u092F\u093E\u091A\u0940 \u0915\u093F\u0902\u0935\u093E \u0928\u094B\u0902\u0926\u0923\u0940\u091A\u0940 \u0906\u0935\u0936\u094D\u092F\u0915\u0924\u093E \u0928\u093E\u0939\u0940.",
+      privacy_intro: "\u0928\u0947\u091A\u0930 \u0938\u094D\u091F\u0947\u091F\u0938\u092E\u0927\u094D\u092F\u0947 \u0915\u094B\u0923\u0924\u094D\u092F\u093E\u0939\u0940 \u0916\u093E\u0924\u094D\u092F\u093E\u091A\u0940 \u0915\u093F\u0902\u0935\u093E \u0928\u094B\u0902\u0926\u0923\u0940\u091A\u0940 \u0906\u0935\u0936\u094D\u092F\u0915\u0924\u093E \u0928\u093E\u0939\u0940.",
       rate_title: "\u0905\u200D\u0945\u092A\u0932\u093E \u0930\u0947\u091F\u093F\u0902\u0917 \u0926\u094D\u092F\u093E",
       rate_sub: "\u0915\u0943\u092A\u092F\u093E \u092A\u094D\u0932\u0947 \u0938\u094D\u091F\u094B\u0905\u0930\u0935\u0930 \u0906\u092E\u091A\u0947 \u0905\u200D\u0945\u092A \u0930\u0947\u091F \u0915\u0930\u093E!",
       rate_button: "\u092A\u094D\u0932\u0947 \u0938\u094D\u091F\u094B\u0905\u0930\u0935\u0930 \u0930\u0947\u091F \u0915\u0930\u093E"
     },
     ta: {
-      app_title: "\u0BB5\u0BBE\u0B9F\u0BCD\u0BB8\u0BCD\u0B85\u0BAA\u0BCD \u0BB8\u0BCD\u0B9F\u0BC7\u0B9F\u0BCD\u0B9F\u0BB8\u0BCD",
+      app_title: "\u0BA8\u0BC7\u0B9A\u0BCD\u0B9A\u0BB0\u0BCD \u0BB8\u0BCD\u0B9F\u0BC7\u0B9F\u0BCD\u0B9F\u0BB8\u0BCD",
       app_tagline: "\u0B85\u0BAE\u0BC8\u0BA4\u0BBF\u0BAF\u0BBE\u0BA9 \u0B87\u0BAF\u0BB1\u0BCD\u0B95\u0BC8 \u0BB0\u0BC0\u0BB2\u0BCD\u0BB8\u0BCD",
       nav_home: "\u0BAE\u0BC1\u0B95\u0BAA\u0BCD\u0BAA\u0BC1",
       nav_reels: "\u0BB0\u0BC0\u0BB2\u0BCD\u0BB8\u0BCD",
@@ -467,7 +467,7 @@
       rate_button: "\u0BAA\u0BCD\u0BB3\u0BC7 \u0BB8\u0BCD\u0B9F\u0BCB\u0BB0\u0BBF\u0BB2\u0BCD \u0BAE\u0BA4\u0BBF\u0BAA\u0BCD\u0BAA\u0BC0\u0B9F\u0BC1"
     },
     te: {
-      app_title: "\u0C35\u0C3E\u0C1F\u0C4D\u0C38\u0C3E\u0C2A\u0C4D \u0C38\u0C4D\u0C1F\u0C47\u0C1F\u0C38\u0C4D",
+      app_title: "\u0C28\u0C47\u0C1A\u0C30\u0C4D \u0C38\u0C4D\u0C1F\u0C47\u0C1F\u0C38\u0C4D",
       app_tagline: "\u0C2A\u0C4D\u0C30\u0C36\u0C3E\u0C02\u0C24\u0C2E\u0C48\u0C28 \u0C2A\u0C4D\u0C30\u0C15\u0C43\u0C24\u0C3F \u0C30\u0C40\u0C32\u0C4D\u0C38\u0C4D",
       nav_home: "\u0C39\u0C4B\u0C2E\u0C4D",
       nav_reels: "\u0C30\u0C40\u0C32\u0C4D\u0C38\u0C4D",
@@ -534,7 +534,7 @@
       rate_button: "\u0C2A\u0C4D\u0C32\u0C47 \u0C38\u0C4D\u0C1F\u0C4B\u0C30\u0C4D\u200C\u0C32\u0C4B \u0C30\u0C47\u0C1F\u0C4D \u0C1A\u0C47\u0C2F\u0C02\u0C21\u0C3F"
     },
     kn: {
-      app_title: "\u0CB5\u0CBE\u0C9F\u0CCD\u0CB8\u0CBE\u0CAA\u0CCD \u0CB8\u0CCD\u0C9F\u0CC7\u0C9F\u0CB8\u0CCD",
+      app_title: "\u0CA8\u0CC7\u0C9A\u0CB0\u0CCD \u0CB8\u0CCD\u0C9F\u0CC7\u0C9F\u0CB8\u0CCD",
       app_tagline: "\u0CB6\u0CBE\u0C82\u0CA4\u0CBF\u0CAF\u0CC1\u0CA4 \u0CAA\u0CCD\u0CB0\u0C95\u0CC3\u0CA4\u0CBF \u0CB0\u0CC0\u0CB2\u0CCD\u0CB8\u0CCD",
       nav_home: "\u0CAE\u0CC1\u0C96\u0CAA\u0CC1\u0C9F",
       nav_reels: "\u0CB0\u0CC0\u0CB2\u0CCD\u0CB8\u0CCD",
@@ -922,20 +922,10 @@
   }
   if (typeof window !== "undefined") {
     window.addEventListener("online", () => syncRemoteReels());
-    window.addEventListener("focus", () => syncRemoteReels());
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) syncRemoteReels();
     });
-    let lastTouchSync = 0;
-    window.addEventListener("touchstart", () => {
-      const now = Date.now();
-      if (now - lastTouchSync > 3e3) {
-        lastTouchSync = now;
-        syncRemoteReels();
-      }
-    }, { passive: true });
     syncRemoteReels();
-    setInterval(() => syncRemoteReels(), 1e4);
     if ("BroadcastChannel" in window) {
       const channel = new BroadcastChannel("nature_moments_sync");
       channel.onmessage = (event) => {
@@ -2407,13 +2397,21 @@ ${shareUrl}`);
       }
       const video = targetItem.querySelector("video");
       if (!video) return;
+      const targetIdx = parseInt(targetItem.getAttribute("data-index") || "0", 10);
       const items = this.container.querySelectorAll(".feed-reel-item");
       items.forEach((item) => {
         if (item !== targetItem) {
           item.classList.remove("active-playing");
           item.classList.remove("is-buffering");
           const otherVideo = item.querySelector("video");
-          if (otherVideo) otherVideo.pause();
+          if (otherVideo) {
+            otherVideo.pause();
+            const itemIdx = parseInt(item.getAttribute("data-index") || "0", 10);
+            if (Math.abs(itemIdx - targetIdx) > 1 && otherVideo.src) {
+              otherVideo.removeAttribute("src");
+              otherVideo.load();
+            }
+          }
           const otherVinyl = item.querySelector(".dock-vinyl-disc");
           if (otherVinyl) otherVinyl.classList.add("paused");
         }
@@ -3614,6 +3612,7 @@ ${shareUrl}`);
       window.addEventListener("pagehide", () => window.pauseAllMedia());
       window.addEventListener("blur", () => window.pauseAllMedia());
       this._initToast();
+      this._initSplashScreen();
       this._initDomReferences();
       this._initComponents();
       this._initHomeCategories();
@@ -3624,6 +3623,19 @@ ${shareUrl}`);
     _initToast() {
       this.toastContainer = document.getElementById("toast-container");
       this.toastTimer = null;
+    }
+    _initSplashScreen() {
+      const splash = document.getElementById("app-splash-screen");
+      if (!splash) return;
+      const dismiss = () => {
+        if (splash.classList.contains("splash-dismissed")) return;
+        splash.classList.add("splash-dismissed");
+        setTimeout(() => {
+          splash.style.display = "none";
+        }, 500);
+      };
+      splash.addEventListener("click", dismiss);
+      setTimeout(dismiss, 2600);
     }
     showToast(message, icon = "\u2728") {
       if (!this.toastContainer) return;
@@ -3648,6 +3660,7 @@ ${shareUrl}`);
       this.homeView = document.getElementById("view-home");
       this.reelsView = document.getElementById("view-reels");
       this.saveView = document.getElementById("view-save");
+      this.navBtnBack = document.getElementById("nav-item-back");
       this.navBtnHome = document.getElementById("nav-item-home");
       this.navBtnReels = document.getElementById("nav-item-reels");
       this.navBtnSave = document.getElementById("nav-item-save");
@@ -3754,7 +3767,6 @@ ${shareUrl}`);
       const cat = getCategoryById(categoryId);
       const headingEl = document.getElementById("home-category-heading");
       const iconEl = document.getElementById("home-section-icon");
-      const countEl = document.getElementById("home-category-count");
       if (headingEl && cat) {
         headingEl.textContent = `${cat.name} Status & Reels`;
       }
@@ -3764,15 +3776,23 @@ ${shareUrl}`);
       if (this.homeGrid) {
         const reels = getReelsByCategory(categoryId);
         this.homeGrid.setReels(reels, categoryId);
-        if (countEl) {
-          countEl.textContent = `${reels.length} Reels`;
-        }
       }
       if (this.reelsFeed && this.reelsFeed.activeCategory !== categoryId) {
         this.reelsFeed.filterCategory(categoryId);
       }
     }
     _bindNavigation() {
+      if (this.navBtnBack) {
+        this.navBtnBack.addEventListener("click", () => {
+          if (this.currentView === "reels" || this.currentView === "save") {
+            this.switchView("home");
+          } else if (this.sideDrawer && this.sideDrawer.isOpen) {
+            this.sideDrawer.close();
+          } else {
+            this.switchView("home");
+          }
+        });
+      }
       if (this.navBtnHome) {
         this.navBtnHome.addEventListener("click", () => this.switchView("home"));
       }
@@ -3825,6 +3845,14 @@ ${shareUrl}`);
         });
       }
       window.handleAndroidBack = () => {
+        const splash = document.getElementById("app-splash-screen");
+        if (splash && !splash.classList.contains("splash-dismissed") && splash.style.display !== "none") {
+          splash.classList.add("splash-dismissed");
+          setTimeout(() => {
+            splash.style.display = "none";
+          }, 500);
+          return true;
+        }
         if (exitModal && (exitModal.classList.contains("open") || exitModal.style.display === "flex")) {
           hideExitModal();
           return true;
@@ -3867,9 +3895,10 @@ ${shareUrl}`);
     switchView(viewName, skipResume = false) {
       this.currentView = viewName;
       const bottomNav = document.getElementById("bottom-nav-bar");
-      [this.navBtnHome, this.navBtnReels, this.navBtnSave].forEach((btn) => {
+      [this.navBtnBack, this.navBtnHome, this.navBtnReels, this.navBtnSave].forEach((btn) => {
         if (btn) {
           btn.classList.remove("active");
+          btn.classList.remove("highlight-back");
           btn.style.color = "";
         }
       });
@@ -3896,6 +3925,9 @@ ${shareUrl}`);
         }
         if (this.navBtnReels) {
           this.navBtnReels.classList.add("active");
+        }
+        if (this.navBtnBack) {
+          this.navBtnBack.classList.add("highlight-back");
         }
         if (this.homeView) this.homeView.style.display = "none";
         if (this.reelsView) this.reelsView.style.display = "block";
