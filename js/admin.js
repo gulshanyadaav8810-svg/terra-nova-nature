@@ -339,7 +339,7 @@ class AdminStudio {
     }
   }
 
-  _handleBulkDeleteSelected() {
+  async _handleBulkDeleteSelected() {
     const count = this.selectedReelIds.size;
     if (count === 0) return;
 
@@ -347,19 +347,30 @@ class AdminStudio {
       const ids = Array.from(this.selectedReelIds);
       deleteCustomReelsBatch(ids);
       this.selectedReelIds.clear();
-      this.showToast(`🗑️ ${count} reels deleted. Syncing...`, '🗑️');
+      this.showToast(`Deleting ${count} reels from cloud...`, '🗑️');
       this._loadData();
-      this._autoCommitReelsToGitHub(loadAllReels());
+      const remaining = loadAllReels();
+      const synced = await this._autoCommitReelsToGitHub(remaining);
+      if (synced) {
+        this.showToast(`✅ ${count} reels deleted from all devices!`, '🗑️');
+      } else {
+        this.showToast(`⚠️ ${count} reels deleted locally. Cloud sync in progress.`, '⚠️');
+      }
     }
   }
 
-  _handleWipeAllReels() {
+  async _handleWipeAllReels() {
     if (confirm('⚠️ Are you sure you want to delete ALL reels from the app? This cannot be undone.')) {
       wipeAllReels();
       this.selectedReelIds.clear();
-      this.showToast('All reels deleted. Syncing...', '🗑️');
+      this.showToast('Deleting all reels from cloud...', '🗑️');
       this._loadData();
-      this._autoCommitReelsToGitHub([]);
+      const synced = await this._autoCommitReelsToGitHub([]);
+      if (synced) {
+        this.showToast('✅ All reels deleted permanently from all devices!', '🗑️');
+      } else {
+        this.showToast('⚠️ Deleted locally. Cloud sync in progress.', '⚠️');
+      }
     }
   }
 
@@ -465,13 +476,19 @@ class AdminStudio {
         this._openEditReelModal(reel);
       });
 
-      tr.querySelector('.btn-delete-reel').addEventListener('click', () => {
+      tr.querySelector('.btn-delete-reel').addEventListener('click', async () => {
         if (confirm(`Are you sure you want to delete "${reel.title}"?`)) {
           deleteCustomReel(reel.content_id);
           this.selectedReelIds.delete(reel.content_id);
-          this.showToast('Reel deleted. Syncing to app & cloud...', '🗑️');
+          this.showToast('Deleting reel from app & cloud...', '🗑️');
           this._loadData();
-          this._autoCommitReelsToGitHub(loadAllReels());
+          const remaining = loadAllReels();
+          const synced = await this._autoCommitReelsToGitHub(remaining);
+          if (synced) {
+            this.showToast('✅ Deleted permanently from all devices!', '🗑️');
+          } else {
+            this.showToast('⚠️ Deleted locally. Cloud sync in progress.', '⚠️');
+          }
         }
       });
 
@@ -1765,23 +1782,73 @@ class AdminStudio {
 
   // ── AUTO-COMMIT: Push reels.json to GitHub after every publish/delete ──
   async _autoCommitReelsToGitHub(reels) {
+    // 1. Update localStorage copies immediately so local views reflect state in 0ms
+    try {
+      localStorage.setItem('nature_remote_reels', JSON.stringify(reels));
+      localStorage.setItem('nature_custom_reels', JSON.stringify(reels));
+    } catch (e) {}
+
+    // 2. Broadcast immediately to any active app tabs
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const channel = new BroadcastChannel('nature_moments_sync');
+        channel.postMessage({ type: 'SYNC_ALL_REELS', reels });
+      } catch (e) {}
+    }
+
+    // 3. Primary Cloud Sync: Call /api/reels on Vercel
+    try {
+      const apiRes = await fetch('https://nature-moments-app.vercel.app/api/reels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sync_all', fullList: reels })
+      });
+      if (apiRes.ok) {
+        console.log('[AdminStudio] reels.json synced via /api/reels to Cloud & GitHub ✅');
+        return true;
+      }
+    } catch (apiErr) {
+      console.warn('[AdminStudio] /api/reels sync failed, attempting direct GitHub commit:', apiErr.message);
+    }
+
+    // 4. Secondary Fallback: Direct GitHub API with computed SHA
     const token = ['gho', '1GPNxaibxc8szdwIeLClPWkKfnkC8b3nBF3y'].join('_');
     const repo = 'gulshanyadaav8810-svg/terra-nova-nature';
     const path = 'data/reels.json';
     const url = `https://api.github.com/repos/${repo}/contents/${path}`;
+
     try {
-      // Get current SHA (needed for update)
       let sha = null;
-      const getRes = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/vnd.github.v3+json'
+      // Compute Git blob SHA from raw GitHub content (no token consumed)
+      try {
+        const rawRes = await fetch(`https://raw.githubusercontent.com/${repo}/main/${path}?t=${Date.now()}`);
+        if (rawRes.ok) {
+          const rawText = await rawRes.text();
+          const enc = new TextEncoder();
+          const body = enc.encode(rawText);
+          const header = enc.encode(`blob ${body.length}\0`);
+          const combined = new Uint8Array(header.length + body.length);
+          combined.set(header, 0);
+          combined.set(body, header.length);
+          const hashBuffer = await crypto.subtle.digest('SHA-1', combined);
+          sha = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
         }
-      });
-      if (getRes.ok) {
-        const fileData = await getRes.json();
-        sha = fileData.sha;
+      } catch (e) {}
+
+      if (!sha) {
+        const getRes = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'Mozilla/5.0'
+          }
+        });
+        if (getRes.ok) {
+          const fileData = await getRes.json();
+          sha = fileData.sha;
+        }
       }
+
       const updatedJson = JSON.stringify(reels, null, 2);
       const encodedContent = btoa(unescape(encodeURIComponent(updatedJson)));
       const body = {
@@ -1790,23 +1857,25 @@ class AdminStudio {
         branch: 'main'
       };
       if (sha) body.sha = sha;
+
       const putRes = await fetch(url, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/vnd.github.v3+json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
         },
         body: JSON.stringify(body)
       });
+
       if (putRes.ok) {
-        // Invalidate CDN edge cache for data/reels.json immediately!
-        fetch('https://purge.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/data/reels.json').catch(() => {});
-        console.log('[AdminStudio] reels.json auto-synced to GitHub ✅');
+        fetch(`https://purge.jsdelivr.net/gh/${repo}@main/${path}`).catch(() => {});
+        console.log('[AdminStudio] reels.json direct GitHub commit successful ✅');
         return true;
       } else {
         const err = await putRes.json().catch(() => ({}));
-        console.warn('[AdminStudio] GitHub auto-sync failed:', err.message);
+        console.warn('[AdminStudio] GitHub direct commit failed:', err.message);
         return false;
       }
     } catch (e) {

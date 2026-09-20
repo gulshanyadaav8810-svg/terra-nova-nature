@@ -798,8 +798,8 @@
   var CLOUD_API_URL = "https://nature-moments-app.vercel.app/api/reels";
   async function syncRemoteReels() {
     const urls = [
-      `${CLOUD_API_URL}?t=${Date.now()}`,
       `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=${Date.now()}`,
+      `${CLOUD_API_URL}?t=${Date.now()}`,
       `data/reels.json?t=${Date.now()}`
     ];
     let deletedIds = new Set(DEMO_REEL_IDS);
@@ -851,27 +851,30 @@
                 });
               }
             });
-            try {
-              const custom = localStorage.getItem("nature_custom_reels");
-              if (custom) {
-                const parsed = JSON.parse(custom);
-                if (Array.isArray(parsed)) {
-                  parsed.forEach((r) => {
-                    if (r && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
-                      if (r.video_url && !r.video_url.startsWith("blob:")) {
-                        if (!merged.has(r.content_id)) {
-                          merged.set(r.content_id, {
-                            ...r,
-                            video_url: normalizeVideoUrl(r.video_url),
-                            thumbnail_url: normalizeImageUrl(r.thumbnail_url)
-                          });
+            const isAdmin = typeof window !== "undefined" && window.location && window.location.pathname.includes("admin");
+            if (isAdmin) {
+              try {
+                const custom = localStorage.getItem("nature_custom_reels");
+                if (custom) {
+                  const parsed = JSON.parse(custom);
+                  if (Array.isArray(parsed)) {
+                    parsed.forEach((r) => {
+                      if (r && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
+                        if (r.video_url && !r.video_url.startsWith("blob:")) {
+                          if (!merged.has(r.content_id)) {
+                            merged.set(r.content_id, {
+                              ...r,
+                              video_url: normalizeVideoUrl(r.video_url),
+                              thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+                            });
+                          }
                         }
                       }
-                    }
-                  });
+                    });
+                  }
                 }
+              } catch (e) {
               }
-            } catch (e) {
             }
             try {
               const engagements = JSON.parse(localStorage.getItem("nature_reels_engagement") || "{}");
@@ -923,16 +926,32 @@
     if ("BroadcastChannel" in window) {
       const channel = new BroadcastChannel("nature_moments_sync");
       channel.onmessage = (event) => {
-        const { type, reel, content_id } = event.data || {};
+        const { type, reel, content_id, reels } = event.data || {};
         if (type === "ADD_REEL" && reel) {
           loadAllReels();
           window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
         } else if (type === "DELETE_REEL" && content_id) {
-          loadAllReels();
+          try {
+            const rawDeleted = localStorage.getItem("nature_deleted_reels");
+            const deletedSet = rawDeleted ? new Set(JSON.parse(rawDeleted)) : /* @__PURE__ */ new Set();
+            deletedSet.add(content_id);
+            localStorage.setItem("nature_deleted_reels", JSON.stringify(Array.from(deletedSet)));
+            const remote = JSON.parse(localStorage.getItem("nature_remote_reels") || "[]");
+            const filtered = remote.filter((r) => r.content_id !== content_id);
+            localStorage.setItem("nature_remote_reels", JSON.stringify(filtered));
+          } catch (e) {
+          }
+          REELS_DATA = REELS_DATA.filter((r) => r.content_id !== content_id);
+          window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
+        } else if (type === "SYNC_ALL_REELS" && Array.isArray(reels)) {
+          try {
+            localStorage.setItem("nature_remote_reels", JSON.stringify(reels));
+          } catch (e) {
+          }
+          REELS_DATA = reels;
           window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
         } else if (type === "ADD_REELS_BATCH" || type === "DELETE_REELS_BATCH" || type === "WIPE_ALL_REELS" || type === "UPDATE_REEL") {
-          loadAllReels();
-          window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));
+          syncRemoteReels();
         } else if (type === "ENGAGEMENT_TRACKED") {
           loadAllReels();
           window.dispatchEvent(new CustomEvent("reelsUpdated", { detail: REELS_DATA }));

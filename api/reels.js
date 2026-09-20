@@ -1,3 +1,11 @@
+import crypto from 'crypto';
+
+function computeGitBlobSha(buffer) {
+  const header = Buffer.from(`blob ${buffer.length}\0`);
+  const store = Buffer.concat([header, buffer]);
+  return crypto.createHash('sha1').update(store).digest('hex');
+}
+
 export default async function handler(req, res) {
   // Enable CORS for APK and web
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,29 +23,19 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      // Fetch latest reels from GitHub repo
-      const ghRes = await fetch(GITHUB_URL, {
-        headers: {
-          'Authorization': `Bearer ${GITHUB_TOKEN}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'NatureMomentsApp'
-        }
-      });
-
-      if (!ghRes.ok) {
-        // Fallback to raw URL
-        const rawRes = await fetch(`https://raw.githubusercontent.com/${REPO}/main/${FILE_PATH}?t=${Date.now()}`);
+      // Fetch latest reels from raw GitHub CDN (ultra-fast, zero API token rate-limit consumption)
+      try {
+        const rawRes = await fetch(`https://raw.githubusercontent.com/${REPO}/main/${FILE_PATH}?t=${Date.now()}`, {
+          headers: { 'Cache-Control': 'no-cache' }
+        });
         if (rawRes.ok) {
           const rawData = await rawRes.json();
           return res.status(200).json(rawData);
         }
-        return res.status(200).json([]);
+      } catch (e) {
+        console.warn('Raw fetch failed in GET handler:', e.message);
       }
-
-      const fileData = await ghRes.json();
-      const content = Buffer.from(fileData.content, 'base64').toString('utf8');
-      const reels = JSON.parse(content || '[]');
-      return res.status(200).json(reels);
+      return res.status(200).json([]);
     }
 
     if (req.method === 'POST') {
@@ -52,27 +50,83 @@ export default async function handler(req, res) {
 
       const { action, reel, reels, id, ids, fullList } = payload || {};
 
-      // 1. Get current file data and SHA from GitHub
-      const ghRes = await fetch(GITHUB_URL, {
-        headers: {
-          'Authorization': `Bearer ${GITHUB_TOKEN}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'NatureMomentsApp'
+      // Handle video or thumbnail binary uploads
+      if (action === 'upload_video' || action === 'upload_image' || action === 'upload_thumb') {
+        const { filename, base64 } = payload;
+        if (!filename || !base64) {
+          return res.status(400).json({ error: 'filename and base64 required' });
         }
-      });
+        const isThumb = action === 'upload_image' || action === 'upload_thumb';
+        const prefix = isThumb ? 'thumb_' : 'reel_';
+        const safeName = `${prefix}${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        const uploadUrl = `https://api.github.com/repos/${REPO}/contents/uploads/${safeName}`;
 
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
+          },
+          body: JSON.stringify({
+            message: `Upload ${isThumb ? 'thumbnail' : 'video'}: ${safeName}`,
+            content: base64,
+            branch: 'main'
+          })
+        });
+
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json().catch(() => ({}));
+          return res.status(500).json({ error: 'Upload failed', details: errData });
+        }
+
+        const rawUrl = `https://raw.githubusercontent.com/${REPO}/main/uploads/${safeName}`;
+        const cdnUrl = `https://cdn.jsdelivr.net/gh/${REPO}@main/uploads/${safeName}`;
+        const vercelUrl = `/uploads/${safeName}`;
+
+        fetch(`https://purge.jsdelivr.net/gh/${REPO}@main/uploads/${safeName}`).catch(() => {});
+
+        return res.status(200).json({ success: true, url: rawUrl, cdn_url: cdnUrl, vercel_url: vercelUrl, filename: safeName });
+      }
+
+      // 1. Fetch current reels.json and calculate exact Git blob SHA
       let currentReels = [];
       let sha = null;
 
-      if (ghRes.ok) {
-        const fileData = await ghRes.json();
-        sha = fileData.sha;
-        try {
-          const content = Buffer.from(fileData.content, 'base64').toString('utf8');
-          currentReels = JSON.parse(content || '[]');
-        } catch (e) {
-          currentReels = [];
+      try {
+        const rawRes = await fetch(`https://raw.githubusercontent.com/${REPO}/main/${FILE_PATH}?t=${Date.now()}`, {
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        if (rawRes.ok) {
+          const rawText = await rawRes.text();
+          const buf = Buffer.from(rawText, 'utf8');
+          sha = computeGitBlobSha(buf);
+          currentReels = JSON.parse(rawText || '[]');
         }
+      } catch (e) {
+        console.warn('Raw fetch for SHA computation failed:', e.message);
+      }
+
+      // Fallback: If raw was unavailable, try GitHub Contents API
+      if (!sha) {
+        try {
+          const ghRes = await fetch(GITHUB_URL, {
+            headers: {
+              'Authorization': `Bearer ${GITHUB_TOKEN}`,
+              'Accept': 'application/vnd.github.v3+json',
+              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
+            }
+          });
+          if (ghRes.ok) {
+            const fileData = await ghRes.json();
+            sha = fileData.sha;
+            if (fileData.content) {
+              const content = Buffer.from(fileData.content, 'base64').toString('utf8');
+              currentReels = JSON.parse(content || '[]');
+            }
+          }
+        } catch (e) {}
       }
 
       // 2. Perform modification
@@ -176,10 +230,10 @@ export default async function handler(req, res) {
           'Authorization': `Bearer ${GITHUB_TOKEN}`,
           'Accept': 'application/vnd.github.v3+json',
           'Content-Type': 'application/json',
-          'User-Agent': 'NatureMomentsApp'
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
         },
         body: JSON.stringify({
-          message: `Admin Cloud API: Sync reels (${updatedReels.length} reels)`,
+          message: `Admin Studio: ${action || 'sync'} (${updatedReels.length} reels) ${new Date().toISOString()}`,
           content: encodedContent,
           sha: sha || undefined,
           branch: 'main'
@@ -187,7 +241,8 @@ export default async function handler(req, res) {
       });
 
       if (!putRes.ok) {
-        const errData = await putRes.json();
+        const errData = await putRes.json().catch(() => ({}));
+        console.warn('[CloudApi] GitHub commit failed:', errData);
         return res.status(500).json({ error: 'GitHub commit failed', details: errData });
       }
 
