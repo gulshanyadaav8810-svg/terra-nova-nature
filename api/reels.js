@@ -6,9 +6,6 @@ function computeGitBlobSha(buffer) {
   return crypto.createHash('sha1').update(store).digest('hex');
 }
 
-let memoryReelsCache = null;
-let lastCacheTimestamp = 0;
-
 export default async function handler(req, res) {
   // Enable CORS for APK and web
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -26,26 +23,39 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      // If we recently updated in memory, serve it instantly without waiting for CDN propagation
-      if (memoryReelsCache !== null && (Date.now() - lastCacheTimestamp < 45000)) {
-        return res.status(200).json(memoryReelsCache);
+      // Primary: Fetch authoritative current reels from GitHub Contents API
+      try {
+        const ghRes = await fetch(GITHUB_URL, {
+          headers: {
+            'Authorization': `Bearer ${GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'Mozilla/5.0'
+          }
+        });
+        if (ghRes.ok) {
+          const fileData = await ghRes.json();
+          if (fileData.content) {
+            const content = Buffer.from(fileData.content, 'base64').toString('utf8');
+            const parsed = JSON.parse(content || '[]');
+            return res.status(200).json(parsed);
+          }
+        }
+      } catch (e) {
+        console.warn('GitHub Contents API GET failed:', e.message);
       }
 
-      // Fetch latest reels from raw GitHub CDN (ultra-fast, zero API token rate-limit consumption)
+      // Fallback: raw CDN
       try {
         const rawRes = await fetch(`https://raw.githubusercontent.com/${REPO}/main/${FILE_PATH}?t=${Date.now()}`, {
           headers: { 'Cache-Control': 'no-cache' }
         });
         if (rawRes.ok) {
           const rawData = await rawRes.json();
-          memoryReelsCache = rawData;
-          lastCacheTimestamp = Date.now();
           return res.status(200).json(rawData);
         }
-      } catch (e) {
-        console.warn('Raw fetch failed in GET handler:', e.message);
-      }
-      return res.status(200).json(memoryReelsCache || []);
+      } catch (e) {}
+
+      return res.status(200).json([]);
     }
 
     if (req.method === 'POST') {
@@ -53,9 +63,7 @@ export default async function handler(req, res) {
       if (typeof payload === 'string') {
         try {
           payload = JSON.parse(payload);
-        } catch (e) {
-          // keep as string
-        }
+        } catch (e) {}
       }
 
       const { action, reel, reels, id, ids, fullList } = payload || {};
@@ -77,7 +85,7 @@ export default async function handler(req, res) {
             'Authorization': `Bearer ${GITHUB_TOKEN}`,
             'Accept': 'application/vnd.github.v3+json',
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
+            'User-Agent': 'NatureMomentsApp'
           },
           body: JSON.stringify({
             message: `Upload ${isThumb ? 'thumbnail' : 'video'}: ${safeName}`,
@@ -100,41 +108,41 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, url: rawUrl, cdn_url: cdnUrl, vercel_url: vercelUrl, filename: safeName });
       }
 
-      // 1. Fetch current reels.json and calculate exact Git blob SHA
+      // 1. Fetch authoritative current reels.json and exact SHA directly from GitHub API
       let currentReels = [];
       let sha = null;
 
       try {
-        const rawRes = await fetch(`https://raw.githubusercontent.com/${REPO}/main/${FILE_PATH}?t=${Date.now()}`, {
-          headers: { 'Cache-Control': 'no-cache' }
+        const ghRes = await fetch(GITHUB_URL, {
+          headers: {
+            'Authorization': `Bearer ${GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
+          }
         });
-        if (rawRes.ok) {
-          const rawText = await rawRes.text();
-          const buf = Buffer.from(rawText, 'utf8');
-          sha = computeGitBlobSha(buf);
-          currentReels = JSON.parse(rawText || '[]');
+        if (ghRes.ok) {
+          const fileData = await ghRes.json();
+          sha = fileData.sha;
+          if (fileData.content) {
+            const content = Buffer.from(fileData.content, 'base64').toString('utf8');
+            currentReels = JSON.parse(content || '[]');
+          }
         }
       } catch (e) {
-        console.warn('Raw fetch for SHA computation failed:', e.message);
+        console.warn('GitHub API fetch failed:', e.message);
       }
 
-      // Fallback: If raw was unavailable, try GitHub Contents API
+      // Fallback if GitHub API failed: calculate from raw
       if (!sha) {
         try {
-          const ghRes = await fetch(GITHUB_URL, {
-            headers: {
-              'Authorization': `Bearer ${GITHUB_TOKEN}`,
-              'Accept': 'application/vnd.github.v3+json',
-              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
-            }
+          const rawRes = await fetch(`https://raw.githubusercontent.com/${REPO}/main/${FILE_PATH}?t=${Date.now()}`, {
+            headers: { 'Cache-Control': 'no-cache' }
           });
-          if (ghRes.ok) {
-            const fileData = await ghRes.json();
-            sha = fileData.sha;
-            if (fileData.content) {
-              const content = Buffer.from(fileData.content, 'base64').toString('utf8');
-              currentReels = JSON.parse(content || '[]');
-            }
+          if (rawRes.ok) {
+            const rawText = await rawRes.text();
+            const buf = Buffer.from(rawText, 'utf8');
+            sha = computeGitBlobSha(buf);
+            currentReels = JSON.parse(rawText || '[]');
           }
         } catch (e) {}
       }
@@ -229,10 +237,6 @@ export default async function handler(req, res) {
       } else if (Array.isArray(payload)) {
         updatedReels = payload;
       }
-
-      // Update live in-memory cache immediately (0ms delay)
-      memoryReelsCache = updatedReels;
-      lastCacheTimestamp = Date.now();
 
       // 3. Commit back to GitHub
       const newJsonString = JSON.stringify(updatedReels, null, 2);
