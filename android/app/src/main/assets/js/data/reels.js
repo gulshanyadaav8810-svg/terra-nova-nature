@@ -9,7 +9,7 @@ export const INITIAL_REELS = [];
 
 export let REELS_DATA = [];
 
-const APP_STORAGE_VERSION = 'v9_clean_user_sync';
+const APP_STORAGE_VERSION = 'v10_clean_user_only_1789863800';
 
 const DEMO_REEL_IDS = new Set([
   'reel-forest-01',
@@ -222,8 +222,8 @@ const CLOUD_API_URL = 'https://nature-moments-app.vercel.app/api/reels';
 // Remote fetch function to sync from GitHub & Cloud API
 export async function syncRemoteReels() {
   const urls = [
-    `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=${Date.now()}`,
     `${CLOUD_API_URL}?t=${Date.now()}`,
+    `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=${Date.now()}`,
     `data/reels.json?t=${Date.now()}`
   ];
 

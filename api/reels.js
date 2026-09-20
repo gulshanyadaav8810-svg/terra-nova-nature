@@ -6,6 +6,9 @@ function computeGitBlobSha(buffer) {
   return crypto.createHash('sha1').update(store).digest('hex');
 }
 
+let memoryReelsCache = null;
+let lastCacheTimestamp = 0;
+
 export default async function handler(req, res) {
   // Enable CORS for APK and web
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -23,6 +26,11 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
+      // If we recently updated in memory, serve it instantly without waiting for CDN propagation
+      if (memoryReelsCache !== null && (Date.now() - lastCacheTimestamp < 45000)) {
+        return res.status(200).json(memoryReelsCache);
+      }
+
       // Fetch latest reels from raw GitHub CDN (ultra-fast, zero API token rate-limit consumption)
       try {
         const rawRes = await fetch(`https://raw.githubusercontent.com/${REPO}/main/${FILE_PATH}?t=${Date.now()}`, {
@@ -30,12 +38,14 @@ export default async function handler(req, res) {
         });
         if (rawRes.ok) {
           const rawData = await rawRes.json();
+          memoryReelsCache = rawData;
+          lastCacheTimestamp = Date.now();
           return res.status(200).json(rawData);
         }
       } catch (e) {
         console.warn('Raw fetch failed in GET handler:', e.message);
       }
-      return res.status(200).json([]);
+      return res.status(200).json(memoryReelsCache || []);
     }
 
     if (req.method === 'POST') {
@@ -219,6 +229,10 @@ export default async function handler(req, res) {
       } else if (Array.isArray(payload)) {
         updatedReels = payload;
       }
+
+      // Update live in-memory cache immediately (0ms delay)
+      memoryReelsCache = updatedReels;
+      lastCacheTimestamp = Date.now();
 
       // 3. Commit back to GitHub
       const newJsonString = JSON.stringify(updatedReels, null, 2);

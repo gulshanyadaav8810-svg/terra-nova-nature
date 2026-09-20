@@ -643,7 +643,7 @@
 
   // js/data/reels.js
   var REELS_DATA = [];
-  var APP_STORAGE_VERSION = "v9_clean_user_sync";
+  var APP_STORAGE_VERSION = "v10_clean_user_only_1789863800";
   var DEMO_REEL_IDS = /* @__PURE__ */ new Set([
     "reel-forest-01",
     "reel-flowers-01",
@@ -811,8 +811,8 @@
   var CLOUD_API_URL = "https://nature-moments-app.vercel.app/api/reels";
   async function syncRemoteReels() {
     const urls = [
-      `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=${Date.now()}`,
       `${CLOUD_API_URL}?t=${Date.now()}`,
+      `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=${Date.now()}`,
       `data/reels.json?t=${Date.now()}`
     ];
     let deletedIds = new Set(DEMO_REEL_IDS);
