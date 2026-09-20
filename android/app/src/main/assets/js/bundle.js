@@ -3303,6 +3303,7 @@ ${shareUrl}`);
       this.callbacks = callbacks;
       this.isOpen = false;
       this._bindEvents();
+      this.updateLabels();
       window.addEventListener("languageChanged", () => {
         this.updateLabels();
       });
@@ -3373,11 +3374,17 @@ ${shareUrl}`);
       const rateLabel = this.backdrop.querySelector("#drawer-label-rate");
       const shareLabel = this.backdrop.querySelector("#drawer-label-share");
       const privLabel = this.backdrop.querySelector("#drawer-label-privacy");
+      const langBadge = this.backdrop.querySelector("#drawer-lang-code");
       if (langLabel) langLabel.textContent = i18n.t("drawer_language");
       if (fbLabel) fbLabel.textContent = i18n.t("drawer_feedback");
       if (rateLabel) rateLabel.textContent = i18n.t("drawer_rate");
       if (shareLabel) shareLabel.textContent = i18n.t("drawer_share");
       if (privLabel) privLabel.textContent = i18n.t("drawer_privacy");
+      if (langBadge) {
+        const code = i18n.getLanguage ? i18n.getLanguage() : "en";
+        const langObj = LANGUAGES.find((l) => l.code === code);
+        langBadge.textContent = langObj ? langObj.name : code.toUpperCase();
+      }
     }
   };
 
