@@ -2303,6 +2303,58 @@ ${shareUrl}`);
         this.onCategoryChange(categoryId);
       }
     }
+    // Scroll directly to a specific reel and start playing it seamlessly
+    scrollToReel(contentId, categoryId = null) {
+      if (!contentId) return;
+      if (categoryId && categoryId !== this.activeCategory) {
+        this.activeCategory = categoryId;
+        this.filteredReels = getReelsByCategory(categoryId);
+        const pills = document.querySelectorAll(".floating-cat-pill");
+        pills.forEach((p) => {
+          if (p.getAttribute("data-id") === categoryId) {
+            p.classList.add("active");
+            p.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+          } else {
+            p.classList.remove("active");
+          }
+        });
+      }
+      let reelIndex = (this.filteredReels || []).findIndex((r) => r.content_id === contentId);
+      if (reelIndex === -1) {
+        this.activeCategory = "trending";
+        this.filteredReels = getReelsByCategory("trending");
+        reelIndex = (this.filteredReels || []).findIndex((r) => r.content_id === contentId);
+        if (reelIndex === -1) {
+          this.activeCategory = "all";
+          this.filteredReels = getReelsByCategory("all");
+          reelIndex = (this.filteredReels || []).findIndex((r) => r.content_id === contentId);
+        }
+        this.render();
+      }
+      if (reelIndex !== -1 && reelIndex >= this.renderedCount) {
+        const targetRenderCount = Math.min(reelIndex + 4, this.filteredReels.length);
+        for (let i = this.renderedCount; i < targetRenderCount; i++) {
+          const item = this._createReelItem(this.filteredReels[i], i);
+          this.container.appendChild(item);
+          if (this.observer) {
+            this.observer.observe(item);
+          }
+        }
+        this.renderedCount = targetRenderCount;
+      }
+      const targetItem = this.container.querySelector(`.feed-reel-item[data-id="${contentId}"]`);
+      if (targetItem) {
+        this.pauseAll();
+        this.container.scrollTop = targetItem.offsetTop;
+        this.activeItem = targetItem;
+        setTimeout(() => {
+          this._playReelItem(targetItem);
+        }, 60);
+      } else {
+        this.render();
+        this.resumeActive();
+      }
+    }
     _bindScrollSnapHandler() {
       let scrollTimeout = null;
       const onScroll = () => {
@@ -3600,12 +3652,18 @@ ${shareUrl}`);
       if (this.btnHomeHamburger) {
         this.btnHomeHamburger.addEventListener("click", () => this.sideDrawer.open());
       }
+      const btnReelsBack = document.getElementById("btn-reels-back");
+      if (btnReelsBack) {
+        btnReelsBack.addEventListener("click", () => {
+          this.switchView("home");
+        });
+      }
       const playerOverlay = document.getElementById("video-player-overlay");
       this.player = new VideoPlayer(playerOverlay, (msg, icon) => this.showToast(msg, icon));
       const homeGridContainer = document.getElementById("home-reels-grid-container");
       if (homeGridContainer) {
         this.homeGrid = new ReelsGrid(homeGridContainer, (reel) => {
-          this.player.open(reel);
+          this.openReelInFeed(reel);
         });
         this.homeGrid.setReels(getReelsByCategory("trending"), "trending");
       }
@@ -3628,7 +3686,7 @@ ${shareUrl}`);
       };
       const saveScreenContainer = document.getElementById("save-screen-container");
       this.saveScreen = new SaveScreen(saveScreenContainer, (reel, opts) => {
-        this.player.open(reel, opts);
+        this.openReelInFeed(reel);
       }, (msg, icon) => this.showToast(msg, icon));
       window.addEventListener("reelsUpdated", () => {
         this._initHomeCategories();
@@ -3759,7 +3817,7 @@ ${shareUrl}`);
         }
       };
     }
-    switchView(viewName) {
+    switchView(viewName, skipResume = false) {
       this.currentView = viewName;
       const bottomNav = document.getElementById("bottom-nav-bar");
       [this.navBtnHome, this.navBtnReels, this.navBtnSave].forEach((btn) => {
@@ -3796,7 +3854,7 @@ ${shareUrl}`);
         if (this.reelsView) this.reelsView.style.display = "block";
         if (this.saveView) this.saveView.style.display = "none";
         if (floatingHeader) floatingHeader.style.display = "block";
-        if (this.reelsFeed) {
+        if (this.reelsFeed && !skipResume) {
           this.reelsFeed.resumeActive();
         }
       } else if (viewName === "save") {
@@ -3817,13 +3875,21 @@ ${shareUrl}`);
         this.saveScreen.render();
       }
     }
+    // Opens reel directly in full-screen snap-scrolling Reels Feed so user can continuously scroll
+    openReelInFeed(reel) {
+      if (!reel || !reel.content_id) return;
+      this.switchView("reels", true);
+      if (this.reelsFeed) {
+        this.reelsFeed.scrollToReel(reel.content_id, this.currentCategory);
+      }
+    }
     _checkUrlParameters() {
       const params = new URLSearchParams(window.location.search);
       const reelId = params.get("reel");
       if (reelId) {
         const targetReel = getReelById(reelId);
         if (targetReel) {
-          setTimeout(() => this.player.open(targetReel), 300);
+          setTimeout(() => this.openReelInFeed(targetReel), 300);
         }
       }
     }

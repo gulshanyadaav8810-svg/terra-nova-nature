@@ -32,6 +32,19 @@
     <!-- 1. FLOATING GLASS HEADER OVER REELS (Visible when on Reels tab) -->
     <header id="reels-floating-header" class="reels-floating-header" style="display: none;">
       <div class="header-top-row">
+        <!-- Back to Home Button -->
+        <button id="btn-reels-back" class="btn-circle" style="width: 38px; height: 38px; background: rgba(0, 0, 0, 0.45); color: #FFF; border: 1px solid rgba(255,255,255,0.25); backdrop-filter: blur(8px); cursor: pointer;" aria-label="Back to Home">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+
+        <!-- Brand Identity Pill -->
+        <div class="header-brand-pill" onclick="window.app && window.app.switchView('home')" style="cursor: pointer;">
+          <img class="header-brand-logo" src="assets/logo.svg" alt="WhatsApp Status Logo" />
+          <span class="header-brand-name" data-i18n="app_title">WhatsApp Status</span>
+        </div>
+
         <!-- Hamburger Menu -->
         <button id="btn-hamburger" class="btn-circle" style="width: 38px; height: 38px; background: rgba(23, 72, 60, 0.7); color: #FFF; border: 1px solid rgba(255,255,255,0.25);" aria-label="Open Navigation Menu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
@@ -40,14 +53,6 @@
             <line x1="4" y1="17" x2="16" y2="17"></line>
           </svg>
         </button>
-
-        <!-- Brand Identity Pill -->
-        <div class="header-brand-pill" onclick="window.app && window.app.switchView('reels')">
-          <img class="header-brand-logo" src="assets/logo.svg" alt="WhatsApp Status Logo" />
-          <span class="header-brand-name" data-i18n="app_title">WhatsApp Status</span>
-        </div>
-
-        <div style="width: 38px;"></div>
       </div>
 
       <!-- Floating Horizontal Category Pills -->

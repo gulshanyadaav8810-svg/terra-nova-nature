@@ -122,17 +122,23 @@ class NatureMomentsApp {
     if (this.btnHomeHamburger) {
       this.btnHomeHamburger.addEventListener('click', () => this.sideDrawer.open());
     }
+    const btnReelsBack = document.getElementById('btn-reels-back');
+    if (btnReelsBack) {
+      btnReelsBack.addEventListener('click', () => {
+        this.switchView('home');
+      });
+    }
 
     // 3. Dedicated Video Player Overlay (Plays full video with sound on card click)
     const playerOverlay = document.getElementById('video-player-overlay');
     this.player = new VideoPlayer(playerOverlay, (msg, icon) => this.showToast(msg, icon));
 
-    // 4. Home View Reels Grid Component (Click card -> Play video in full-screen player!)
+    // 4. Home View Reels Grid Component (Click card -> Opens directly in continuous 9:16 scrollable Reels Feed!)
     const homeGridContainer = document.getElementById('home-reels-grid-container');
     if (homeGridContainer) {
       this.homeGrid = new ReelsGrid(homeGridContainer, (reel) => {
-        // When card is clicked on Home -> Open & Play Video in Player!
-        this.player.open(reel);
+        // When card is clicked on Home -> Open seamlessly in continuous 9:16 Reels Feed!
+        this.openReelInFeed(reel);
       });
       this.homeGrid.setReels(getReelsByCategory('trending'), 'trending');
     }
@@ -162,7 +168,7 @@ class NatureMomentsApp {
     // 6. Save Screen (Saved, Liked & Downloaded tabs)
     const saveScreenContainer = document.getElementById('save-screen-container');
     this.saveScreen = new SaveScreen(saveScreenContainer, (reel, opts) => {
-      this.player.open(reel, opts);
+      this.openReelInFeed(reel);
     }, (msg, icon) => this.showToast(msg, icon));
 
     // 7. Dynamic live sync listener from Admin Panel
@@ -322,7 +328,7 @@ class NatureMomentsApp {
     };
   }
 
-  switchView(viewName) {
+  switchView(viewName, skipResume = false) {
     this.currentView = viewName;
 
     const bottomNav = document.getElementById('bottom-nav-bar');
@@ -364,7 +370,7 @@ class NatureMomentsApp {
       if (this.reelsView) this.reelsView.style.display = 'block';
       if (this.saveView) this.saveView.style.display = 'none';
       if (floatingHeader) floatingHeader.style.display = 'block';
-      if (this.reelsFeed) {
+      if (this.reelsFeed && !skipResume) {
         this.reelsFeed.resumeActive();
       }
     } else if (viewName === 'save') {
@@ -386,13 +392,22 @@ class NatureMomentsApp {
     }
   }
 
+  // Opens reel directly in full-screen snap-scrolling Reels Feed so user can continuously scroll
+  openReelInFeed(reel) {
+    if (!reel || !reel.content_id) return;
+    this.switchView('reels', true);
+    if (this.reelsFeed) {
+      this.reelsFeed.scrollToReel(reel.content_id, this.currentCategory);
+    }
+  }
+
   _checkUrlParameters() {
     const params = new URLSearchParams(window.location.search);
     const reelId = params.get('reel');
     if (reelId) {
       const targetReel = getReelById(reelId);
       if (targetReel) {
-        setTimeout(() => this.player.open(targetReel), 300);
+        setTimeout(() => this.openReelInFeed(targetReel), 300);
       }
     }
   }

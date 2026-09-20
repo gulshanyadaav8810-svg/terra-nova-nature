@@ -404,6 +404,71 @@ export class ReelsFeed {
     }
   }
 
+  // Scroll directly to a specific reel and start playing it seamlessly
+  scrollToReel(contentId, categoryId = null) {
+    if (!contentId) return;
+
+    // 1. If category is specified and different, switch category
+    if (categoryId && categoryId !== this.activeCategory) {
+      this.activeCategory = categoryId;
+      this.filteredReels = getReelsByCategory(categoryId);
+
+      // Update floating pill styles
+      const pills = document.querySelectorAll('.floating-cat-pill');
+      pills.forEach(p => {
+        if (p.getAttribute('data-id') === categoryId) {
+          p.classList.add('active');
+          p.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } else {
+          p.classList.remove('active');
+        }
+      });
+    }
+
+    // 2. If the reel is not found in the current category, search in 'trending' or 'all'
+    let reelIndex = (this.filteredReels || []).findIndex(r => r.content_id === contentId);
+    if (reelIndex === -1) {
+      this.activeCategory = 'trending';
+      this.filteredReels = getReelsByCategory('trending');
+      reelIndex = (this.filteredReels || []).findIndex(r => r.content_id === contentId);
+      if (reelIndex === -1) {
+        this.activeCategory = 'all';
+        this.filteredReels = getReelsByCategory('all');
+        reelIndex = (this.filteredReels || []).findIndex(r => r.content_id === contentId);
+      }
+      this.render();
+    }
+
+    // 3. Ensure DOM has rendered up to target index so element exists
+    if (reelIndex !== -1 && reelIndex >= this.renderedCount) {
+      const targetRenderCount = Math.min(reelIndex + 4, this.filteredReels.length);
+      for (let i = this.renderedCount; i < targetRenderCount; i++) {
+        const item = this._createReelItem(this.filteredReels[i], i);
+        this.container.appendChild(item);
+        if (this.observer) {
+          this.observer.observe(item);
+        }
+      }
+      this.renderedCount = targetRenderCount;
+    }
+
+    // 4. Locate target DOM element and snap to it
+    const targetItem = this.container.querySelector(`.feed-reel-item[data-id="${contentId}"]`);
+    if (targetItem) {
+      this.pauseAll();
+      this.container.scrollTop = targetItem.offsetTop;
+      this.activeItem = targetItem;
+
+      // Slight delay to ensure layout settles before starting playback
+      setTimeout(() => {
+        this._playReelItem(targetItem);
+      }, 60);
+    } else {
+      this.render();
+      this.resumeActive();
+    }
+  }
+
   _bindScrollSnapHandler() {
     let scrollTimeout = null;
     const onScroll = () => {
