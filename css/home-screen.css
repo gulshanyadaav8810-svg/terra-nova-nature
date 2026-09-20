@@ -5,9 +5,15 @@
    micro-animations, ambient sound equalizer & double tap heart
    ========================================================== */
 
-/* 1. Home View Container */
+/* 1. Home View Container with Modern Luminous Ambient Mesh */
 #view-home {
-  background: #FAF7F2 !important;
+  background-color: #F6F9F8 !important;
+  background-image: 
+    radial-gradient(circle at 8% 12%, rgba(16, 185, 129, 0.12) 0px, transparent 45%),
+    radial-gradient(circle at 92% 16%, rgba(14, 165, 233, 0.12) 0px, transparent 45%),
+    radial-gradient(circle at 50% 55%, rgba(245, 158, 11, 0.08) 0px, transparent 55%),
+    radial-gradient(circle at 85% 90%, rgba(139, 92, 246, 0.09) 0px, transparent 50%) !important;
+  background-attachment: fixed !important;
   height: 100%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -24,15 +30,15 @@
   left: 0;
   right: 0;
   z-index: 35;
-  background: rgba(250, 247, 242, 0.92);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  padding: 16px 16px 12px 16px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  padding: 14px 16px 10px 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  border-bottom: 1px solid rgba(27, 77, 62, 0.06);
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.02);
+  gap: 12px;
+  border-bottom: 1px solid rgba(27, 77, 62, 0.08);
+  box-shadow: 0 4px 20px rgba(18, 45, 38, 0.04);
 }
 
 .home-header-row {
@@ -47,23 +53,51 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(140deg, #256552 0%, #153E31 100%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #10B981 0%, #065F46 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   box-shadow: 
-    0 6px 16px rgba(21, 62, 49, 0.28),
-    inset 0 1px 1.5px rgba(255, 255, 255, 0.35);
-  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+    0 6px 18px rgba(16, 185, 129, 0.32),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.4);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
 }
 
+.home-hamburger-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.42);
+}
+
 .home-hamburger-btn:active {
   transform: scale(0.92);
-  box-shadow: 0 2px 8px rgba(21, 62, 49, 0.2);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+}
+
+/* Brand Identity Container */
+.home-brand-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.home-brand-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid rgba(16, 185, 129, 0.45);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.home-brand-container:hover .home-brand-logo {
+  transform: rotate(15deg) scale(1.1);
 }
 
 /* Sleek Modern Nature Moments Title (Next.js / Apple style) */
@@ -72,7 +106,7 @@
   font-size: 1.35rem !important;
   font-weight: 800 !important;
   letter-spacing: -0.4px !important;
-  background: linear-gradient(135deg, #17483C 0%, #2E7D6A 100%) !important;
+  background: linear-gradient(135deg, #065F46 0%, #059669 60%, #10B981 100%) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   margin: 0 !important;
@@ -83,29 +117,28 @@
 }
 
 /* Right Sound Equalizer Button */
-.home-header-right {
-  width: 44px;
-  display: flex;
-  justify-content: flex-end;
-  flex-shrink: 0;
-}
-
-.home-audio-btn,
 .home-sound-btn {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
-  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+.home-sound-btn:hover {
+  transform: scale(1.06);
+  border-color: #10B981;
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.25);
 }
 
 .home-sound-btn:active {
@@ -113,9 +146,9 @@
 }
 
 .home-sound-btn.active {
-  background: #1B4D3E;
-  border-color: #1B4D3E;
-  box-shadow: 0 4px 14px rgba(27, 77, 62, 0.35);
+  background: linear-gradient(135deg, #065F46 0%, #059669 100%);
+  border-color: #10B981;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
 }
 
 .home-sound-eq {
@@ -126,9 +159,9 @@
 }
 
 .home-eq-bar {
-  width: 3px;
-  background: #1B4D3E;
-  border-radius: 2px;
+  width: 3.5px;
+  background: #059669;
+  border-radius: 3px;
   height: 6px;
   transition: all 0.2s ease;
 }
@@ -148,13 +181,13 @@
   100% { height: 6px; }
 }
 
-/* 3. Category Horizontal Pills with Photo Avatars (Glassmorphic) */
+/* 3. Category Horizontal Pills with Photo Avatars (Glassmorphic & Colorful) */
 .home-category-bar {
   display: flex;
   gap: 10px;
   overflow-x: auto;
   scrollbar-width: none;
-  padding: 2px 4px 6px 4px;
+  padding: 2px 2px 6px 2px;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -165,23 +198,25 @@
 .home-cat-chip {
   display: inline-flex;
   align-items: center;
-  padding: 4px 16px 4px 5px;
+  gap: 8px;
+  padding: 5px 16px 5px 5px;
   border-radius: 50px;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  color: #2D3A34;
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  color: #17483C;
   font-size: 0.88rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   box-shadow: 
-    0 3px 12px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+    0 4px 14px rgba(23, 72, 60, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
+  outline: none;
 }
 
 .home-cat-chip img {
@@ -189,22 +224,112 @@
   height: 32px;
   border-radius: 50%;
   object-fit: cover;
-  margin-right: 8px;
-  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  border: 2px solid rgba(16, 185, 129, 0.4);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: transform 0.22s ease, border-color 0.22s ease;
 }
 
-.home-cat-chip.active {
-  background: linear-gradient(135deg, #1D5443 0%, #123B2F 100%);
-  color: #F3E477;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 
-    0 6px 18px rgba(27, 77, 62, 0.35),
-    inset 0 1px 1px rgba(255, 255, 255, 0.25);
+.home-cat-chip:hover {
+  transform: translateY(-2px);
+  background: #FFFFFF;
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.16);
+}
+
+.home-cat-chip:hover img {
+  transform: scale(1.08);
+  border-color: #10B981;
 }
 
 .home-cat-chip:active {
   transform: scale(0.96);
+}
+
+/* Active Highlighted Category Chip */
+.home-cat-chip.active {
+  background: linear-gradient(135deg, #059669 0%, #10B981 100%) !important;
+  color: #FFFFFF !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 
+    0 8px 24px rgba(16, 185, 129, 0.45),
+    0 0 12px rgba(16, 185, 129, 0.3) !important;
+  transform: scale(1.04);
+}
+
+.home-cat-chip.active img {
+  border-color: #FFFFFF;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+}
+
+/* 4. Highlighted Category Section Header */
+.home-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 8px 16px;
+  box-sizing: border-box;
+}
+
+.home-section-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-section-icon-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: #FFFFFF;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+  flex-shrink: 0;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.home-section-left:hover .home-section-icon-badge {
+  transform: scale(1.08) rotate(5deg);
+}
+
+.home-section-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #059669;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.home-section-title {
+  font-size: 1.18rem;
+  font-weight: 800;
+  color: #17483C;
+  letter-spacing: -0.3px;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.home-section-right {
+  display: flex;
+  align-items: center;
+}
+
+.home-count-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #065F46;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
 }
 
 /* 4. 2-Column Vertical Reel Cards Grid */

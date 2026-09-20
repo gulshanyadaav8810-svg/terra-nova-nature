@@ -227,10 +227,25 @@ class NatureMomentsApp {
       }
     });
 
+    // Dynamically update section heading and icon
+    const cat = getCategoryById(categoryId);
+    const headingEl = document.getElementById('home-category-heading');
+    const iconEl = document.getElementById('home-section-icon');
+    const countEl = document.getElementById('home-category-count');
+    if (headingEl && cat) {
+      headingEl.textContent = `${cat.name} Status & Reels`;
+    }
+    if (iconEl && cat) {
+      iconEl.textContent = cat.icon || '✨';
+    }
+
     // Update Home grid
     if (this.homeGrid) {
       const reels = getReelsByCategory(categoryId);
       this.homeGrid.setReels(reels, categoryId);
+      if (countEl) {
+        countEl.textContent = `${reels.length} Reels`;
+      }
     }
 
     // Sync reels feed category as well

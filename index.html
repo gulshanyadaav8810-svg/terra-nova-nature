@@ -77,13 +77,19 @@
           </button>
 
           <!-- WhatsApp Status Title & Logo -->
-          <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1;">
-            <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 30px; height: 30px; border-radius: 50%; box-shadow: 0 2px 8px rgba(27,77,62,0.18);" />
-            <h1 class="home-app-title" style="margin: 0; flex: 0 1 auto;">WhatsApp Status</h1>
+          <div class="home-brand-container">
+            <img src="assets/logo.svg" alt="WhatsApp Status" class="home-brand-logo" />
+            <h1 class="home-app-title">WhatsApp Status</h1>
           </div>
 
-          <!-- Spacer to keep title centered -->
-          <div class="home-header-right" style="width: 44px; height: 44px;"></div>
+          <!-- Right Sound Equalizer Button -->
+          <button id="btn-home-sound" class="home-sound-btn" aria-label="Toggle Nature Audio" title="Ambient Nature Sound">
+            <div class="home-sound-eq">
+              <span class="home-eq-bar"></span>
+              <span class="home-eq-bar"></span>
+              <span class="home-eq-bar"></span>
+            </div>
+          </button>
         </div>
 
         <!-- Horizontal Category Pills with Photo Avatars -->
@@ -91,6 +97,20 @@
           <!-- Populated dynamically with category avatar chips -->
         </nav>
       </header>
+
+      <!-- Prominent Highlighted Section Header -->
+      <div class="home-section-header">
+        <div class="home-section-left">
+          <div class="home-section-icon-badge" id="home-section-icon">🔥</div>
+          <div>
+            <div class="home-section-eyebrow">EXPLORE CATEGORY</div>
+            <h2 class="home-section-title" id="home-category-heading">Trending Status & Reels</h2>
+          </div>
+        </div>
+        <div class="home-section-right">
+          <span class="home-count-pill" id="home-category-count">108+ Reels</span>
+        </div>
+      </div>
 
       <!-- 2-Column Vertical Reel Cards Grid -->
       <div id="home-reels-grid-container" class="home-reels-grid">

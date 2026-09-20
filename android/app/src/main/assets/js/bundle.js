@@ -3751,9 +3751,22 @@ ${shareUrl}`);
           c.classList.remove("active");
         }
       });
+      const cat = getCategoryById(categoryId);
+      const headingEl = document.getElementById("home-category-heading");
+      const iconEl = document.getElementById("home-section-icon");
+      const countEl = document.getElementById("home-category-count");
+      if (headingEl && cat) {
+        headingEl.textContent = `${cat.name} Status & Reels`;
+      }
+      if (iconEl && cat) {
+        iconEl.textContent = cat.icon || "\u2728";
+      }
       if (this.homeGrid) {
         const reels = getReelsByCategory(categoryId);
         this.homeGrid.setReels(reels, categoryId);
+        if (countEl) {
+          countEl.textContent = `${reels.length} Reels`;
+        }
       }
       if (this.reelsFeed && this.reelsFeed.activeCategory !== categoryId) {
         this.reelsFeed.filterCategory(categoryId);
