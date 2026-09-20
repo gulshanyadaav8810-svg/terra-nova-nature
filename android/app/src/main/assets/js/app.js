@@ -315,32 +315,59 @@ class NatureMomentsApp {
       });
     }
 
-    // Android back button bridge
-    window.showExitConfirm = () => {
-      // If exit modal is already open, close it
+    // Comprehensive Android System Back Button handler
+    window.handleAndroidBack = () => {
+      // 1. If exit modal is already open, close it
       if (exitModal && (exitModal.classList.contains('open') || exitModal.style.display === 'flex')) {
         hideExitModal();
-        return;
+        return true;
       }
-      if (this.player && this.player.overlay.classList.contains('active')) {
+
+      // 2. If fullscreen video player overlay is active, close it
+      if (this.player && this.player.overlay && (this.player.overlay.classList.contains('active') || this.player.overlay.style.display === 'flex')) {
         this.player.close();
-        return;
+        return true;
       }
+
+      // 3. If side drawer is open, close it
       if (this.sideDrawer && this.sideDrawer.isOpen) {
         this.sideDrawer.close();
-        return;
+        return true;
       }
+
+      // 4. If any other modal is open (Rate, Language, Feedback, Privacy), close it
+      const openModals = document.querySelectorAll('.modal-overlay.open, .modal-overlay[style*="display: flex"]');
+      let modalClosed = false;
+      openModals.forEach(m => {
+        if (m.id !== 'modal-exit-confirm') {
+          m.classList.remove('open');
+          m.style.display = 'none';
+          modalClosed = true;
+        }
+      });
+      if (modalClosed) {
+        return true;
+      }
+
+      // 5. If user is in reels or save view, navigate back to home view smoothly
       if (this.currentView === 'save' || this.currentView === 'reels') {
         this.switchView('home');
-        return;
+        return true;
       }
-      // On Home screen: Ask "Are you sure you want to exit?"
+
+      // 6. User is on Home screen: Show exit confirmation modal
       if (exitModal) {
         showExitModal();
+        return true;
       } else if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === 'function') {
         window.AndroidBridge.exitApp();
+        return true;
       }
+
+      return false;
     };
+
+    window.showExitConfirm = window.handleAndroidBack;
   }
 
   switchView(viewName, skipResume = false) {

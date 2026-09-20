@@ -3824,29 +3824,45 @@ ${shareUrl}`);
           }
         });
       }
-      window.showExitConfirm = () => {
+      window.handleAndroidBack = () => {
         if (exitModal && (exitModal.classList.contains("open") || exitModal.style.display === "flex")) {
           hideExitModal();
-          return;
+          return true;
         }
-        if (this.player && this.player.overlay.classList.contains("active")) {
+        if (this.player && this.player.overlay && (this.player.overlay.classList.contains("active") || this.player.overlay.style.display === "flex")) {
           this.player.close();
-          return;
+          return true;
         }
         if (this.sideDrawer && this.sideDrawer.isOpen) {
           this.sideDrawer.close();
-          return;
+          return true;
+        }
+        const openModals = document.querySelectorAll('.modal-overlay.open, .modal-overlay[style*="display: flex"]');
+        let modalClosed = false;
+        openModals.forEach((m) => {
+          if (m.id !== "modal-exit-confirm") {
+            m.classList.remove("open");
+            m.style.display = "none";
+            modalClosed = true;
+          }
+        });
+        if (modalClosed) {
+          return true;
         }
         if (this.currentView === "save" || this.currentView === "reels") {
           this.switchView("home");
-          return;
+          return true;
         }
         if (exitModal) {
           showExitModal();
+          return true;
         } else if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === "function") {
           window.AndroidBridge.exitApp();
+          return true;
         }
+        return false;
       };
+      window.showExitConfirm = window.handleAndroidBack;
     }
     switchView(viewName, skipResume = false) {
       this.currentView = viewName;

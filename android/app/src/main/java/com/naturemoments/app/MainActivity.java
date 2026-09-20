@@ -179,13 +179,17 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Immersive window setup
+        // Window setup - Keep system 3-button navigation bar (||| O <) & status bar visible at all times
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(
-            WindowManager.LayoutParams.FLAG_FULLSCREEN,
-            WindowManager.LayoutParams.FLAG_FULLSCREEN
-        );
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            Window window = getWindow();
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setStatusBarColor(android.graphics.Color.parseColor("#060B13"));
+            window.setNavigationBarColor(android.graphics.Color.parseColor("#060B13"));
+        }
 
         webView = new WebView(this);
         setContentView(webView);
@@ -296,8 +300,6 @@ public class MainActivity extends Activity {
         // Load live Vercel app directly!
         Log.d(TAG, "Loading live Vercel URL: " + ONLINE_URL);
         webView.loadUrl(ONLINE_URL);
-
-        hideSystemUI();
     }
 
     private WebResourceResponse handleAssetVideoRange(WebResourceRequest request, Uri url) {
@@ -374,7 +376,6 @@ public class MainActivity extends Activity {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
-            hideSystemUI();
             if (webView != null) {
                 webView.onResume();
                 webView.resumeTimers();
@@ -388,31 +389,21 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void hideSystemUI() {
-        View decorView = getWindow().getDecorView();
-        decorView.setSystemUiVisibility(
-            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-            | View.SYSTEM_UI_FLAG_FULLSCREEN
-        );
-    }
-
     @Override
     public void onBackPressed() {
         if (webView != null) {
             webView.evaluateJavascript(
                 "(function() { " +
+                "  if (typeof window.handleAndroidBack === 'function') { " +
+                "    return window.handleAndroidBack(); " +
+                "  } " +
                 "  if (typeof window.showExitConfirm === 'function') { " +
-                "    window.showExitConfirm(); " +
-                "    return true; " +
+                "    return window.showExitConfirm(); " +
                 "  } " +
                 "  return false; " +
                 "})();",
                 value -> {
-                    if ("false".equals(value) || "null".equals(value)) {
+                    if ("false".equals(value) || "\"false\"".equals(value) || "null".equals(value)) {
                         if (webView.canGoBack()) {
                             webView.goBack();
                         } else {
