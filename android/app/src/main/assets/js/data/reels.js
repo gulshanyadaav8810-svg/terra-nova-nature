@@ -28,7 +28,26 @@ const DEMO_REEL_IDS = new Set([
 
 export function normalizeVideoUrl(url) {
   if (!url || typeof url !== 'string') return url;
+  url = url.trim();
   if (url.startsWith('blob:') || url.startsWith('data:')) return url;
+
+  // Convert Google Drive share links to direct streaming
+  if (url.includes('drive.google.com')) {
+    const fileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+      return `https://drive.google.com/uc?export=download&id=${fileIdMatch[1]}`;
+    }
+  }
+
+  // Convert Dropbox share links to direct raw streaming
+  if (url.includes('dropbox.com')) {
+    return url.replace(/[?&]dl=0/, '?raw=1').replace(/[?&]dl=1/, '?raw=1');
+  }
+
+  // Convert GitHub blob links to raw user content
+  if (url.includes('github.com') && url.includes('/blob/')) {
+    return url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+  }
 
   let filename = '';
   if (url.startsWith('/uploads/')) {
@@ -378,7 +397,10 @@ if (typeof window !== 'undefined') {
         } catch (e) {}
         REELS_DATA = reels;
         window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
-      } else if (type === 'ADD_REELS_BATCH' || type === 'DELETE_REELS_BATCH' || type === 'WIPE_ALL_REELS' || type === 'UPDATE_REEL') {
+      } else if (type === 'UPDATE_REEL' && reel) {
+        loadAllReels();
+        window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+      } else if (type === 'ADD_REELS_BATCH' || type === 'DELETE_REELS_BATCH' || type === 'WIPE_ALL_REELS') {
         syncRemoteReels();
       } else if (type === 'ENGAGEMENT_TRACKED') {
         loadAllReels();

@@ -650,8 +650,8 @@ class AdminStudio {
         el.addEventListener('input', () => {
           if (el === this.inputVideoUrl) {
             const val = this.inputVideoUrl.value.trim();
-            if (val && val.startsWith('http')) {
-              this.scrubberVideo.src = val;
+            if (val && (val.startsWith('http://') || val.startsWith('https://'))) {
+              this._loadVideoToScrubber(val);
             }
           }
           this._updateLivePreview();
@@ -737,24 +737,33 @@ class AdminStudio {
     if (this.uploadedVideoBlobUrl) URL.revokeObjectURL(this.uploadedVideoBlobUrl);
     this.uploadedVideoBlobUrl = URL.createObjectURL(file);
 
-    // Setup scrubber video
-    this.scrubberVideo.src = this.uploadedVideoBlobUrl;
-    this.scrubberVideo.onloadedmetadata = () => {
-      const durSec = Math.round(this.scrubberVideo.duration);
-      const m = Math.floor(durSec / 60);
-      const s = durSec % 60;
-      const formatted = `${m}:${s < 10 ? '0' : ''}${s}`;
-      if (this.inputDuration) this.inputDuration.value = formatted;
+    // Setup scrubber video and auto-capture thumbnail
+    this._loadVideoToScrubber(this.uploadedVideoBlobUrl);
+    this.showToast('Video loaded & thumbnail extracted', '📹');
+    this._updateLivePreview();
+  }
 
-      if (this.thumbScrubber) {
-        this.thumbScrubber.min = 0;
-        this.thumbScrubber.max = durSec;
-        this.thumbScrubber.value = Math.min(1, durSec);
+  _loadVideoToScrubber(src) {
+    if (!src) return;
+    this.scrubberVideo.src = src;
+    this.scrubberVideo.onloadedmetadata = () => {
+      const durSec = Math.round(this.scrubberVideo.duration || 0);
+      if (durSec > 0) {
+        const m = Math.floor(durSec / 60);
+        const s = durSec % 60;
+        const formatted = `${m}:${s < 10 ? '0' : ''}${s}`;
+        if (this.inputDuration) this.inputDuration.value = formatted;
+
+        if (this.thumbScrubber) {
+          this.thumbScrubber.min = 0;
+          this.thumbScrubber.max = durSec;
+          this.thumbScrubber.value = Math.min(1, durSec);
+        }
+        if (this.thumbTimestamp) {
+          this.thumbTimestamp.textContent = `0:01s`;
+        }
+        this.scrubberVideo.currentTime = Math.min(1, durSec);
       }
-      if (this.thumbTimestamp) {
-        this.thumbTimestamp.textContent = `0:01s`;
-      }
-      this.scrubberVideo.currentTime = Math.min(1, durSec);
       this._updateLivePreview();
     };
 
@@ -776,9 +785,6 @@ class AdminStudio {
         } catch (e) {}
       }
     };
-
-    this.showToast('Video loaded & thumbnail extracted', '📹');
-    this._updateLivePreview();
   }
 
   _handleThumbFileUpload(file) {
@@ -1555,6 +1561,9 @@ class AdminStudio {
     this.modalEditReel = document.getElementById('modal-edit-reel');
     this.formEditReel = document.getElementById('form-edit-reel');
     const btnClose = document.getElementById('modal-close-edit-btn');
+    const videoUrlInput = document.getElementById('edit-reel-video-url');
+    const btnTestVideo = document.getElementById('btn-edit-test-video');
+    const btnCaptureFrame = document.getElementById('btn-edit-capture-frame');
     const thumbFileInput = document.getElementById('edit-reel-thumb-file');
     const thumbUrlInput = document.getElementById('edit-reel-thumb-url');
     const thumbPreview = document.getElementById('edit-reel-thumb-preview');
@@ -1569,10 +1578,72 @@ class AdminStudio {
       }
     });
 
+    // Test Play button in Edit modal
+    btnTestVideo?.addEventListener('click', () => {
+      const url = videoUrlInput?.value.trim();
+      if (!url) {
+        this.showToast('Please enter a video URL first!', '⚠️');
+        return;
+      }
+      if (this.modalPlayer && this.modalVideoEl) {
+        this.modalVideoEl.src = url;
+        this.modalPlayer.classList.add('show');
+        this.modalVideoEl.play().catch(e => console.log('Autoplay prevented:', e));
+      }
+    });
+
+    // Capture Frame directly from Video Link in Edit modal
+    btnCaptureFrame?.addEventListener('click', () => {
+      const url = videoUrlInput?.value.trim();
+      if (!url) {
+        this.showToast('Please enter a video URL first!', '⚠️');
+        return;
+      }
+      this.showToast('Extracting frame from video link...', '🎬');
+      const tempVideo = document.createElement('video');
+      tempVideo.crossOrigin = 'anonymous';
+      tempVideo.muted = true;
+      tempVideo.playsInline = true;
+      tempVideo.src = url;
+
+      let timer = setTimeout(() => {
+        this.showToast('Video load timed out. You can upload photo or paste image URL.', '⚠️');
+      }, 10000);
+
+      tempVideo.onloadedmetadata = () => {
+        tempVideo.currentTime = Math.min(1.5, (tempVideo.duration || 2) * 0.2);
+      };
+
+      tempVideo.onseeked = () => {
+        clearTimeout(timer);
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 540;
+          canvas.height = 960;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(tempVideo, 0, 0, 540, 960);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          this.editReelThumbDataUrl = dataUrl;
+          this.editReelThumbFile = null;
+          if (thumbPreview) thumbPreview.src = dataUrl;
+          if (thumbUrlInput) thumbUrlInput.value = '';
+          this.showToast('✅ Thumbnail frame captured from video link!', '📸');
+        } catch (err) {
+          this.showToast('CORS restricted on host. Please upload a photo or image URL.', '⚠️');
+        }
+      };
+
+      tempVideo.onerror = () => {
+        clearTimeout(timer);
+        this.showToast('Could not load video link. Please verify URL is active.', '⚠️');
+      };
+    });
+
     thumbFileInput?.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
         this.editReelThumbFile = file;
+        this.editReelThumbDataUrl = null;
         const reader = new FileReader();
         reader.onload = (re) => {
           if (thumbPreview) thumbPreview.src = re.target.result;
@@ -1586,6 +1657,7 @@ class AdminStudio {
       if (url && thumbPreview) {
         thumbPreview.src = url;
         this.editReelThumbFile = null;
+        this.editReelThumbDataUrl = null;
       }
     });
 
@@ -1594,10 +1666,15 @@ class AdminStudio {
       const contentId = document.getElementById('edit-reel-id')?.value;
       const title = document.getElementById('edit-reel-title')?.value.trim();
       const catId = document.getElementById('edit-reel-category')?.value;
+      const videoUrl = document.getElementById('edit-reel-video-url')?.value.trim();
       const isTrendingCheck = document.getElementById('edit-reel-trending')?.checked;
       const saveBtn = document.getElementById('btn-save-edit-reel');
 
       if (!contentId || !title) return;
+      if (!videoUrl) {
+        alert('Please provide a valid video link/URL.');
+        return;
+      }
 
       const reel = this.reels.find(r => r.content_id === contentId);
       if (!reel) return;
@@ -1608,7 +1685,15 @@ class AdminStudio {
       }
 
       let thumbUrl = reel.thumbnail_url;
-      if (this.editReelThumbFile) {
+      if (this.editReelThumbDataUrl) {
+        this.showToast('Uploading captured thumbnail to cloud CDN...', '🖼️');
+        try {
+          const uploaded = await this._uploadImageFileToCloud(this.editReelThumbDataUrl);
+          if (uploaded) thumbUrl = uploaded;
+        } catch (err) {
+          console.warn('Edit captured thumbnail upload failed:', err);
+        }
+      } else if (this.editReelThumbFile) {
         this.showToast('Uploading new thumbnail to cloud CDN...', '🖼️');
         try {
           const uploaded = await this._uploadImageFileToCloud(this.editReelThumbFile);
@@ -1626,6 +1711,7 @@ class AdminStudio {
         ...reel,
         title,
         category_id: catId,
+        video_url: videoUrl,
         is_trending: isTrending,
         thumbnail_url: thumbUrl
       };
@@ -1649,8 +1735,10 @@ class AdminStudio {
 
     const idInput = document.getElementById('edit-reel-id');
     const titleInput = document.getElementById('edit-reel-title');
+    const videoUrlInput = document.getElementById('edit-reel-video-url');
     if (idInput) idInput.value = reel.content_id;
     if (titleInput) titleInput.value = reel.title || '';
+    if (videoUrlInput) videoUrlInput.value = reel.video_url || '';
 
     const catSelect = document.getElementById('edit-reel-category');
     if (catSelect) {
@@ -1676,6 +1764,7 @@ class AdminStudio {
     if (thumbUrlInput) thumbUrlInput.value = reel.thumbnail_url || '';
 
     this.editReelThumbFile = null;
+    this.editReelThumbDataUrl = null;
     this.modalEditReel?.classList.add('show');
   }
 

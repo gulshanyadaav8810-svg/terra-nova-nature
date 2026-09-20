@@ -754,6 +754,19 @@
             </select>
           </div>
 
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label class="form-label" for="edit-reel-video-url" style="margin-bottom: 0;">Video Link / Direct URL <span class="req">*</span></label>
+              <button type="button" class="btn btn-secondary" id="btn-edit-test-video" style="padding: 3px 10px; font-size: 0.76rem; border-radius: 6px;">
+                ▶️ Test Play
+              </button>
+            </div>
+            <input type="url" id="edit-reel-video-url" class="form-input" placeholder="https://.../video.mp4" required />
+            <p style="font-size: 0.74rem; color: var(--admin-text-muted); margin-top: 4px; margin-bottom: 0;">
+              💡 Direct MP4, Pexels, Cloudinary, Fastly CDN link ya koi bhi direct video URL daalein. App me bilkul same 9:16 vertical stream hoga.
+            </p>
+          </div>
+
           <div class="form-group" style="display: flex; align-items: center; gap: 10px; padding: 6px 0;">
             <input type="checkbox" id="edit-reel-trending" style="width: 20px; height: 20px; cursor: pointer;" />
             <label class="form-label" for="edit-reel-trending" style="margin-bottom: 0; cursor: pointer; font-weight: 700;">🔥 Show in Trending Reels</label>
@@ -764,13 +777,18 @@
             <div style="display: flex; gap: 14px; align-items: flex-start; margin-bottom: 10px;">
               <img id="edit-reel-thumb-preview" src="" style="width: 80px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid var(--admin-border); background: #111;" alt="Thumb" />
               <div style="flex: 1;">
-                <label class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 8px 14px; font-size: 0.85rem; margin-bottom: 10px;">
-                  <span>🖼️ Choose Photo File</span>
-                  <input type="file" id="edit-reel-thumb-file" accept="image/*" style="display: none;" />
-                </label>
+                <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-accent" id="btn-edit-capture-frame" style="padding: 6px 12px; font-size: 0.8rem;">
+                    🎬 Video Link se Frame Lo
+                  </button>
+                  <label class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; font-size: 0.8rem;">
+                    <span>🖼️ Choose Photo File</span>
+                    <input type="file" id="edit-reel-thumb-file" accept="image/*" style="display: none;" />
+                  </label>
+                </div>
                 <input type="url" id="edit-reel-thumb-url" class="form-input" placeholder="Or paste image URL" style="font-size: 0.85rem;" />
                 <p style="font-size: 0.75rem; color: var(--admin-text-muted); margin-top: 6px;">
-                  New thumbnail will be uploaded to cloud CDN and updated in the mobile app immediately.
+                  New thumbnail will be updated in the mobile app immediately.
                 </p>
               </div>
             </div>
