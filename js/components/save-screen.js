@@ -147,7 +147,7 @@ export class SaveScreen {
 
     recReels.forEach(reel => {
       const cat = getCategoryById(reel.category_id);
-      const catIcon = cat ? cat.icon : '🌿';
+      const catIcon = cat ? cat.icon : '✨';
       const catName = cat ? cat.name : '';
 
       const card = document.createElement('div');
@@ -199,10 +199,10 @@ export class SaveScreen {
             </svg>
           </div>
           <h3 class="empty-state-title">No saved reels yet</h3>
-          <p class="empty-state-subtitle">Bookmark peaceful nature moments to build your personal sanctuary.</p>
+          <p class="empty-state-subtitle">Bookmark peaceful moments to build your personal collection.</p>
           <button class="empty-state-action-btn" type="button" onclick="window.app && window.app.switchView('home')">
-            <span>🌿</span>
-            <span>Explore Nature Reels</span>
+            <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 50%;" />
+            <span>Explore Status Videos</span>
           </button>
         </div>
       `;
@@ -215,7 +215,7 @@ export class SaveScreen {
 
     savedReels.forEach(reel => {
       const cat = getCategoryById(reel.category_id);
-      const catIcon = cat ? cat.icon : '🌿';
+      const catIcon = cat ? cat.icon : '✨';
       const catName = cat ? cat.name : '';
 
       const card = document.createElement('div');
@@ -286,10 +286,10 @@ export class SaveScreen {
             </svg>
           </div>
           <h3 class="empty-state-title">No liked reels yet</h3>
-          <p class="empty-state-subtitle">Tap the heart on any nature video you love to save it here.</p>
+          <p class="empty-state-subtitle">Tap the heart on any video you love to save it here.</p>
           <button class="empty-state-action-btn" type="button" onclick="window.app && window.app.switchView('home')">
-            <span>🌿</span>
-            <span>Discover Reels</span>
+            <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 50%;" />
+            <span>Discover Status Videos</span>
           </button>
         </div>
       `;
@@ -302,7 +302,7 @@ export class SaveScreen {
 
     likedReels.forEach(reel => {
       const cat = getCategoryById(reel.category_id);
-      const catIcon = cat ? cat.icon : '🌿';
+      const catIcon = cat ? cat.icon : '✨';
       const catName = cat ? cat.name : '';
 
       const card = document.createElement('div');
@@ -379,10 +379,10 @@ export class SaveScreen {
             </svg>
           </div>
           <h3 class="empty-state-title">No offline downloads yet</h3>
-          <p class="empty-state-subtitle">Download peaceful nature reels to watch anytime, completely offline.</p>
+          <p class="empty-state-subtitle">Download status reels to watch anytime, completely offline.</p>
           <button class="empty-state-action-btn" type="button" onclick="window.app && window.app.switchView('home')">
-            <span>🌿</span>
-            <span>Browse Videos</span>
+            <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 50%;" />
+            <span>Browse Status Videos</span>
           </button>
         </div>
       `;

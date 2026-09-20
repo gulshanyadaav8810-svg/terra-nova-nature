@@ -665,6 +665,9 @@ export class ReelsFeed {
     const catKey = `category_${reel.category_id.replace(/-/g, '_')}`;
     const catLabel = i18n.t(catKey, reel.category_id);
 
+    const catObj = CATEGORIES.find(c => c.id === reel.category_id);
+    const catIcon = catObj ? catObj.icon : '✨';
+
     item.innerHTML = `
       <!-- Fast 0ms Poster with CDN Fallback -->
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? 'eager' : 'lazy'}" onerror="if(this.src.includes('cdn.jsdelivr.net')){this.src=this.src.replace('cdn.jsdelivr.net/gh/','raw.githubusercontent.com/').replace('@main/','/main/');}else{this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';}" />
@@ -747,15 +750,15 @@ export class ReelsFeed {
         </div>
 
         <!-- Spinning Vinyl Disc -->
-        <div class="dock-vinyl-disc" title="Original Nature Audio">
-          <img class="vinyl-center-img" src="${reel.thumbnail_url}" alt="Nature Disc" />
+        <div class="dock-vinyl-disc" title="Original Status Audio">
+          <img class="vinyl-center-img" src="${reel.thumbnail_url}" alt="WhatsApp Status Disc" />
         </div>
 
       </div>
 
       <!-- Bottom Content Info Dock -->
       <div class="feed-content-dock">
-        <span class="feed-cat-badge">🌿 ${catLabel}</span>
+        <span class="feed-cat-badge">${catIcon} ${catLabel}</span>
         <h2 class="feed-title-text">${reel.title}</h2>
         <p class="feed-desc-text">${reel.description}</p>
         <div class="feed-sound-marquee">
@@ -827,21 +830,20 @@ export class ReelsFeed {
     if (!this.filteredReels || this.filteredReels.length === 0) {
       const catObj = CATEGORIES.find(c => c.id === this.activeCategory);
       const catName = catObj ? catObj.name : this.activeCategory;
-      const catIcon = catObj ? catObj.icon : '🌿';
       this.container.innerHTML = `
         <div class="empty-state" style="height: 100%; justify-content: center; text-align: center; padding: 32px 20px; display: flex; flex-direction: column; align-items: center;">
-          <div class="empty-state-icon" style="font-size: 3.5rem; margin-bottom: 12px;">${catIcon}</div>
-          <h3 class="empty-state-title" style="color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px;">No ${catName} Reels Yet</h3>
-          <p class="empty-state-subtitle" style="color: rgba(255,255,255,0.7); font-size: 0.9rem; max-width: 300px; margin: 0 auto 20px;">
-            There are currently no videos in "${catName}". Select another category above or publish new reels in Admin Studio.
+          <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; opacity: 0.95;" />
+          <h3 class="empty-state-title" style="color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px;">No Videos Available</h3>
+          <p class="empty-state-subtitle" style="color: rgba(255,255,255,0.7); font-size: 0.9rem; max-width: 300px; margin: 0 auto 24px;">
+            There are currently no videos in "${catName}". Explore other categories or check back soon.
           </p>
           <div style="display: flex; gap: 12px;">
-            <button type="button" class="btn-feed-go-trending" style="padding: 10px 22px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.35); color: #fff; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
-              🔥 View Trending
+            <button type="button" class="btn-feed-go-trending" style="padding: 12px 26px; background: rgba(37, 211, 102, 0.25); border: 1px solid rgba(37, 211, 102, 0.5); color: #fff; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+              🔥 Explore Trending
             </button>
-            <a href="admin.html" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 22px; background: #22c55e; border: none; color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 0.9rem;">
-              <span>➕ Add Reel</span>
-            </a>
+            <button type="button" class="btn-feed-refresh" style="padding: 12px 24px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+              🔄 Refresh
+            </button>
           </div>
         </div>
       `;
@@ -850,6 +852,13 @@ export class ReelsFeed {
         btnTrend.addEventListener('click', (e) => {
           e.preventDefault();
           this.filterCategory('trending');
+        });
+      }
+      const btnRef = this.container.querySelector('.btn-feed-refresh');
+      if (btnRef) {
+        btnRef.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.refresh();
         });
       }
       return;

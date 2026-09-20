@@ -643,7 +643,7 @@
 
   // js/data/reels.js
   var REELS_DATA = [];
-  var APP_STORAGE_VERSION = "v6_github_autosync";
+  var APP_STORAGE_VERSION = "v9_clean_user_sync";
   var DEMO_REEL_IDS = /* @__PURE__ */ new Set([
     "reel-forest-01",
     "reel-flowers-01",
@@ -670,7 +670,7 @@
       filename = url.split("/uploads/")[1];
     }
     if (filename) {
-      return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
+      return `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${filename}`;
     }
     return url;
   }
@@ -686,7 +686,7 @@
       filename = url.split("/uploads/")[1];
     }
     if (filename) {
-      return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
+      return `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${filename}`;
     }
     return url;
   }
@@ -751,27 +751,29 @@
     } catch (e) {
       console.warn("Error reading nature_remote_reels from localStorage:", e);
     }
-    try {
-      const custom = localStorage.getItem("nature_custom_reels");
-      if (custom) {
-        const parsed = JSON.parse(custom);
-        if (Array.isArray(parsed)) {
-          const sanitizedCustom = parsed.filter((r) => !isDemoReel(r) && !deletedIds.has(r.content_id));
-          sanitizedCustom.forEach((r) => {
-            if (r.video_url && !r.video_url.startsWith("blob:")) {
-              if (!mergedMap.has(r.content_id)) {
-                mergedMap.set(r.content_id, {
-                  ...r,
-                  video_url: normalizeVideoUrl(r.video_url),
-                  thumbnail_url: normalizeImageUrl(r.thumbnail_url)
-                });
+    const isAdmin = typeof window !== "undefined" && window.location && window.location.pathname.includes("admin");
+    if (isAdmin) {
+      try {
+        const custom = localStorage.getItem("nature_custom_reels");
+        if (custom) {
+          const parsed = JSON.parse(custom);
+          if (Array.isArray(parsed)) {
+            const sanitizedCustom = parsed.filter((r) => !isDemoReel(r) && !deletedIds.has(r.content_id));
+            sanitizedCustom.forEach((r) => {
+              if (r.video_url && !r.video_url.startsWith("blob:")) {
+                if (!mergedMap.has(r.content_id)) {
+                  mergedMap.set(r.content_id, {
+                    ...r,
+                    video_url: normalizeVideoUrl(r.video_url),
+                    thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+                  });
+                }
               }
-            }
-          });
+            });
+          }
         }
+      } catch (e) {
       }
-    } catch (e) {
-      console.warn("Error reading custom reels from localStorage:", e);
     }
     try {
       const engagements = JSON.parse(localStorage.getItem("nature_reels_engagement") || "{}");
@@ -2492,6 +2494,8 @@ ${shareUrl}`);
       const isSaved = storage.isSaved(reel.content_id);
       const catKey = `category_${reel.category_id.replace(/-/g, "_")}`;
       const catLabel = i18n.t(catKey, reel.category_id);
+      const catObj = CATEGORIES.find((c) => c.id === reel.category_id);
+      const catIcon = catObj ? catObj.icon : "\u2728";
       item.innerHTML = `
       <!-- Fast 0ms Poster with CDN Fallback -->
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? "eager" : "lazy"}" onerror="if(this.src.includes('cdn.jsdelivr.net')){this.src=this.src.replace('cdn.jsdelivr.net/gh/','raw.githubusercontent.com/').replace('@main/','/main/');}else{this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';}" />
@@ -2572,15 +2576,15 @@ ${shareUrl}`);
         </div>
 
         <!-- Spinning Vinyl Disc -->
-        <div class="dock-vinyl-disc" title="Original Nature Audio">
-          <img class="vinyl-center-img" src="${reel.thumbnail_url}" alt="Nature Disc" />
+        <div class="dock-vinyl-disc" title="Original Status Audio">
+          <img class="vinyl-center-img" src="${reel.thumbnail_url}" alt="WhatsApp Status Disc" />
         </div>
 
       </div>
 
       <!-- Bottom Content Info Dock -->
       <div class="feed-content-dock">
-        <span class="feed-cat-badge">\u{1F33F} ${catLabel}</span>
+        <span class="feed-cat-badge">${catIcon} ${catLabel}</span>
         <h2 class="feed-title-text">${reel.title}</h2>
         <p class="feed-desc-text">${reel.description}</p>
         <div class="feed-sound-marquee">
@@ -2643,21 +2647,20 @@ ${shareUrl}`);
       if (!this.filteredReels || this.filteredReels.length === 0) {
         const catObj = CATEGORIES.find((c) => c.id === this.activeCategory);
         const catName = catObj ? catObj.name : this.activeCategory;
-        const catIcon = catObj ? catObj.icon : "\u{1F33F}";
         this.container.innerHTML = `
         <div class="empty-state" style="height: 100%; justify-content: center; text-align: center; padding: 32px 20px; display: flex; flex-direction: column; align-items: center;">
-          <div class="empty-state-icon" style="font-size: 3.5rem; margin-bottom: 12px;">${catIcon}</div>
-          <h3 class="empty-state-title" style="color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px;">No ${catName} Reels Yet</h3>
-          <p class="empty-state-subtitle" style="color: rgba(255,255,255,0.7); font-size: 0.9rem; max-width: 300px; margin: 0 auto 20px;">
-            There are currently no videos in "${catName}". Select another category above or publish new reels in Admin Studio.
+          <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; opacity: 0.95;" />
+          <h3 class="empty-state-title" style="color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px;">No Videos Available</h3>
+          <p class="empty-state-subtitle" style="color: rgba(255,255,255,0.7); font-size: 0.9rem; max-width: 300px; margin: 0 auto 24px;">
+            There are currently no videos in "${catName}". Explore other categories or check back soon.
           </p>
           <div style="display: flex; gap: 12px;">
-            <button type="button" class="btn-feed-go-trending" style="padding: 10px 22px; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.35); color: #fff; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
-              \u{1F525} View Trending
+            <button type="button" class="btn-feed-go-trending" style="padding: 12px 26px; background: rgba(37, 211, 102, 0.25); border: 1px solid rgba(37, 211, 102, 0.5); color: #fff; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+              \u{1F525} Explore Trending
             </button>
-            <a href="admin.html" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 22px; background: #22c55e; border: none; color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 0.9rem;">
-              <span>\u2795 Add Reel</span>
-            </a>
+            <button type="button" class="btn-feed-refresh" style="padding: 12px 24px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+              \u{1F504} Refresh
+            </button>
           </div>
         </div>
       `;
@@ -2666,6 +2669,13 @@ ${shareUrl}`);
           btnTrend.addEventListener("click", (e) => {
             e.preventDefault();
             this.filterCategory("trending");
+          });
+        }
+        const btnRef = this.container.querySelector(".btn-feed-refresh");
+        if (btnRef) {
+          btnRef.addEventListener("click", (e) => {
+            e.preventDefault();
+            this.refresh();
           });
         }
         return;
@@ -2717,7 +2727,7 @@ ${shareUrl}`);
       }
       this.reels.forEach((reel) => {
         const cat = getCategoryById(reel.category_id);
-        const catIcon = cat ? cat.icon : "\u{1F33F}";
+        const catIcon = cat ? cat.icon : "\u2728";
         const catName = cat ? cat.name : "";
         const card = document.createElement("div");
         card.className = "home-reel-card";
@@ -2737,14 +2747,26 @@ ${shareUrl}`);
 
         <!-- Duration Badge -->
         <div class="home-card-duration">
-          <span>\u23F1\uFE0F ${reel.duration}</span>
+          <span>${reel.duration ? reel.duration.includes(":") ? reel.duration : `0:${reel.duration}` : reel.duration_seconds ? `0:${reel.duration_seconds < 10 ? "0" : ""}${reel.duration_seconds}` : "0:15"}</span>
         </div>
 
-        <!-- Center Frosted Glass Play Button -->
-        <div class="home-play-circle" title="Play Video">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="7 4 19 12 7 20 7 4"></polygon>
-          </svg>
+        <!-- Card Meta (Title & Stats) -->
+        <div class="home-card-meta">
+          <h3 class="home-card-title">${reel.title}</h3>
+          <div class="home-card-stats">
+            <span class="home-card-stat">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              ${reel.views_count.toLocaleString()}
+            </span>
+            <span class="home-card-stat">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              </svg>
+              ${reel.likes_count.toLocaleString()}
+            </span>
+          </div>
         </div>
       `;
         card.addEventListener("click", () => {
@@ -2770,15 +2792,27 @@ ${shareUrl}`);
       emptyWrapper.style.padding = "60px 16px";
       emptyWrapper.style.textAlign = "center";
       emptyWrapper.innerHTML = `
-      <div class="empty-state-icon" style="font-size: 3rem; margin-bottom: 14px;">\u{1F33F}</div>
-      <h3 class="empty-state-title" style="color: #17483A; font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">No Reels Uploaded Yet</h3>
-      <p class="empty-state-subtitle" style="color: #61756D; font-size: 0.9rem; max-width: 300px; margin: 0 auto 20px;">
-        Upload single videos or use Bulk Upload from the Admin Studio to publish reels directly here.
+      <div class="empty-state-icon" style="margin-bottom: 16px;">
+        <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 64px; height: 64px; border-radius: 50%; box-shadow: 0 4px 14px rgba(37,211,102,0.3); display: inline-block;" />
+      </div>
+      <h3 class="empty-state-title" style="color: #17483A; font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">No Videos Available</h3>
+      <p class="empty-state-subtitle" style="color: #61756D; font-size: 0.9rem; max-width: 320px; margin: 0 auto 20px; line-height: 1.5;">
+        New status videos will appear here soon. Explore trending status videos or check other categories!
       </p>
-      <a href="admin.html" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #17483C; color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 0.92rem; box-shadow: 0 4px 14px rgba(23,72,60,0.3);">
-        <span>\u{1F6E0}\uFE0F Open Admin Studio</span>
-      </a>
+      <button type="button" id="btn-empty-explore" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #25D366; color: #fff; border: none; border-radius: 9999px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 14px rgba(37,211,102,0.4);">
+        <span>\u{1F525} View Trending Status</span>
+      </button>
     `;
+      const exploreBtn = emptyWrapper.querySelector("#btn-empty-explore");
+      if (exploreBtn) {
+        exploreBtn.addEventListener("click", () => {
+          if (window.app && typeof window.app.onCategorySelect === "function") {
+            window.app.onCategorySelect("all");
+          } else if (window.app && typeof window.app.switchView === "function") {
+            window.app.switchView("reels");
+          }
+        });
+      }
       this.container.appendChild(emptyWrapper);
     }
   };
@@ -2903,7 +2937,7 @@ ${shareUrl}`);
       grid.style.padding = "0";
       recReels.forEach((reel) => {
         const cat = getCategoryById(reel.category_id);
-        const catIcon = cat ? cat.icon : "\u{1F33F}";
+        const catIcon = cat ? cat.icon : "\u2728";
         const catName = cat ? cat.name : "";
         const card = document.createElement("div");
         card.className = "home-reel-card";
@@ -2948,10 +2982,10 @@ ${shareUrl}`);
             </svg>
           </div>
           <h3 class="empty-state-title">No saved reels yet</h3>
-          <p class="empty-state-subtitle">Bookmark peaceful nature moments to build your personal sanctuary.</p>
+          <p class="empty-state-subtitle">Bookmark peaceful moments to build your personal collection.</p>
           <button class="empty-state-action-btn" type="button" onclick="window.app && window.app.switchView('home')">
-            <span>\u{1F33F}</span>
-            <span>Explore Nature Reels</span>
+            <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 50%;" />
+            <span>Explore Status Videos</span>
           </button>
         </div>
       `;
@@ -2962,7 +2996,7 @@ ${shareUrl}`);
       grid.className = "home-reels-grid";
       savedReels.forEach((reel) => {
         const cat = getCategoryById(reel.category_id);
-        const catIcon = cat ? cat.icon : "\u{1F33F}";
+        const catIcon = cat ? cat.icon : "\u2728";
         const catName = cat ? cat.name : "";
         const card = document.createElement("div");
         card.className = "home-reel-card";
@@ -3023,10 +3057,10 @@ ${shareUrl}`);
             </svg>
           </div>
           <h3 class="empty-state-title">No liked reels yet</h3>
-          <p class="empty-state-subtitle">Tap the heart on any nature video you love to save it here.</p>
+          <p class="empty-state-subtitle">Tap the heart on any video you love to save it here.</p>
           <button class="empty-state-action-btn" type="button" onclick="window.app && window.app.switchView('home')">
-            <span>\u{1F33F}</span>
-            <span>Discover Reels</span>
+            <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 50%;" />
+            <span>Discover Status Videos</span>
           </button>
         </div>
       `;
@@ -3037,7 +3071,7 @@ ${shareUrl}`);
       grid.className = "home-reels-grid";
       likedReels.forEach((reel) => {
         const cat = getCategoryById(reel.category_id);
-        const catIcon = cat ? cat.icon : "\u{1F33F}";
+        const catIcon = cat ? cat.icon : "\u2728";
         const catName = cat ? cat.name : "";
         const card = document.createElement("div");
         card.className = "home-reel-card";
@@ -3104,10 +3138,10 @@ ${shareUrl}`);
             </svg>
           </div>
           <h3 class="empty-state-title">No offline downloads yet</h3>
-          <p class="empty-state-subtitle">Download peaceful nature reels to watch anytime, completely offline.</p>
+          <p class="empty-state-subtitle">Download status reels to watch anytime, completely offline.</p>
           <button class="empty-state-action-btn" type="button" onclick="window.app && window.app.switchView('home')">
-            <span>\u{1F33F}</span>
-            <span>Browse Videos</span>
+            <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 50%;" />
+            <span>Browse Status Videos</span>
           </button>
         </div>
       `;
@@ -3486,7 +3520,7 @@ ${shareUrl}`);
       this.toastContainer = document.getElementById("toast-container");
       this.toastTimer = null;
     }
-    showToast(message, icon = "\u{1F33F}") {
+    showToast(message, icon = "\u2728") {
       if (!this.toastContainer) return;
       this.toastContainer.innerHTML = "";
       const toast = document.createElement("div");
@@ -3633,7 +3667,44 @@ ${shareUrl}`);
           this.switchView("home");
         }
       });
+      const exitModal = document.getElementById("modal-exit-confirm");
+      const btnCancelExit = document.getElementById("btn-cancel-exit");
+      const btnConfirmExit = document.getElementById("btn-confirm-exit");
+      const hideExitModal = () => {
+        if (exitModal) {
+          exitModal.classList.remove("open");
+          exitModal.style.display = "none";
+        }
+      };
+      const showExitModal = () => {
+        if (exitModal) {
+          exitModal.style.display = "flex";
+          exitModal.classList.add("open");
+        }
+      };
+      if (btnCancelExit) {
+        btnCancelExit.addEventListener("click", hideExitModal);
+      }
+      if (btnConfirmExit) {
+        btnConfirmExit.addEventListener("click", () => {
+          hideExitModal();
+          if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === "function") {
+            window.AndroidBridge.exitApp();
+          }
+        });
+      }
+      if (exitModal) {
+        exitModal.addEventListener("click", (e) => {
+          if (e.target === exitModal) {
+            hideExitModal();
+          }
+        });
+      }
       window.showExitConfirm = () => {
+        if (exitModal && (exitModal.classList.contains("open") || exitModal.style.display === "flex")) {
+          hideExitModal();
+          return;
+        }
         if (this.player && this.player.overlay.classList.contains("active")) {
           this.player.close();
           return;
@@ -3646,7 +3717,9 @@ ${shareUrl}`);
           this.switchView("home");
           return;
         }
-        if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === "function") {
+        if (exitModal) {
+          showExitModal();
+        } else if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === "function") {
           window.AndroidBridge.exitApp();
         }
       };

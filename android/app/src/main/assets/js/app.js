@@ -65,7 +65,7 @@ class NatureMomentsApp {
     this.toastTimer = null;
   }
 
-  showToast(message, icon = '🌿') {
+  showToast(message, icon = '✨') {
     if (!this.toastContainer) return;
     
     this.toastContainer.innerHTML = '';
@@ -254,8 +254,53 @@ class NatureMomentsApp {
       }
     });
 
+    // Bind Exit Confirmation Modal
+    const exitModal = document.getElementById('modal-exit-confirm');
+    const btnCancelExit = document.getElementById('btn-cancel-exit');
+    const btnConfirmExit = document.getElementById('btn-confirm-exit');
+
+    const hideExitModal = () => {
+      if (exitModal) {
+        exitModal.classList.remove('open');
+        exitModal.style.display = 'none';
+      }
+    };
+
+    const showExitModal = () => {
+      if (exitModal) {
+        exitModal.style.display = 'flex';
+        exitModal.classList.add('open');
+      }
+    };
+
+    if (btnCancelExit) {
+      btnCancelExit.addEventListener('click', hideExitModal);
+    }
+
+    if (btnConfirmExit) {
+      btnConfirmExit.addEventListener('click', () => {
+        hideExitModal();
+        if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === 'function') {
+          window.AndroidBridge.exitApp();
+        }
+      });
+    }
+
+    if (exitModal) {
+      exitModal.addEventListener('click', (e) => {
+        if (e.target === exitModal) {
+          hideExitModal();
+        }
+      });
+    }
+
     // Android back button bridge
     window.showExitConfirm = () => {
+      // If exit modal is already open, close it
+      if (exitModal && (exitModal.classList.contains('open') || exitModal.style.display === 'flex')) {
+        hideExitModal();
+        return;
+      }
       if (this.player && this.player.overlay.classList.contains('active')) {
         this.player.close();
         return;
@@ -268,7 +313,10 @@ class NatureMomentsApp {
         this.switchView('home');
         return;
       }
-      if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === 'function') {
+      // On Home screen: Ask "Are you sure you want to exit?"
+      if (exitModal) {
+        showExitModal();
+      } else if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === 'function') {
         window.AndroidBridge.exitApp();
       }
     };

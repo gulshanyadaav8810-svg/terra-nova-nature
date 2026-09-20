@@ -37,7 +37,7 @@ export class ReelsGrid {
     // Render 2-column cards matching reference screenshot
     this.reels.forEach(reel => {
       const cat = getCategoryById(reel.category_id);
-      const catIcon = cat ? cat.icon : '🌿';
+      const catIcon = cat ? cat.icon : '✨';
       const catName = cat ? cat.name : '';
 
       const card = document.createElement('div');
@@ -59,14 +59,26 @@ export class ReelsGrid {
 
         <!-- Duration Badge -->
         <div class="home-card-duration">
-          <span>⏱️ ${reel.duration}</span>
+          <span>${reel.duration ? (reel.duration.includes(':') ? reel.duration : `0:${reel.duration}`) : (reel.duration_seconds ? `0:${reel.duration_seconds < 10 ? '0' : ''}${reel.duration_seconds}` : '0:15')}</span>
         </div>
 
-        <!-- Center Frosted Glass Play Button -->
-        <div class="home-play-circle" title="Play Video">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="7 4 19 12 7 20 7 4"></polygon>
-          </svg>
+        <!-- Card Meta (Title & Stats) -->
+        <div class="home-card-meta">
+          <h3 class="home-card-title">${reel.title}</h3>
+          <div class="home-card-stats">
+            <span class="home-card-stat">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              ${reel.views_count.toLocaleString()}
+            </span>
+            <span class="home-card-stat">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              </svg>
+              ${reel.likes_count.toLocaleString()}
+            </span>
+          </div>
         </div>
       `;
 
@@ -97,15 +109,27 @@ export class ReelsGrid {
     emptyWrapper.style.padding = '60px 16px';
     emptyWrapper.style.textAlign = 'center';
     emptyWrapper.innerHTML = `
-      <div class="empty-state-icon" style="font-size: 3rem; margin-bottom: 14px;">🌿</div>
-      <h3 class="empty-state-title" style="color: #17483A; font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">No Reels Uploaded Yet</h3>
-      <p class="empty-state-subtitle" style="color: #61756D; font-size: 0.9rem; max-width: 300px; margin: 0 auto 20px;">
-        Upload single videos or use Bulk Upload from the Admin Studio to publish reels directly here.
+      <div class="empty-state-icon" style="margin-bottom: 16px;">
+        <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 64px; height: 64px; border-radius: 50%; box-shadow: 0 4px 14px rgba(37,211,102,0.3); display: inline-block;" />
+      </div>
+      <h3 class="empty-state-title" style="color: #17483A; font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">No Videos Available</h3>
+      <p class="empty-state-subtitle" style="color: #61756D; font-size: 0.9rem; max-width: 320px; margin: 0 auto 20px; line-height: 1.5;">
+        New status videos will appear here soon. Explore trending status videos or check other categories!
       </p>
-      <a href="admin.html" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #17483C; color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 0.92rem; box-shadow: 0 4px 14px rgba(23,72,60,0.3);">
-        <span>🛠️ Open Admin Studio</span>
-      </a>
+      <button type="button" id="btn-empty-explore" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #25D366; color: #fff; border: none; border-radius: 9999px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 14px rgba(37,211,102,0.4);">
+        <span>🔥 View Trending Status</span>
+      </button>
     `;
+    const exploreBtn = emptyWrapper.querySelector('#btn-empty-explore');
+    if (exploreBtn) {
+      exploreBtn.addEventListener('click', () => {
+        if (window.app && typeof window.app.onCategorySelect === 'function') {
+          window.app.onCategorySelect('all');
+        } else if (window.app && typeof window.app.switchView === 'function') {
+          window.app.switchView('reels');
+        }
+      });
+    }
     this.container.appendChild(emptyWrapper);
   }
 }
