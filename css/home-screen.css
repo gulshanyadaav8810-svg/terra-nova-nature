@@ -66,19 +66,20 @@
   box-shadow: 0 2px 8px rgba(21, 62, 49, 0.2);
 }
 
-/* Cursive/Handwritten Nature Moments Title */
+/* Sleek Modern Nature Moments Title (Next.js / Apple style) */
 .home-app-title {
-  font-family: 'Caveat', cursive, serif, sans-serif;
-  font-size: 2.05rem;
-  font-weight: 700;
-  color: #17483A;
-  text-shadow: 0 1px 2px rgba(23, 72, 58, 0.08);
-  letter-spacing: 0.2px;
-  margin: 0;
-  text-align: center;
-  flex: 1;
-  line-height: 1;
-  white-space: nowrap;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 1.35rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.4px !important;
+  background: linear-gradient(135deg, #17483C 0%, #2E7D6A 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  margin: 0 !important;
+  text-align: center !important;
+  flex: 0 1 auto !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
 }
 
 /* Right Sound Equalizer Button */
@@ -218,19 +219,26 @@
 .home-reel-card {
   position: relative;
   aspect-ratio: 9 / 15.2;
-  border-radius: 22px;
+  border-radius: 24px;
   overflow: hidden;
   background: #E8E4DA;
+  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow: 
-    0 8px 24px rgba(20, 38, 30, 0.08),
+    0 10px 28px rgba(20, 38, 30, 0.09),
     0 2px 6px rgba(0, 0, 0, 0.03);
   cursor: pointer;
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
+  transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.26s ease, border-color 0.26s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
+.home-reel-card:hover {
+  transform: translateY(-4px) scale(1.015);
+  box-shadow: 0 18px 36px rgba(20, 38, 30, 0.16);
+  border-color: rgba(36, 92, 78, 0.25);
+}
+
 .home-reel-card:active {
-  transform: scale(0.97);
+  transform: scale(0.965);
 }
 
 .home-reel-card img {
@@ -238,6 +246,11 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.home-reel-card:hover img {
+  transform: scale(1.04);
 }
 
 /* Vignette overlay */
@@ -260,19 +273,19 @@
   z-index: 2;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: 50px;
-  background: rgba(14, 32, 25, 0.52);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(18, 45, 38, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: #FFFFFF;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.2px;
   pointer-events: none;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 /* Duration Tag on Card */
@@ -283,17 +296,18 @@
   z-index: 2;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 3px 8px;
-  border-radius: 50px;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   color: #FFFFFF;
-  font-size: 0.68rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
   pointer-events: none;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
 }
 
 /* Circular Center Glass Play Button */

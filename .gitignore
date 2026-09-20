@@ -32,3 +32,4 @@ verify_app.mjs
 .user_uploaded/
 .vscode/
 .vercel
+.env*

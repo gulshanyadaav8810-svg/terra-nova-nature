@@ -2832,8 +2832,19 @@ ${shareUrl}`);
           <span>${catName}</span>
         </div>
 
+        <!-- Center Frosted Glass Play Circle -->
+        <div class="home-play-circle" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="margin-left: 2px;">
+            <polygon points="6 3 20 12 6 21 6 3"></polygon>
+          </svg>
+        </div>
+
         <!-- Duration Badge -->
         <div class="home-card-duration">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 2px;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
           <span>${reel.duration ? reel.duration.includes(":") ? reel.duration : `0:${reel.duration}` : reel.duration_seconds ? `0:${reel.duration_seconds < 10 ? "0" : ""}${reel.duration_seconds}` : "0:15"}</span>
         </div>
 
