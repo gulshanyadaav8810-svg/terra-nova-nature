@@ -591,11 +591,17 @@ export class ReelsFeed {
         if (cur.includes('nature-moments-app.vercel.app') || cur.startsWith('/uploads/')) {
           const fn = cur.split('/uploads/')[1];
           video.src = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${fn}`;
+          video.load();
           video.play().catch(() => {});
-        } else if (cur.includes('cdn.jsdelivr.net')) {
+        } else if (cur.includes('cdn.jsdelivr.net') && cur.includes('/uploads/')) {
           const fn = cur.split('/uploads/')[1];
-          video.src = `https://nature-moments-app.vercel.app/uploads/${fn}`;
-          video.play().catch(() => {});
+          const rawFallback = `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${fn}`;
+          if (video.src !== rawFallback) {
+            console.log('[ReelsFeed] Switching to raw GitHub fallback:', rawFallback);
+            video.src = rawFallback;
+            video.load();
+            video.play().catch(() => {});
+          }
         }
       });
     }
@@ -860,6 +866,7 @@ export class ReelsFeed {
           console.log('[ReelsFeed] CDN error, switching instantly to GitHub Raw fallback:', fallback);
           video.src = fallback;
           video.setAttribute('data-src', fallback);
+          video.load();
           if (item.classList.contains('active-playing')) {
             video.play().catch(() => {});
           }

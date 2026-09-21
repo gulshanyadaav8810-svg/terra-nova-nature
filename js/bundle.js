@@ -650,7 +650,7 @@
 
   // js/data/reels.js
   var REELS_DATA = [];
-  var APP_STORAGE_VERSION = "v10_clean_user_only_1789863800";
+  var APP_STORAGE_VERSION = "v11_fix_video_cdn_stream_1789979000";
   var DEMO_REEL_IDS = /* @__PURE__ */ new Set([
     "reel-forest-01",
     "reel-flowers-01",
@@ -688,10 +688,7 @@
       filename = url.split("/uploads/")[1];
     }
     if (filename) {
-      if (typeof window !== "undefined" && window.location && window.location.origin && window.location.origin.includes("nature-moments-app.vercel.app")) {
-        return `/uploads/${filename}`;
-      }
-      return `https://nature-moments-app.vercel.app/uploads/${filename}`;
+      return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
     }
     return url;
   }
@@ -817,6 +814,7 @@
   var CLOUD_API_URL = "https://nature-moments-app.vercel.app/api/reels";
   async function syncRemoteReels() {
     const urls = [
+      `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/data/reels.json?t=${Date.now()}`,
       `${CLOUD_API_URL}?t=${Date.now()}`,
       `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=${Date.now()}`,
       `data/reels.json?t=${Date.now()}`
@@ -1481,19 +1479,21 @@ ${shareUrl}`);
       });
       this.video.addEventListener("error", (e) => {
         const cur = this.video.src || "";
-        if (cur.includes("nature-moments-app.vercel.app") || cur.startsWith("/uploads/")) {
+        if (cur.includes("cdn.jsdelivr.net") && cur.includes("/uploads/")) {
+          const fn = cur.split("/uploads/")[1];
+          const fallback = `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${fn}`;
+          console.log("[VideoPlayer] jsDelivr error, switching to GitHub Raw fallback in 0ms:", fallback);
+          this.video.src = fallback;
+          this.video.load();
+          this.video.play().catch(() => {
+          });
+          return;
+        } else if (cur.includes("nature-moments-app.vercel.app") || cur.startsWith("/uploads/")) {
           const fn = cur.split("/uploads/")[1];
           const fallback = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${fn}`;
           console.log("[VideoPlayer] Vercel edge error, switching to jsDelivr CDN fallback in 0ms:", fallback);
           this.video.src = fallback;
-          this.video.play().catch(() => {
-          });
-          return;
-        } else if (cur.includes("cdn.jsdelivr.net")) {
-          const fn = cur.split("/uploads/")[1];
-          const fallback = `https://nature-moments-app.vercel.app/uploads/${fn}`;
-          console.log("[VideoPlayer] jsDelivr error, switching to Vercel edge fallback in 0ms:", fallback);
-          this.video.src = fallback;
+          this.video.load();
           this.video.play().catch(() => {
           });
           return;
@@ -2457,13 +2457,19 @@ ${shareUrl}`);
           if (cur.includes("nature-moments-app.vercel.app") || cur.startsWith("/uploads/")) {
             const fn = cur.split("/uploads/")[1];
             video.src = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${fn}`;
+            video.load();
             video.play().catch(() => {
             });
-          } else if (cur.includes("cdn.jsdelivr.net")) {
+          } else if (cur.includes("cdn.jsdelivr.net") && cur.includes("/uploads/")) {
             const fn = cur.split("/uploads/")[1];
-            video.src = `https://nature-moments-app.vercel.app/uploads/${fn}`;
-            video.play().catch(() => {
-            });
+            const rawFallback = `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${fn}`;
+            if (video.src !== rawFallback) {
+              console.log("[ReelsFeed] Switching to raw GitHub fallback:", rawFallback);
+              video.src = rawFallback;
+              video.load();
+              video.play().catch(() => {
+              });
+            }
           }
         });
       }
@@ -2704,6 +2710,7 @@ ${shareUrl}`);
             console.log("[ReelsFeed] CDN error, switching instantly to GitHub Raw fallback:", fallback);
             video.src = fallback;
             video.setAttribute("data-src", fallback);
+            video.load();
             if (item.classList.contains("active-playing")) {
               video.play().catch(() => {
               });

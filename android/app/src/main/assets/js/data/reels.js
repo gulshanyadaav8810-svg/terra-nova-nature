@@ -9,7 +9,7 @@ export const INITIAL_REELS = [];
 
 export let REELS_DATA = [];
 
-const APP_STORAGE_VERSION = 'v10_clean_user_only_1789863800';
+const APP_STORAGE_VERSION = 'v11_fix_video_cdn_stream_1789979000';
 
 const DEMO_REEL_IDS = new Set([
   'reel-forest-01',
@@ -57,12 +57,8 @@ export function normalizeVideoUrl(url) {
   }
 
   if (filename) {
-    // 1. If running on Vercel web domain, use relative /uploads/ for 0ms same-origin streaming
-    if (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin.includes('nature-moments-app.vercel.app')) {
-      return `/uploads/${filename}`;
-    }
-    // 2. Direct high-speed edge CDN (video/mp4 with HTTP 206 Byte Range support)
-    return `https://nature-moments-app.vercel.app/uploads/${filename}`;
+    // jsDelivr edge CDN delivers fast, instant HTTP 206 byte-range streaming for all uploaded videos
+    return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
   }
   return url;
 }
@@ -102,10 +98,7 @@ export function getRawFallbackUrl(url) {
     filename = url.split('/uploads/')[1];
   }
   if (filename) {
-    if (url.includes('nature-moments-app.vercel.app') || url.startsWith('/uploads/')) {
-      return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
-    }
-    return `https://nature-moments-app.vercel.app/uploads/${filename}`;
+    return `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${filename}`;
   }
   return url;
 }
@@ -227,6 +220,7 @@ const CLOUD_API_URL = 'https://nature-moments-app.vercel.app/api/reels';
 // Remote fetch function to sync from GitHub & Cloud API
 export async function syncRemoteReels() {
   const urls = [
+    `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/data/reels.json?t=${Date.now()}`,
     `${CLOUD_API_URL}?t=${Date.now()}`,
     `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=${Date.now()}`,
     `data/reels.json?t=${Date.now()}`

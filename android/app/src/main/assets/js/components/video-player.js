@@ -78,18 +78,20 @@ export class VideoPlayer {
     });
     this.video.addEventListener('error', (e) => {
       const cur = this.video.src || '';
-      if (cur.includes('nature-moments-app.vercel.app') || cur.startsWith('/uploads/')) {
+      if (cur.includes('cdn.jsdelivr.net') && cur.includes('/uploads/')) {
+        const fn = cur.split('/uploads/')[1];
+        const fallback = `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${fn}`;
+        console.log('[VideoPlayer] jsDelivr error, switching to GitHub Raw fallback in 0ms:', fallback);
+        this.video.src = fallback;
+        this.video.load();
+        this.video.play().catch(() => {});
+        return;
+      } else if (cur.includes('nature-moments-app.vercel.app') || cur.startsWith('/uploads/')) {
         const fn = cur.split('/uploads/')[1];
         const fallback = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${fn}`;
         console.log('[VideoPlayer] Vercel edge error, switching to jsDelivr CDN fallback in 0ms:', fallback);
         this.video.src = fallback;
-        this.video.play().catch(() => {});
-        return;
-      } else if (cur.includes('cdn.jsdelivr.net')) {
-        const fn = cur.split('/uploads/')[1];
-        const fallback = `https://nature-moments-app.vercel.app/uploads/${fn}`;
-        console.log('[VideoPlayer] jsDelivr error, switching to Vercel edge fallback in 0ms:', fallback);
-        this.video.src = fallback;
+        this.video.load();
         this.video.play().catch(() => {});
         return;
       }
