@@ -137,6 +137,7 @@
       nav_home: "Home",
       nav_reels: "Reels",
       nav_save: "Save",
+      nav_back: "Back",
       tab_saved: "Saved",
       tab_liked: "Liked",
       tab_downloaded: "Downloaded",
@@ -204,6 +205,7 @@
       nav_home: "\u0939\u094B\u092E",
       nav_reels: "\u0930\u0940\u0932\u094D\u0938",
       nav_save: "\u0938\u0947\u0935",
+      nav_back: "\u0935\u093E\u092A\u0938",
       tab_saved: "\u0938\u0947\u0935 \u0915\u0940 \u0917\u0908",
       tab_liked: "\u092A\u0938\u0902\u0926 (Liked)",
       tab_downloaded: "\u0921\u093E\u0909\u0928\u0932\u094B\u0921",
@@ -271,6 +273,7 @@
       nav_home: "\u0AB9\u0ACB\u0AAE",
       nav_reels: "\u0AB0\u0AC0\u0AB2\u0ACD\u0AB8",
       nav_save: "\u0AB8\u0ABE\u0A9A\u0AB5\u0AC7\u0AB2",
+      nav_back: "\u0AAA\u0ABE\u0A9B\u0ABE",
       tab_saved: "\u0AB8\u0ABE\u0A9A\u0AB5\u0AC7\u0AB2",
       tab_liked: "\u0A97\u0AAE\u0AA4\u0ABE (Liked)",
       tab_downloaded: "\u0AA1\u0ABE\u0A89\u0AA8\u0AB2\u0ACB\u0AA1",
@@ -338,6 +341,7 @@
       nav_home: "\u0939\u094B\u092E",
       nav_reels: "\u0930\u0940\u0932\u094D\u0938",
       nav_save: "\u091C\u0924\u0928 \u0915\u0947\u0932\u0947\u0932\u0947",
+      nav_back: "\u092E\u093E\u0917\u0947",
       tab_saved: "\u091C\u0924\u0928 \u0915\u0947\u0932\u0947\u0932\u0947",
       tab_liked: "\u0906\u0935\u0921\u0932\u0947\u0932\u0947 (Liked)",
       tab_downloaded: "\u0921\u093E\u0909\u0928\u0932\u094B\u0921",
@@ -405,6 +409,7 @@
       nav_home: "\u0BAE\u0BC1\u0B95\u0BAA\u0BCD\u0BAA\u0BC1",
       nav_reels: "\u0BB0\u0BC0\u0BB2\u0BCD\u0BB8\u0BCD",
       nav_save: "\u0B9A\u0BC7\u0BAE\u0BBF\u0BA4\u0BCD\u0BA4\u0BB5\u0BC8",
+      nav_back: "\u0BAA\u0BBF\u0BA9\u0BCD\u0B9A\u0BC6\u0BB2\u0BCD",
       tab_saved: "\u0B9A\u0BC7\u0BAE\u0BBF\u0BA4\u0BCD\u0BA4\u0BB5\u0BC8",
       tab_liked: "\u0BB5\u0BBF\u0BB0\u0BC1\u0BAA\u0BCD\u0BAA\u0B99\u0BCD\u0B95\u0BB3\u0BCD (Liked)",
       tab_downloaded: "\u0BAA\u0BA4\u0BBF\u0BB5\u0BBF\u0BB1\u0B95\u0BCD\u0B95\u0BAE\u0BCD",
@@ -472,6 +477,7 @@
       nav_home: "\u0C39\u0C4B\u0C2E\u0C4D",
       nav_reels: "\u0C30\u0C40\u0C32\u0C4D\u0C38\u0C4D",
       nav_save: "\u0C38\u0C47\u0C35\u0C4D \u0C1A\u0C47\u0C38\u0C3F\u0C28\u0C35\u0C3F",
+      nav_back: "\u0C35\u0C46\u0C28\u0C41\u0C15\u0C15\u0C41",
       tab_saved: "\u0C38\u0C47\u0C35\u0C4D \u0C1A\u0C47\u0C38\u0C3F\u0C28\u0C35\u0C3F",
       tab_liked: "\u0C07\u0C37\u0C4D\u0C1F\u0C2A\u0C21\u0C3F\u0C28\u0C35\u0C3F (Liked)",
       tab_downloaded: "\u0C21\u0C4C\u0C28\u0C4D\u200C\u0C32\u0C4B\u0C21\u0C4D\u0C38\u0C4D",
@@ -539,6 +545,7 @@
       nav_home: "\u0CAE\u0CC1\u0C96\u0CAA\u0CC1\u0C9F",
       nav_reels: "\u0CB0\u0CC0\u0CB2\u0CCD\u0CB8\u0CCD",
       nav_save: "\u0C89\u0CB3\u0CBF\u0CB8\u0CBF\u0CA6\u0CB5\u0CC1",
+      nav_back: "\u0CB9\u0CBF\u0C82\u0CA6\u0CC6",
       tab_saved: "\u0C89\u0CB3\u0CBF\u0CB8\u0CBF\u0CA6\u0CB5\u0CC1",
       tab_liked: "\u0C87\u0CB7\u0CCD\u0C9F\u0CAA\u0C9F\u0CCD\u0C9F\u0CB5\u0CC1 (Liked)",
       tab_downloaded: "\u0CA1\u0CCC\u0CA8\u0CCD\u200C\u0CB2\u0CCB\u0CA1\u0CCD\u200C\u0C97\u0CB3\u0CC1",
@@ -3784,7 +3791,9 @@ ${shareUrl}`);
     _bindNavigation() {
       if (this.navBtnBack) {
         this.navBtnBack.addEventListener("click", () => {
-          if (this.currentView === "reels" || this.currentView === "save") {
+          if (typeof window.handleAndroidBack === "function") {
+            window.handleAndroidBack();
+          } else if (this.currentView === "reels" || this.currentView === "save") {
             this.switchView("home");
           } else if (this.sideDrawer && this.sideDrawer.isOpen) {
             this.sideDrawer.close();

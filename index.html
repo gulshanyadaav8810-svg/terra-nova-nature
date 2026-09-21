@@ -177,23 +177,15 @@
     </section>
 
 
-    <!-- 5. BOTTOM NAVIGATION BAR (BACK, HOME, REELS, SAVE) -->
+    <!-- 5. BOTTOM NAVIGATION BAR (HOME, REELS, SAVE, BACK) -->
     <nav id="bottom-nav-bar" class="bottom-nav bottom-nav-light" aria-label="Bottom Navigation">
       <div class="bottom-nav-inner">
-        <!-- Tab 0: Back Button (Instantly returns to Home from Reels/Save) -->
-        <button id="nav-item-back" class="bottom-nav-item nav-back-btn" type="button" aria-label="Go Back to Home" title="Back">
-          <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-          <span class="bottom-nav-label">Back</span>
-        </button>
-
         <!-- Tab 1: Home (Default) -->
         <button id="nav-item-home" class="bottom-nav-item active" type="button" aria-label="Home">
           <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2.5a2 2 0 0 0-1.32.5L3.4 9.17A2 2 0 0 0 2.67 10.7V19a2 2 0 0 0 2 2h14.66a2 2 0 0 0 2-2v-8.3a2 2 0 0 0-.73-1.53l-7.28-6.17A2 2 0 0 0 12 2.5zm-2 13.5h4a1 1 0 0 1 1 1v1.5a.5.5 0 0 1-.5.5h-5a.5.5 0 0 1-.5-.5V17a1 1 0 0 1 1-1z" />
           </svg>
-          <span class="bottom-nav-label">Home</span>
+          <span class="bottom-nav-label" data-i18n="nav_home">Home</span>
         </button>
 
         <!-- Tab 2: Reels -->
@@ -205,7 +197,7 @@
             <path d="M14.5 2.5L17 8"></path>
             <polygon points="10 11.5 15.5 15 10 18.5" fill="currentColor" stroke="none"></polygon>
           </svg>
-          <span class="bottom-nav-label">Reels</span>
+          <span class="bottom-nav-label" data-i18n="nav_reels">Reels</span>
         </button>
 
         <!-- Tab 3: Save -->
@@ -216,6 +208,14 @@
             <path d="M19 5a2 2 0 0 0-2-2" opacity="0.6" stroke-width="1.8"></path>
           </svg>
           <span class="bottom-nav-label" data-i18n="nav_save">Save</span>
+        </button>
+
+        <!-- Tab 4: Back Button (Right side, after Save) -->
+        <button id="nav-item-back" class="bottom-nav-item nav-back-btn" type="button" aria-label="Go Back to Home" title="Back">
+          <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          <span class="bottom-nav-label" data-i18n="nav_back">Back</span>
         </button>
       </div>
     </nav>

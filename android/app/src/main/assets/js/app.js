@@ -274,7 +274,9 @@ class NatureMomentsApp {
   _bindNavigation() {
     if (this.navBtnBack) {
       this.navBtnBack.addEventListener('click', () => {
-        if (this.currentView === 'reels' || this.currentView === 'save') {
+        if (typeof window.handleAndroidBack === 'function') {
+          window.handleAndroidBack();
+        } else if (this.currentView === 'reels' || this.currentView === 'save') {
           this.switchView('home');
         } else if (this.sideDrawer && this.sideDrawer.isOpen) {
           this.sideDrawer.close();
