@@ -3822,39 +3822,6 @@ ${shareUrl}`);
           this.switchView("home");
         }
       });
-      const exitModal = document.getElementById("modal-exit-confirm");
-      const btnCancelExit = document.getElementById("btn-cancel-exit");
-      const btnConfirmExit = document.getElementById("btn-confirm-exit");
-      const hideExitModal = () => {
-        if (exitModal) {
-          exitModal.classList.remove("open");
-          exitModal.style.display = "none";
-        }
-      };
-      const showExitModal = () => {
-        if (exitModal) {
-          exitModal.style.display = "flex";
-          exitModal.classList.add("open");
-        }
-      };
-      if (btnCancelExit) {
-        btnCancelExit.addEventListener("click", hideExitModal);
-      }
-      if (btnConfirmExit) {
-        btnConfirmExit.addEventListener("click", () => {
-          hideExitModal();
-          if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === "function") {
-            window.AndroidBridge.exitApp();
-          }
-        });
-      }
-      if (exitModal) {
-        exitModal.addEventListener("click", (e) => {
-          if (e.target === exitModal) {
-            hideExitModal();
-          }
-        });
-      }
       window.handleAndroidBack = () => {
         const splash = document.getElementById("app-splash-screen");
         if (splash && !splash.classList.contains("splash-dismissed") && splash.style.display !== "none") {
@@ -3862,10 +3829,6 @@ ${shareUrl}`);
           setTimeout(() => {
             splash.style.display = "none";
           }, 500);
-          return true;
-        }
-        if (exitModal && (exitModal.classList.contains("open") || exitModal.style.display === "flex")) {
-          hideExitModal();
           return true;
         }
         if (this.player && this.player.overlay && (this.player.overlay.classList.contains("active") || this.player.overlay.style.display === "flex")) {
@@ -3879,11 +3842,9 @@ ${shareUrl}`);
         const openModals = document.querySelectorAll('.modal-overlay.open, .modal-overlay[style*="display: flex"]');
         let modalClosed = false;
         openModals.forEach((m) => {
-          if (m.id !== "modal-exit-confirm") {
-            m.classList.remove("open");
-            m.style.display = "none";
-            modalClosed = true;
-          }
+          m.classList.remove("open");
+          m.style.display = "none";
+          modalClosed = true;
         });
         if (modalClosed) {
           return true;
@@ -3892,10 +3853,7 @@ ${shareUrl}`);
           this.switchView("home");
           return true;
         }
-        if (exitModal) {
-          showExitModal();
-          return true;
-        } else if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === "function") {
+        if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === "function") {
           window.AndroidBridge.exitApp();
           return true;
         }

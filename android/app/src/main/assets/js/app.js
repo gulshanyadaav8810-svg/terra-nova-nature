@@ -305,47 +305,7 @@ class NatureMomentsApp {
       }
     });
 
-    // Bind Exit Confirmation Modal
-    const exitModal = document.getElementById('modal-exit-confirm');
-    const btnCancelExit = document.getElementById('btn-cancel-exit');
-    const btnConfirmExit = document.getElementById('btn-confirm-exit');
-
-    const hideExitModal = () => {
-      if (exitModal) {
-        exitModal.classList.remove('open');
-        exitModal.style.display = 'none';
-      }
-    };
-
-    const showExitModal = () => {
-      if (exitModal) {
-        exitModal.style.display = 'flex';
-        exitModal.classList.add('open');
-      }
-    };
-
-    if (btnCancelExit) {
-      btnCancelExit.addEventListener('click', hideExitModal);
-    }
-
-    if (btnConfirmExit) {
-      btnConfirmExit.addEventListener('click', () => {
-        hideExitModal();
-        if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === 'function') {
-          window.AndroidBridge.exitApp();
-        }
-      });
-    }
-
-    if (exitModal) {
-      exitModal.addEventListener('click', (e) => {
-        if (e.target === exitModal) {
-          hideExitModal();
-        }
-      });
-    }
-
-    // Comprehensive Android System Back Button handler
+    // Comprehensive Android System Back Button handler (Instant direct exit, no annoying popup)
     window.handleAndroidBack = () => {
       // 0. If splash screen is still visible, dismiss it immediately
       const splash = document.getElementById('app-splash-screen');
@@ -355,49 +315,38 @@ class NatureMomentsApp {
         return true;
       }
 
-      // 1. If exit modal is already open, close it
-      if (exitModal && (exitModal.classList.contains('open') || exitModal.style.display === 'flex')) {
-        hideExitModal();
-        return true;
-      }
-
-      // 2. If fullscreen video player overlay is active, close it
+      // 1. If fullscreen video player overlay is active, close it
       if (this.player && this.player.overlay && (this.player.overlay.classList.contains('active') || this.player.overlay.style.display === 'flex')) {
         this.player.close();
         return true;
       }
 
-      // 3. If side drawer is open, close it
+      // 2. If side drawer is open, close it
       if (this.sideDrawer && this.sideDrawer.isOpen) {
         this.sideDrawer.close();
         return true;
       }
 
-      // 4. If any other modal is open (Rate, Language, Feedback, Privacy), close it
+      // 3. If any modal is open (Rate, Language, Feedback, Privacy), close it
       const openModals = document.querySelectorAll('.modal-overlay.open, .modal-overlay[style*="display: flex"]');
       let modalClosed = false;
       openModals.forEach(m => {
-        if (m.id !== 'modal-exit-confirm') {
-          m.classList.remove('open');
-          m.style.display = 'none';
-          modalClosed = true;
-        }
+        m.classList.remove('open');
+        m.style.display = 'none';
+        modalClosed = true;
       });
       if (modalClosed) {
         return true;
       }
 
-      // 5. If user is in reels or save view, navigate back to home view smoothly
+      // 4. If user is in reels or save view, navigate back to home view smoothly
       if (this.currentView === 'save' || this.currentView === 'reels') {
         this.switchView('home');
         return true;
       }
 
-      // 6. User is on Home screen: Show exit confirmation modal
-      if (exitModal) {
-        showExitModal();
-        return true;
-      } else if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === 'function') {
+      // 5. User is on Home screen: Exit app directly with zero annoying confirmation popup
+      if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === 'function') {
         window.AndroidBridge.exitApp();
         return true;
       }
