@@ -1,115 +1,145 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <defs>
-    <!-- Background Luxury Gradient -->
-    <radialGradient id="ns-bg-radial" cx="50%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#144638"/>
-      <stop offset="60%" stop-color="#082820"/>
-      <stop offset="100%" stop-color="#041410"/>
+    <!-- Squircle Clip: Smooth Modern Rounded App Icon Mask -->
+    <clipPath id="squircle-clip">
+      <rect x="16" y="16" width="480" height="480" rx="118" ry="118" />
+    </clipPath>
+
+    <!-- Top-Left Electric Cyan Flare (High-Contrast Neon Glow like Reference) -->
+    <radialGradient id="ns-glow-topleft" cx="2%" cy="2%" r="62%">
+      <stop offset="0%" stop-color="#00FFE0" stop-opacity="1"/>
+      <stop offset="20%" stop-color="#00E5B3" stop-opacity="0.9"/>
+      <stop offset="45%" stop-color="#05A67A" stop-opacity="0.5"/>
+      <stop offset="75%" stop-color="#000000" stop-opacity="0"/>
     </radialGradient>
 
-    <!-- Emerald Glow Ring Gradient -->
-    <linearGradient id="ns-ring-grad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#34D399"/>
-      <stop offset="30%" stop-color="#10B981"/>
-      <stop offset="70%" stop-color="#059669"/>
-      <stop offset="100%" stop-color="#047857"/>
+    <!-- Bottom-Right Deep Aqua/Emerald Flare (High-Contrast Ambient Glow like Reference) -->
+    <radialGradient id="ns-glow-bottomright" cx="98%" cy="98%" r="62%">
+      <stop offset="0%" stop-color="#00F0C0" stop-opacity="1"/>
+      <stop offset="22%" stop-color="#00D2A0" stop-opacity="0.85"/>
+      <stop offset="48%" stop-color="#058C67" stop-opacity="0.45"/>
+      <stop offset="80%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Chrome Rim Stroke Gradient -->
+    <linearGradient id="ns-rim-grad" x1="16" y1="16" x2="496" y2="496" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A7F3D0" stop-opacity="0.95"/>
+      <stop offset="18%" stop-color="#00F5D4" stop-opacity="0.6"/>
+      <stop offset="48%" stop-color="#043224" stop-opacity="0.15"/>
+      <stop offset="78%" stop-color="#059669" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#34D399" stop-opacity="0.95"/>
     </linearGradient>
 
-    <!-- Gold Sparkle Gradient -->
-    <linearGradient id="ns-gold-grad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#FDE68A"/>
-      <stop offset="50%" stop-color="#F59E0B"/>
-      <stop offset="100%" stop-color="#D97706"/>
-    </linearGradient>
-
-    <!-- Leaf 1 Emerald Gradient -->
-    <linearGradient id="ns-leaf-grad1" x1="160" y1="130" x2="340" y2="350" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#6EE7B7"/>
-      <stop offset="40%" stop-color="#10B981"/>
-      <stop offset="100%" stop-color="#065F46"/>
-    </linearGradient>
-
-    <!-- Leaf 2 Fresh Mint Gradient -->
-    <linearGradient id="ns-leaf-grad2" x1="280" y1="160" x2="380" y2="280" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#A7F3D0"/>
-      <stop offset="60%" stop-color="#34D399"/>
-      <stop offset="100%" stop-color="#059669"/>
-    </linearGradient>
-
-    <!-- Glass Play Button Pure White Gradient -->
-    <linearGradient id="ns-play-grad" x1="215" y1="185" x2="315" y2="315" gradientUnits="userSpaceOnUse">
+    <!-- Hero Nature Leaf Master Gradient (Pure White Highlight down to Lush Forest Emerald) -->
+    <linearGradient id="ns-leaf-main" x1="180" y1="100" x2="360" y2="390" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="65%" stop-color="#ECFDF5"/>
-      <stop offset="100%" stop-color="#D1FAE5"/>
+      <stop offset="15%" stop-color="#D1FAE5"/>
+      <stop offset="35%" stop-color="#34D399"/>
+      <stop offset="68%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#023D2C"/>
     </linearGradient>
 
-    <!-- Glowing Rim Light -->
-    <linearGradient id="ns-rim-light" x1="120" y1="30" x2="400" y2="480" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#6EE7B7" stop-opacity="0.8"/>
-      <stop offset="40%" stop-color="#10B981" stop-opacity="0.3"/>
+    <!-- Companion Fresh Sprout Leaf Gradient -->
+    <linearGradient id="ns-leaf-sprout" x1="280" y1="120" x2="410" y2="290" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F0FDF4"/>
+      <stop offset="25%" stop-color="#6EE7B7"/>
+      <stop offset="70%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#046A4E"/>
+    </linearGradient>
+
+    <!-- Center Play Badge Outer Glowing Ring -->
+    <linearGradient id="ns-badge-ring" x1="180" y1="180" x2="330" y2="330" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#00F5D4" stop-opacity="0.6"/>
       <stop offset="100%" stop-color="#047857" stop-opacity="0.8"/>
     </linearGradient>
 
-    <!-- Ambient Shadow Filter -->
-    <filter id="ns-glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="22" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    <!-- Central Play Symbol Pure White/Mint Gradient -->
+    <linearGradient id="ns-play-pure" x1="230" y1="210" x2="310" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="60%" stop-color="#F0FDF4"/>
+      <stop offset="100%" stop-color="#CCFBF1"/>
+    </linearGradient>
+
+    <!-- Sparkle Gradients -->
+    <linearGradient id="ns-gold-sparkle" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFBEB"/>
+      <stop offset="40%" stop-color="#FDE68A"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+
+    <linearGradient id="ns-cyan-sparkle" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#00FFE0"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <!-- Depth Filters -->
+    <filter id="ns-emblem-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.95"/>
+      <feDropShadow dx="0" dy="4" stdDeviation="14" flood-color="#00F5D4" flood-opacity="0.45"/>
     </filter>
 
-    <filter id="ns-drop-shadow" x="-15%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#047857" flood-opacity="0.5"/>
-    </filter>
-
-    <filter id="ns-play-shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#064E3B" flood-opacity="0.6"/>
+    <filter id="ns-play-shadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.9"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="16" flood-color="#00F5D4" flood-opacity="0.5"/>
     </filter>
   </defs>
 
-  <!-- Outer Ambient Aura -->
-  <circle cx="256" cy="256" r="225" fill="none" stroke="url(#ns-ring-grad)" stroke-width="2" stroke-opacity="0.25"/>
+  <!-- 1. LUXURY SQUIRCLE BACKDROP (DEEP PITCH BLACK + DUAL NEON GLOW CORNERS) -->
+  <g clip-path="url(#squircle-clip)">
+    <!-- Deep Pitch Obsidian Black Base -->
+    <rect x="16" y="16" width="480" height="480" rx="118" ry="118" fill="#000201" />
 
-  <!-- Segmented Status Story Ring (4 High-Tech Rounded Arcs) -->
-  <circle cx="256" cy="256" r="216" stroke="url(#ns-ring-grad)" stroke-width="11" stroke-linecap="round" stroke-dasharray="146 24" fill="none" opacity="0.95"/>
+    <!-- Top-Left Electric Cyan Flare (Reference Exact Match) -->
+    <rect x="16" y="16" width="480" height="480" rx="118" ry="118" fill="url(#ns-glow-topleft)" />
 
-  <!-- Main Luxury Dark Badge Base -->
-  <circle cx="256" cy="256" r="192" fill="url(#ns-bg-radial)" filter="url(#ns-drop-shadow)"/>
-  <circle cx="256" cy="256" r="190" stroke="url(#ns-rim-light)" stroke-width="3" fill="none"/>
+    <!-- Bottom-Right Vibrant Aqua/Emerald Flare (Reference Exact Match) -->
+    <rect x="16" y="16" width="480" height="480" rx="118" ry="118" fill="url(#ns-glow-bottomright)" />
+  </g>
 
-  <!-- Inner Subtle Glass Disc -->
-  <circle cx="256" cy="256" r="148" fill="#FFFFFF" fill-opacity="0.04" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+  <!-- 2. SQUIRCLE CHROME RIM BORDER (Crisp Luxury Edge) -->
+  <rect x="17" y="17" width="478" height="478" rx="117" ry="117" fill="none" stroke="url(#ns-rim-grad)" stroke-width="2.6" />
 
-  <!-- NATURE MOTIF: Stylized Organic Leaves forming Status Circle -->
-  <!-- Primary Flourishing Nature Leaf (Left & Bottom arc) -->
-  <path d="M175 320 C145 270 155 195 210 155 C265 115 330 135 345 155 C335 195 305 240 260 270 C220 298 190 325 175 320 Z" 
-        fill="url(#ns-leaf-grad1)" opacity="0.92"/>
-  
-  <!-- Leaf Spine & Vein Glow -->
-  <path d="M185 310 C210 275 250 220 330 160" 
-        stroke="#A7F3D0" stroke-width="3.5" stroke-linecap="round" stroke-opacity="0.75"/>
+  <!-- 3. BOLD, PROMINENT NATURE & VIDEO STATUS HERO EMBLEM (BIG & FULL-WIDTH) -->
+  <g transform="translate(256, 256) scale(1.48) translate(-256, -256)" filter="url(#ns-emblem-shadow)">
+    <!-- Segmented Status Ring (Subtle High-Tech Story Arc) -->
+    <circle cx="256" cy="256" r="144" stroke="url(#ns-rim-grad)" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="108 26" fill="none" opacity="0.85"/>
 
-  <!-- Secondary Companion Sprout Leaf (Right Top arc) -->
-  <path d="M295 140 C340 130 380 165 375 210 C370 245 340 270 305 260 C300 225 315 170 295 140 Z" 
-        fill="url(#ns-leaf-grad2)" opacity="0.88"/>
+    <!-- Flourishing Organic Nature Leaf (Master Sweeping Arc) -->
+    <path d="M165 330 C132 268 145 182 208 140 C270 98 344 122 360 144 C350 190 314 245 262 280 C216 312 180 336 165 330 Z" 
+          fill="url(#ns-leaf-main)" />
 
-  <!-- Central Floating Glass Video Play Badge -->
-  <circle cx="264" cy="256" r="66" fill="rgba(6, 78, 59, 0.72)" stroke="rgba(255, 255, 255, 0.35)" stroke-width="2.5" filter="url(#ns-play-shadow)"/>
+    <!-- Luminous Energy Spine of Leaf -->
+    <path d="M178 320 C208 278 254 214 344 148" 
+          stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-opacity="0.95"/>
 
-  <!-- Precision High-Tech Play Triangle -->
-  <polygon points="246,224 300,256 246,288" 
-           fill="url(#ns-play-grad)" 
-           stroke="#FFFFFF" 
-           stroke-width="3.5" 
-           stroke-linejoin="round"/>
+    <!-- Companion Fresh Sprout Leaf (Upper Right Bloom) -->
+    <path d="M298 132 C350 118 398 156 392 210 C385 250 350 278 308 266 C301 228 322 165 298 132 Z" 
+          fill="url(#ns-leaf-sprout)" />
 
-  <!-- Pure Dewdrop Accent on Leaf Tip -->
-  <circle cx="344" cy="154" r="8.5" fill="#FFFFFF" opacity="0.95"/>
-  <circle cx="342" cy="152" r="3.5" fill="#A7F3D0"/>
+    <!-- Morning Dewdrop Jewel on Leaf Crest -->
+    <circle cx="358" cy="143" r="10.5" fill="#FFFFFF"/>
+    <circle cx="356" cy="141" r="5" fill="#00FFE0"/>
 
-  <!-- Golden Nature Status Crown Sparkle (Top-Right) -->
-  <path d="M382 110 L386 98 L398 94 L386 90 L382 78 L378 90 L366 94 L378 98 Z" 
-        fill="url(#ns-gold-grad)"/>
+    <!-- Central High-Impact Play Badge Disc -->
+    <circle cx="256" cy="256" r="74" fill="#011811" stroke="url(#ns-badge-ring)" stroke-width="3" filter="url(#ns-play-shadow)"/>
+    <circle cx="256" cy="256" r="71" stroke="#FFFFFF" stroke-width="1.2" stroke-opacity="0.75" fill="none"/>
 
-  <!-- Secondary Sparkle (Bottom-Left) -->
-  <path d="M128 352 L131 343 L140 340 L131 337 L128 328 L125 337 L116 340 L125 343 Z" 
-        fill="#34D399" opacity="0.85"/>
+    <!-- Solid, Bold Play Triangle (Ultra High Contrast, Centered) -->
+    <polygon points="236,218 296,256 236,294" 
+             fill="url(#ns-play-pure)" 
+             stroke="#FFFFFF" 
+             stroke-width="4" 
+             stroke-linejoin="round"/>
+
+    <!-- Brilliant Diamond Sparkle Stars (Inside boundaries) -->
+    <!-- Gold Crown Sparkle -->
+    <path d="M356 108 L360 97 L372 93 L360 89 L356 78 L352 89 L340 93 L352 97 Z" 
+          fill="url(#ns-gold-sparkle)"/>
+
+    <!-- Cyan Ambient Star Sparkle -->
+    <path d="M136 348 L139 338 L149 335 L139 332 L136 322 L133 332 L123 335 L133 338 Z" 
+          fill="url(#ns-cyan-sparkle)"/>
+  </g>
 </svg>
