@@ -1,6 +1,7 @@
 android/
 PlayStore_Package/
-*.apk
+!NatureMoments.apk
+!WhatsAppStatus.apk
 *.aab
 *.jks
 node_modules/
