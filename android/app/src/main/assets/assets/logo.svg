@@ -1,93 +1,128 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <!-- Glowing Segmented Story Ring Gradient (Vibrant Cyan to Neon Mint) -->
-    <linearGradient id="circ-ring-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Deep Pitch Obsidian Green Base -->
+    <radialGradient id="fb-base" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#05281E"/>
+      <stop offset="60%" stop-color="#02140D"/>
+      <stop offset="100%" stop-color="#010A06"/>
+    </radialGradient>
+
+    <!-- Top-Left Vibrant Cyan Flare (Matching Reference Logo) -->
+    <radialGradient id="fb-glow-tl" cx="0%" cy="0%" r="65%">
+      <stop offset="0%" stop-color="#00FFE0" stop-opacity="0.85"/>
+      <stop offset="30%" stop-color="#00D2A0" stop-opacity="0.5"/>
+      <stop offset="65%" stop-color="#059669" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Bottom-Right Vibrant Emerald Flare (Matching Reference Logo) -->
+    <radialGradient id="fb-glow-br" cx="100%" cy="100%" r="65%">
+      <stop offset="0%" stop-color="#00F5D4" stop-opacity="0.9"/>
+      <stop offset="28%" stop-color="#10B981" stop-opacity="0.6"/>
+      <stop offset="65%" stop-color="#047857" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Segmented Ring Glow Gradient -->
+    <linearGradient id="fb-ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#00FFE0"/>
-      <stop offset="50%" stop-color="#00F5D4"/>
+      <stop offset="30%" stop-color="#FFFFFF"/>
+      <stop offset="65%" stop-color="#00F5D4"/>
       <stop offset="100%" stop-color="#10B981"/>
     </linearGradient>
 
-    <!-- Luxury Dark Disc Base -->
-    <radialGradient id="circ-inner-disc" cx="44%" cy="44%" r="56%">
-      <stop offset="0%" stop-color="#043224"/>
-      <stop offset="55%" stop-color="#011811"/>
-      <stop offset="100%" stop-color="#000603"/>
+    <!-- Inner Core Disc Gradient -->
+    <radialGradient id="fb-core-disc" cx="44%" cy="44%" r="58%">
+      <stop offset="0%" stop-color="#063E2D"/>
+      <stop offset="50%" stop-color="#021B13"/>
+      <stop offset="100%" stop-color="#010C07"/>
     </radialGradient>
 
     <!-- Chrome Rim Gradient -->
-    <linearGradient id="circ-rim" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="fb-rim-grad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
-      <stop offset="25%" stop-color="#6EE7B7" stop-opacity="0.8"/>
-      <stop offset="70%" stop-color="#047857" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#00F5D4" stop-opacity="0.9"/>
+      <stop offset="25%" stop-color="#A7F3D0" stop-opacity="0.85"/>
+      <stop offset="70%" stop-color="#059669" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#34D399" stop-opacity="0.95"/>
     </linearGradient>
 
-    <!-- Sweeping Nature Leaf Gradient -->
-    <linearGradient id="circ-leaf-grad" x1="160" y1="120" x2="360" y2="390" gradientUnits="userSpaceOnUse">
+    <!-- Sweeping Nature Leaf Master Gradient -->
+    <linearGradient id="fb-leaf-hero" x1="160" y1="120" x2="365" y2="390" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#FFFFFF"/>
       <stop offset="14%" stop-color="#D1FAE5"/>
-      <stop offset="38%" stop-color="#34D399"/>
-      <stop offset="72%" stop-color="#059669"/>
+      <stop offset="36%" stop-color="#34D399"/>
+      <stop offset="70%" stop-color="#059669"/>
       <stop offset="100%" stop-color="#023D2C"/>
     </linearGradient>
 
-    <!-- Fresh Sprout Gradient -->
-    <linearGradient id="circ-sprout-grad" x1="280" y1="120" x2="400" y2="280" gradientUnits="userSpaceOnUse">
+    <!-- Companion Fresh Sprout Gradient -->
+    <linearGradient id="fb-sprout-hero" x1="280" y1="120" x2="400" y2="280" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#F0FDF4"/>
       <stop offset="30%" stop-color="#6EE7B7"/>
       <stop offset="100%" stop-color="#059669"/>
     </linearGradient>
 
-    <filter id="circ-glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.9"/>
-      <feDropShadow dx="0" dy="0" stdDeviation="20" flood-color="#00F5D4" flood-opacity="0.45"/>
+    <!-- Deep 3D Drop Shadow Filters -->
+    <filter id="fb-shadow-emblem" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.95"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="12" flood-color="#00FFE0" flood-opacity="0.35"/>
+    </filter>
+
+    <filter id="fb-shadow-play" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.9"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="14" flood-color="#00FFE0" flood-opacity="0.5"/>
     </filter>
   </defs>
 
-  <!-- MAIN LUXURY CIRCULAR BADGE (Pure Circle, No Rectangle!) -->
-  <g filter="url(#circ-glow)">
-    <!-- Outer Ambient Aura Ring -->
-    <circle cx="256" cy="256" r="234" fill="none" stroke="url(#circ-ring-glow)" stroke-width="2.5" stroke-opacity="0.4"/>
+  <!-- 1. FULL-BLEED 100% OPAQUE BACKGROUND (Covers all 512x512! Zero white space!) -->
+  <rect width="512" height="512" fill="url(#fb-base)"/>
+  <rect width="512" height="512" fill="url(#fb-glow-tl)"/>
+  <rect width="512" height="512" fill="url(#fb-glow-br)"/>
 
-    <!-- Segmented Status Story Ring (4 Rounded Arcs) -->
-    <circle cx="256" cy="256" r="218" stroke="url(#circ-ring-glow)" stroke-width="12" stroke-linecap="round" stroke-dasharray="144 26" fill="none" opacity="0.95"/>
+  <!-- 2. PROMINENT HERO EMBLEM (Fills 94% of the icon space!) -->
+  <g filter="url(#fb-shadow-emblem)">
+    <!-- Outer Ambient Glow Aura -->
+    <circle cx="256" cy="256" r="236" fill="none" stroke="url(#fb-ring-grad)" stroke-width="2.5" stroke-opacity="0.45"/>
+
+    <!-- High-Tech Segmented Story Ring (4 Arcs) -->
+    <circle cx="256" cy="256" r="222" stroke="url(#fb-ring-grad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="146 26" fill="none" opacity="0.95"/>
 
     <!-- Inner Core Disc -->
-    <circle cx="256" cy="256" r="192" fill="url(#circ-inner-disc)"/>
-    <circle cx="256" cy="256" r="192" fill="none" stroke="url(#circ-rim)" stroke-width="3"/>
+    <circle cx="256" cy="256" r="196" fill="url(#fb-core-disc)"/>
+    <circle cx="256" cy="256" r="196" fill="none" stroke="url(#fb-rim-grad)" stroke-width="3.2"/>
 
-    <!-- Subtle Inner Glass Circle -->
-    <circle cx="256" cy="256" r="150" fill="#FFFFFF" fill-opacity="0.03" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+    <!-- Inner Glass Ring -->
+    <circle cx="256" cy="256" r="154" fill="#FFFFFF" fill-opacity="0.04" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/>
 
-    <!-- SWEEPING ORGANIC NATURE LEAF (Tilted dynamic curve) -->
-    <path d="M174 324 C142 268 154 188 212 148 C270 108 338 128 354 148 C344 190 310 242 262 274 C218 304 186 328 174 324 Z" 
-          fill="url(#circ-leaf-grad)" />
+    <!-- Sweeping Nature Leaf (Tilted Dynamic Arc) -->
+    <path d="M172 328 C138 270 152 186 212 144 C272 102 342 124 358 144 C348 188 312 242 262 276 C216 308 184 332 172 328 Z" 
+          fill="url(#fb-leaf-hero)" />
     
     <!-- Luminous Energy Spine of Leaf -->
-    <path d="M186 314 C214 274 256 216 340 154" 
-          stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-opacity="0.95"/>
+    <path d="M184 318 C214 276 258 214 344 150" 
+          stroke="#FFFFFF" stroke-width="4.8" stroke-linecap="round" stroke-opacity="0.95"/>
 
     <!-- Companion Fresh Sprout Leaf -->
-    <path d="M292 138 C342 126 384 162 378 210 C372 246 340 270 300 258 C294 222 314 166 292 138 Z" 
-          fill="url(#circ-sprout-grad)" opacity="0.95"/>
+    <path d="M294 136 C346 124 390 160 384 210 C378 248 344 272 302 260 C296 224 316 166 294 136 Z" 
+          fill="url(#fb-sprout-hero)" opacity="0.95"/>
 
     <!-- Morning Dewdrop Jewel on Leaf Crest -->
-    <circle cx="348" cy="150" r="9.5" fill="#FFFFFF"/>
-    <circle cx="346" cy="148" r="4.5" fill="#00FFE0"/>
+    <circle cx="352" cy="148" r="10" fill="#FFFFFF"/>
+    <circle cx="350" cy="146" r="5" fill="#00FFE0"/>
 
-    <!-- CENTRAL FLOATING PLAY BADGE DISC -->
-    <circle cx="256" cy="256" r="68" fill="#011811" stroke="url(#circ-rim)" stroke-width="3"/>
-    <circle cx="256" cy="256" r="64.5" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-opacity="0.8"/>
+    <!-- Central Floating Play Badge Disc -->
+    <circle cx="256" cy="256" r="70" fill="#011811" stroke="url(#fb-rim-grad)" stroke-width="3" filter="url(#fb-shadow-play)"/>
+    <circle cx="256" cy="256" r="66" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-opacity="0.8"/>
 
     <!-- Pure White Precision Play Triangle -->
-    <polygon points="238,220 294,256 238,292" 
+    <polygon points="236,218 296,256 236,294" 
              fill="#FFFFFF" 
              stroke="#FFFFFF" 
              stroke-width="3.5" 
              stroke-linejoin="round"/>
 
-    <!-- Diamond Sparkle Stars -->
-    <path d="M360 106 L363 97 L372 94 L363 91 L360 82 L357 91 L348 94 L357 97 Z" fill="#FDE68A"/>
-    <path d="M136 344 L138 336 L146 334 L138 332 L136 324 L134 332 L126 334 L134 336 Z" fill="#00FFE0" opacity="0.9"/>
+    <!-- Brilliant Diamond Sparkle Stars -->
+    <path d="M362 104 L365 95 L374 92 L365 89 L362 80 L359 89 L350 92 L359 95 Z" fill="#FDE68A"/>
+    <path d="M134 346 L136 338 L144 336 L136 334 L134 326 L132 334 L124 336 L132 338 Z" fill="#00FFE0" opacity="0.9"/>
   </g>
 </svg>
