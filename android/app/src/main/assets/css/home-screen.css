@@ -77,43 +77,56 @@
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
-/* Brand Identity Container */
+/* Brand Identity Container (Nature [Logo] Status) */
 .home-brand-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex: 1;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  flex: 1 !important;
+  cursor: pointer !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.home-brand-container:active {
+  transform: scale(0.96) !important;
+}
+
+.home-brand-word {
+  font-family: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 1.42rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.5px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.home-brand-word.brand-nature {
+  background: linear-gradient(135deg, #064E3B 0%, #047857 65%, #059669 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.home-brand-word.brand-status {
+  background: linear-gradient(135deg, #059669 0%, #10B981 60%, #00F5D4 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
 }
 
 .home-brand-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1.5px solid rgba(16, 185, 129, 0.45);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  object-fit: cover;
-  transition: transform 0.3s ease;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 9px !important;
+  border: 1.5px solid rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+  object-fit: cover !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.3s ease !important;
 }
 
 .home-brand-container:hover .home-brand-logo {
-  transform: rotate(15deg) scale(1.1);
-}
-
-/* Sleek Modern Nature Moments Title (Next.js / Apple style) */
-.home-app-title {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-  font-size: 1.35rem !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.4px !important;
-  background: linear-gradient(135deg, #065F46 0%, #059669 60%, #10B981 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  margin: 0 !important;
-  text-align: center !important;
-  flex: 0 1 auto !important;
-  line-height: 1.2 !important;
-  white-space: nowrap !important;
+  transform: scale(1.1) rotate(6deg) !important;
 }
 
 /* Right Sound Equalizer Button */

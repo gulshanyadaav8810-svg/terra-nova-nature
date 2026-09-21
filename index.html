@@ -12,10 +12,10 @@
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
 
-  <!-- Google Fonts: Plus Jakarta Sans & Caveat -->
+  <!-- Google Fonts: Outfit, Plus Jakarta Sans & Caveat -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Outfit:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
   <!-- CSS Stylesheets -->
   <link rel="stylesheet" href="css/design-tokens.css" />
@@ -85,10 +85,11 @@
           </svg>
         </button>
 
-        <!-- Brand Identity Pill -->
+        <!-- Brand Identity Pill (Nature [Logo] Status) -->
         <div class="header-brand-pill" onclick="window.app && window.app.switchView('home')" style="cursor: pointer;">
+          <span class="header-brand-word header-brand-nature">Nature</span>
           <img class="header-brand-logo" src="assets/logo.svg" alt="Nature Status Logo" />
-          <span class="header-brand-name" data-i18n="app_title">Nature Status</span>
+          <span class="header-brand-word header-brand-status">Status</span>
         </div>
 
         <!-- Hamburger Menu -->
@@ -122,10 +123,11 @@
             </svg>
           </button>
 
-          <!-- Nature Status Title & Logo -->
-          <div class="home-brand-container">
-            <img src="assets/logo.svg" alt="Nature Status" class="home-brand-logo" />
-            <h1 class="home-app-title">Nature Status</h1>
+          <!-- Nature [Logo] Status Center Branding -->
+          <div class="home-brand-container" onclick="window.app && window.app.switchView('home')" style="cursor: pointer;">
+            <span class="home-brand-word brand-nature">Nature</span>
+            <img src="assets/logo.svg" alt="Nature Status Logo" class="home-brand-logo" />
+            <span class="home-brand-word brand-status">Status</span>
           </div>
 
           <!-- Right Sound Equalizer Button -->
