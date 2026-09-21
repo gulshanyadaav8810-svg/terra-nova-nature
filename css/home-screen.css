@@ -129,10 +129,9 @@
 .home-brand-logo {
   width: 32px !important;
   height: 32px !important;
-  border-radius: 50% !important;
-  border: 1.5px solid rgba(16, 185, 129, 0.4) !important;
+  border-radius: 7px !important;
   box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
-  object-fit: cover !important;
+  object-fit: contain !important;
   flex-shrink: 0 !important;
   transition: transform 0.3s ease !important;
 }

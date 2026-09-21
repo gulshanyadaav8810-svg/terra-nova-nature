@@ -121,7 +121,7 @@ export class ReelsGrid {
     emptyWrapper.style.textAlign = 'center';
     emptyWrapper.innerHTML = `
       <div class="empty-state-icon" style="margin-bottom: 16px;">
-        <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 64px; height: 64px; border-radius: 50%; box-shadow: 0 4px 14px rgba(37,211,102,0.3); display: inline-block;" />
+        <img src="assets/logo.png" alt="Nature Status" style="width: 64px; height: 64px; border-radius: 14px; box-shadow: 0 4px 14px rgba(16,185,129,0.3); display: inline-block;" />
       </div>
       <h3 class="empty-state-title" style="color: #17483A; font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">No Videos Available</h3>
       <p class="empty-state-subtitle" style="color: #61756D; font-size: 0.9rem; max-width: 320px; margin: 0 auto 20px; line-height: 1.5;">

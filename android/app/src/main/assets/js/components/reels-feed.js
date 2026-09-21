@@ -912,7 +912,7 @@ export class ReelsFeed {
       const catName = catObj ? catObj.name : this.activeCategory;
       this.container.innerHTML = `
         <div class="empty-state" style="height: 100%; justify-content: center; text-align: center; padding: 32px 20px; display: flex; flex-direction: column; align-items: center;">
-          <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; opacity: 0.95;" />
+          <img src="assets/logo.png" alt="Nature Status" style="width: 64px; height: 64px; margin-bottom: 16px; border-radius: 14px; opacity: 0.95;" />
           <h3 class="empty-state-title" style="color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px;">No Videos Available</h3>
           <p class="empty-state-subtitle" style="color: rgba(255,255,255,0.7); font-size: 0.9rem; max-width: 300px; margin: 0 auto 24px;">
             There are currently no videos in "${catName}". Explore other categories or check back soon.

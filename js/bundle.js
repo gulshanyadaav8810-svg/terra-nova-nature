@@ -2750,7 +2750,7 @@ ${shareUrl}`);
         const catName = catObj ? catObj.name : this.activeCategory;
         this.container.innerHTML = `
         <div class="empty-state" style="height: 100%; justify-content: center; text-align: center; padding: 32px 20px; display: flex; flex-direction: column; align-items: center;">
-          <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; opacity: 0.95;" />
+          <img src="assets/logo.png" alt="Nature Status" style="width: 64px; height: 64px; margin-bottom: 16px; border-radius: 14px; opacity: 0.95;" />
           <h3 class="empty-state-title" style="color: #fff; font-size: 1.3rem; font-weight: 700; margin-bottom: 8px;">No Videos Available</h3>
           <p class="empty-state-subtitle" style="color: rgba(255,255,255,0.7); font-size: 0.9rem; max-width: 300px; margin: 0 auto 24px;">
             There are currently no videos in "${catName}". Explore other categories or check back soon.
@@ -2905,7 +2905,7 @@ ${shareUrl}`);
       emptyWrapper.style.textAlign = "center";
       emptyWrapper.innerHTML = `
       <div class="empty-state-icon" style="margin-bottom: 16px;">
-        <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 64px; height: 64px; border-radius: 50%; box-shadow: 0 4px 14px rgba(37,211,102,0.3); display: inline-block;" />
+        <img src="assets/logo.png" alt="Nature Status" style="width: 64px; height: 64px; border-radius: 14px; box-shadow: 0 4px 14px rgba(16,185,129,0.3); display: inline-block;" />
       </div>
       <h3 class="empty-state-title" style="color: #17483A; font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">No Videos Available</h3>
       <p class="empty-state-subtitle" style="color: #61756D; font-size: 0.9rem; max-width: 320px; margin: 0 auto 20px; line-height: 1.5;">
@@ -3096,7 +3096,7 @@ ${shareUrl}`);
           <h3 class="empty-state-title">No saved reels yet</h3>
           <p class="empty-state-subtitle">Bookmark peaceful moments to build your personal collection.</p>
           <button class="empty-state-action-btn" type="button" onclick="window.app && window.app.switchView('home')">
-            <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 50%;" />
+            <img src="assets/logo.png" alt="Nature Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 5px;" />
             <span>Explore Status Videos</span>
           </button>
         </div>
@@ -3171,7 +3171,7 @@ ${shareUrl}`);
           <h3 class="empty-state-title">No liked reels yet</h3>
           <p class="empty-state-subtitle">Tap the heart on any video you love to save it here.</p>
           <button class="empty-state-action-btn" type="button" onclick="window.app && window.app.switchView('home')">
-            <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 50%;" />
+            <img src="assets/logo.png" alt="Nature Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 5px;" />
             <span>Discover Status Videos</span>
           </button>
         </div>
@@ -3252,7 +3252,7 @@ ${shareUrl}`);
           <h3 class="empty-state-title">No offline downloads yet</h3>
           <p class="empty-state-subtitle">Download status reels to watch anytime, completely offline.</p>
           <button class="empty-state-action-btn" type="button" onclick="window.app && window.app.switchView('home')">
-            <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 50%;" />
+            <img src="assets/logo.png" alt="Nature Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 5px;" />
             <span>Browse Status Videos</span>
           </button>
         </div>

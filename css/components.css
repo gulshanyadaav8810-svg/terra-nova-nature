@@ -745,10 +745,10 @@
 .drawer-logo {
   width: 48px;
   height: 48px;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(36, 92, 78, 0.22);
-  border: 2px solid rgba(255, 255, 255, 0.95);
-  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+  border: 1.5px solid rgba(16, 185, 129, 0.4);
+  object-fit: contain;
 }
 
 .drawer-title-main {

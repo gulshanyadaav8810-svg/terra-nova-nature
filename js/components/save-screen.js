@@ -201,7 +201,7 @@ export class SaveScreen {
           <h3 class="empty-state-title">No saved reels yet</h3>
           <p class="empty-state-subtitle">Bookmark peaceful moments to build your personal collection.</p>
           <button class="empty-state-action-btn" type="button" onclick="window.app && window.app.switchView('home')">
-            <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 50%;" />
+            <img src="assets/logo.png" alt="Nature Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 5px;" />
             <span>Explore Status Videos</span>
           </button>
         </div>
@@ -288,7 +288,7 @@ export class SaveScreen {
           <h3 class="empty-state-title">No liked reels yet</h3>
           <p class="empty-state-subtitle">Tap the heart on any video you love to save it here.</p>
           <button class="empty-state-action-btn" type="button" onclick="window.app && window.app.switchView('home')">
-            <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 50%;" />
+            <img src="assets/logo.png" alt="Nature Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 5px;" />
             <span>Discover Status Videos</span>
           </button>
         </div>
@@ -381,7 +381,7 @@ export class SaveScreen {
           <h3 class="empty-state-title">No offline downloads yet</h3>
           <p class="empty-state-subtitle">Download status reels to watch anytime, completely offline.</p>
           <button class="empty-state-action-btn" type="button" onclick="window.app && window.app.switchView('home')">
-            <img src="assets/logo.svg" alt="WhatsApp Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 50%;" />
+            <img src="assets/logo.png" alt="Nature Status" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 5px;" />
             <span>Browse Status Videos</span>
           </button>
         </div>
