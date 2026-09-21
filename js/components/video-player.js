@@ -62,7 +62,9 @@ export class VideoPlayer {
     this.centerPlay.addEventListener('click', () => this.togglePlay());
 
     // Video events
-    this.video.addEventListener('waiting', () => this.spinner.classList.add('loading'));
+    this.video.addEventListener('waiting', () => {
+      // Keep playing smoothly without showing any spinner
+    });
     this.video.addEventListener('playing', () => {
       this.spinner.classList.remove('loading');
       this.centerPlay.classList.remove('show');
@@ -76,15 +78,17 @@ export class VideoPlayer {
     });
     this.video.addEventListener('error', (e) => {
       const cur = this.video.src || '';
-      if (cur.includes('cdn.jsdelivr.net')) {
-        const fallback = cur.replace('cdn.jsdelivr.net/gh/', 'raw.githubusercontent.com/').replace('@main/', '/main/');
-        console.log('[VideoPlayer] jsDelivr error, switching to GitHub Raw fallback in 0ms:', fallback);
+      if (cur.includes('nature-moments-app.vercel.app') || cur.startsWith('/uploads/')) {
+        const fn = cur.split('/uploads/')[1];
+        const fallback = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${fn}`;
+        console.log('[VideoPlayer] Vercel edge error, switching to jsDelivr CDN fallback in 0ms:', fallback);
         this.video.src = fallback;
         this.video.play().catch(() => {});
         return;
-      } else if (cur.includes('raw.githubusercontent.com')) {
-        const fallback = cur.replace('raw.githubusercontent.com/', 'cdn.jsdelivr.net/gh/').replace('/main/', '@main/');
-        console.log('[VideoPlayer] Raw error, switching to jsDelivr fallback in 0ms:', fallback);
+      } else if (cur.includes('cdn.jsdelivr.net')) {
+        const fn = cur.split('/uploads/')[1];
+        const fallback = `https://nature-moments-app.vercel.app/uploads/${fn}`;
+        console.log('[VideoPlayer] jsDelivr error, switching to Vercel edge fallback in 0ms:', fallback);
         this.video.src = fallback;
         this.video.play().catch(() => {});
         return;
@@ -231,13 +235,13 @@ export class VideoPlayer {
       window.natureAppInstance.reelsFeed.pauseAll();
     }
 
-    this.spinner.classList.add('loading');
     let videoSourceUrl = (this.isOffline && this.offlineBlobUrl) ? this.offlineBlobUrl : reel.video_url;
 
     this.video.playsInline = true;
     this.video.setAttribute('playsinline', '');
     this.video.setAttribute('webkit-playsinline', '');
     this.video.setAttribute('x5-playsinline', '');
+    this.video.poster = reel.thumbnail_url || '';
     this.video.preload = 'auto';
     this.video.src = videoSourceUrl;
 

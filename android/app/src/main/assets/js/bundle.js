@@ -684,13 +684,14 @@
     let filename = "";
     if (url.startsWith("/uploads/")) {
       filename = url.replace(/^\/uploads\//, "");
-    } else if (url.includes("raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/")) {
-      filename = url.split("/uploads/")[1];
-    } else if (url.includes("cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/")) {
+    } else if (url.includes("/uploads/")) {
       filename = url.split("/uploads/")[1];
     }
     if (filename) {
-      return `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${filename}`;
+      if (typeof window !== "undefined" && window.location && window.location.origin && window.location.origin.includes("nature-moments-app.vercel.app")) {
+        return `/uploads/${filename}`;
+      }
+      return `https://nature-moments-app.vercel.app/uploads/${filename}`;
     }
     return url;
   }
@@ -700,13 +701,11 @@
     let filename = "";
     if (url.startsWith("/uploads/")) {
       filename = url.replace(/^\/uploads\//, "");
-    } else if (url.includes("raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/")) {
-      filename = url.split("/uploads/")[1];
-    } else if (url.includes("cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/")) {
+    } else if (url.includes("/uploads/")) {
       filename = url.split("/uploads/")[1];
     }
     if (filename) {
-      return `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${filename}`;
+      return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
     }
     return url;
   }
@@ -1467,7 +1466,8 @@ ${shareUrl}`);
       this.backBtn.addEventListener("click", () => this.close());
       this.video.addEventListener("click", () => this.togglePlay());
       this.centerPlay.addEventListener("click", () => this.togglePlay());
-      this.video.addEventListener("waiting", () => this.spinner.classList.add("loading"));
+      this.video.addEventListener("waiting", () => {
+      });
       this.video.addEventListener("playing", () => {
         this.spinner.classList.remove("loading");
         this.centerPlay.classList.remove("show");
@@ -1481,16 +1481,18 @@ ${shareUrl}`);
       });
       this.video.addEventListener("error", (e) => {
         const cur = this.video.src || "";
-        if (cur.includes("cdn.jsdelivr.net")) {
-          const fallback = cur.replace("cdn.jsdelivr.net/gh/", "raw.githubusercontent.com/").replace("@main/", "/main/");
-          console.log("[VideoPlayer] jsDelivr error, switching to GitHub Raw fallback in 0ms:", fallback);
+        if (cur.includes("nature-moments-app.vercel.app") || cur.startsWith("/uploads/")) {
+          const fn = cur.split("/uploads/")[1];
+          const fallback = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${fn}`;
+          console.log("[VideoPlayer] Vercel edge error, switching to jsDelivr CDN fallback in 0ms:", fallback);
           this.video.src = fallback;
           this.video.play().catch(() => {
           });
           return;
-        } else if (cur.includes("raw.githubusercontent.com")) {
-          const fallback = cur.replace("raw.githubusercontent.com/", "cdn.jsdelivr.net/gh/").replace("/main/", "@main/");
-          console.log("[VideoPlayer] Raw error, switching to jsDelivr fallback in 0ms:", fallback);
+        } else if (cur.includes("cdn.jsdelivr.net")) {
+          const fn = cur.split("/uploads/")[1];
+          const fallback = `https://nature-moments-app.vercel.app/uploads/${fn}`;
+          console.log("[VideoPlayer] jsDelivr error, switching to Vercel edge fallback in 0ms:", fallback);
           this.video.src = fallback;
           this.video.play().catch(() => {
           });
@@ -1604,12 +1606,12 @@ ${shareUrl}`);
       if (window.natureAppInstance && window.natureAppInstance.reelsFeed) {
         window.natureAppInstance.reelsFeed.pauseAll();
       }
-      this.spinner.classList.add("loading");
       let videoSourceUrl = this.isOffline && this.offlineBlobUrl ? this.offlineBlobUrl : reel.video_url;
       this.video.playsInline = true;
       this.video.setAttribute("playsinline", "");
       this.video.setAttribute("webkit-playsinline", "");
       this.video.setAttribute("x5-playsinline", "");
+      this.video.poster = reel.thumbnail_url || "";
       this.video.preload = "auto";
       this.video.src = videoSourceUrl;
       this.overlay.classList.add("active");
@@ -2413,11 +2415,6 @@ ${shareUrl}`);
           const otherVideo = item.querySelector("video");
           if (otherVideo) {
             otherVideo.pause();
-            const itemIdx = parseInt(item.getAttribute("data-index") || "0", 10);
-            if (Math.abs(itemIdx - targetIdx) > 1 && otherVideo.src) {
-              otherVideo.removeAttribute("src");
-              otherVideo.load();
-            }
           }
           const otherVinyl = item.querySelector(".dock-vinyl-disc");
           if (otherVinyl) otherVinyl.classList.add("paused");
@@ -2444,9 +2441,6 @@ ${shareUrl}`);
       video.volume = this.isMuted ? 0 : 1;
       if (!video._bufferEngineBound) {
         video._bufferEngineBound = true;
-        video.addEventListener("waiting", () => {
-          targetItem.classList.add("is-buffering");
-        });
         video.addEventListener("playing", () => {
           targetItem.classList.remove("is-buffering");
         });
@@ -2460,12 +2454,14 @@ ${shareUrl}`);
         video.addEventListener("error", () => {
           targetItem.classList.remove("is-buffering");
           const cur = video.src || "";
-          if (cur.includes("cdn.jsdelivr.net")) {
-            video.src = cur.replace("cdn.jsdelivr.net/gh/", "raw.githubusercontent.com/").replace("@main/", "/main/");
+          if (cur.includes("nature-moments-app.vercel.app") || cur.startsWith("/uploads/")) {
+            const fn = cur.split("/uploads/")[1];
+            video.src = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${fn}`;
             video.play().catch(() => {
             });
-          } else if (cur.includes("raw.githubusercontent.com")) {
-            video.src = cur.replace("raw.githubusercontent.com/", "cdn.jsdelivr.net/gh/").replace("/main/", "@main/");
+          } else if (cur.includes("cdn.jsdelivr.net")) {
+            const fn = cur.split("/uploads/")[1];
+            video.src = `https://nature-moments-app.vercel.app/uploads/${fn}`;
             video.play().catch(() => {
             });
           }
@@ -2484,7 +2480,16 @@ ${shareUrl}`);
         if (nv) {
           const nextSrc = nv.getAttribute("data-src");
           if (nextSrc && (!nv.src || nv.src === window.location.href)) nv.src = nextSrc;
-          nv.preload = "metadata";
+          nv.preload = "auto";
+        }
+      }
+      const prevItem = targetItem.previousElementSibling;
+      if (prevItem) {
+        const pv = prevItem.querySelector("video");
+        if (pv) {
+          const prevSrc = pv.getAttribute("data-src");
+          if (prevSrc && (!pv.src || pv.src === window.location.href)) pv.src = prevSrc;
+          pv.preload = "auto";
         }
       }
       const currentIndex = parseInt(targetItem.getAttribute("data-index") || "0", 10);
@@ -2593,7 +2598,7 @@ ${shareUrl}`);
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? "eager" : "lazy"}" onerror="if(this.src.includes('cdn.jsdelivr.net')){this.src=this.src.replace('cdn.jsdelivr.net/gh/','raw.githubusercontent.com/').replace('@main/','/main/');}else{this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';}" />
 
       <!-- 9:16 Video Canvas (Preloaded for instant 0ms playback) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 2 ? `src="${reel.video_url}" preload="auto" muted` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 3 ? `src="${reel.video_url}" preload="auto"` : 'preload="metadata"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
@@ -2604,9 +2609,6 @@ ${shareUrl}`);
           <polygon points="6 3 20 12 6 21 6 3"></polygon>
         </svg>
       </div>
-
-      <!-- Low-Network Buffering Spinner -->
-      <div class="feed-buffering-spinner"></div>
 
       <!-- Right-Side Instagram Action Dock -->
       <div class="feed-actions-dock">

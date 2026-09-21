@@ -52,15 +52,17 @@ export function normalizeVideoUrl(url) {
   let filename = '';
   if (url.startsWith('/uploads/')) {
     filename = url.replace(/^\/uploads\//, '');
-  } else if (url.includes('raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/')) {
-    filename = url.split('/uploads/')[1];
-  } else if (url.includes('cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/')) {
+  } else if (url.includes('/uploads/')) {
     filename = url.split('/uploads/')[1];
   }
 
   if (filename) {
-    // Fastly CDN direct streaming (0.6s response in India, 3x faster than jsDelivr)
-    return `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${filename}`;
+    // 1. If running on Vercel web domain, use relative /uploads/ for 0ms same-origin streaming
+    if (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin.includes('nature-moments-app.vercel.app')) {
+      return `/uploads/${filename}`;
+    }
+    // 2. Direct high-speed edge CDN (video/mp4 with HTTP 206 Byte Range support)
+    return `https://nature-moments-app.vercel.app/uploads/${filename}`;
   }
   return url;
 }
@@ -72,14 +74,13 @@ export function normalizeImageUrl(url) {
   let filename = '';
   if (url.startsWith('/uploads/')) {
     filename = url.replace(/^\/uploads\//, '');
-  } else if (url.includes('raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/')) {
-    filename = url.split('/uploads/')[1];
-  } else if (url.includes('cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/')) {
+  } else if (url.includes('/uploads/')) {
     filename = url.split('/uploads/')[1];
   }
 
   if (filename) {
-    return `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${filename}`;
+    // jsDelivr Edge CDN delivers instantly cached thumbnails with high reliability
+    return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
   }
   return url;
 }
@@ -96,11 +97,15 @@ export function isDemoReel(r) {
 
 export function getRawFallbackUrl(url) {
   if (!url || typeof url !== 'string') return url;
-  if (url.includes('cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/')) {
-    return url.replace('cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/', 'raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/');
+  let filename = '';
+  if (url.includes('/uploads/')) {
+    filename = url.split('/uploads/')[1];
   }
-  if (url.includes('raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/')) {
-    return url.replace('raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/', 'cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/');
+  if (filename) {
+    if (url.includes('nature-moments-app.vercel.app') || url.startsWith('/uploads/')) {
+      return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
+    }
+    return `https://nature-moments-app.vercel.app/uploads/${filename}`;
   }
   return url;
 }
