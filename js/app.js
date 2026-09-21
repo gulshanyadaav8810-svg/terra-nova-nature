@@ -253,7 +253,7 @@ class NatureMomentsApp {
     const headingEl = document.getElementById('home-category-heading');
     const iconEl = document.getElementById('home-section-icon');
     if (headingEl && cat) {
-      headingEl.textContent = `${cat.name} Status & Reels`;
+      headingEl.textContent = `${cat.name} Status`;
     }
     if (iconEl && cat) {
       iconEl.textContent = cat.icon || '✨';
