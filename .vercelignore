@@ -9,7 +9,12 @@ verification_screenshots/
 scratch/
 .gradle/
 build/
+uploads/
 *.png
 *.jpg
 *.jpeg
 !assets/**
+emulator_*.png
+screenshot_*.png
+verify_app.mjs
+create_playstore_assets.mjs
