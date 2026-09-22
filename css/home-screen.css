@@ -224,24 +224,27 @@
   box-shadow: 
     0 4px 14px rgba(0, 0, 0, 0.25),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
   outline: none;
   overflow: hidden;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
-/* Semi-transparent dark scenic overlay so text is razor sharp readable */
+/* Semi-transparent dark scenic overlay so text is razor sharp readable without any blur */
 .home-cat-chip::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(8, 16, 13, 0.72) 0%, rgba(8, 16, 13, 0.58) 50%, rgba(8, 16, 13, 0.74) 100%);
-  backdrop-filter: blur(1.5px);
-  -webkit-backdrop-filter: blur(1.5px);
+  background: linear-gradient(90deg, rgba(8, 16, 13, 0.72) 0%, rgba(8, 16, 13, 0.52) 50%, rgba(8, 16, 13, 0.72) 100%);
   z-index: 1;
-  transition: background 0.22s ease;
+  transition: background 0.2s ease;
+  pointer-events: none;
 }
 
 /* Category-tinted ambient glow on the left behind the icon */
@@ -267,27 +270,26 @@
   object-fit: cover;
   border: 2px solid #FFFFFF;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .home-cat-chip:hover {
-  transform: translateY(-2px) scale(1.02);
+  transform: translateY(-2px);
   border-color: var(--cat-color, #10B981);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38), 0 0 14px var(--cat-glow, rgba(16, 185, 129, 0.4));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 16px var(--cat-glow, rgba(16, 185, 129, 0.55));
 }
 
 .home-cat-chip:hover::before {
-  background: linear-gradient(90deg, rgba(8, 16, 13, 0.55) 0%, rgba(8, 16, 13, 0.42) 50%, rgba(8, 16, 13, 0.58) 100%);
+  background: linear-gradient(90deg, rgba(8, 16, 13, 0.58) 0%, rgba(8, 16, 13, 0.4) 50%, rgba(8, 16, 13, 0.58) 100%);
 }
 
 .home-cat-chip:hover img {
-  transform: scale(1.08);
-  border-color: var(--cat-color, #10B981);
-  box-shadow: 0 0 10px var(--cat-glow, rgba(16, 185, 129, 0.6));
+  border-color: #FFFFFF;
+  box-shadow: 0 0 10px var(--cat-glow, rgba(16, 185, 129, 0.7));
 }
 
 .home-cat-chip:active {
-  transform: scale(0.96);
+  transform: translateY(0);
 }
 
 /* Active Highlighted Category Chip */
@@ -295,13 +297,13 @@
   border-color: #FFFFFF !important;
   box-shadow: 
     0 8px 24px rgba(0, 0, 0, 0.5),
-    0 0 18px var(--cat-glow, rgba(16, 185, 129, 0.65)),
+    0 0 18px var(--cat-glow, rgba(16, 185, 129, 0.75)),
     inset 0 0 0 1px var(--cat-color, #10B981) !important;
-  transform: scale(1.05);
+  transform: translateY(-1px);
 }
 
 .home-cat-chip.active::before {
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0.3) 100%) !important;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.28) 100%) !important;
 }
 
 .home-cat-chip.active::after {
