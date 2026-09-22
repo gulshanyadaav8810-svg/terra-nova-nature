@@ -354,7 +354,7 @@
 
 .home-brand-logo:active,
 .header-brand-logo:active {
-  transform: scale(0.92) rotate(-6deg);
+  transform: scale(0.95);
 }
 
 /* B. Category Story Rings Infinite Subtle Glow Pulse */
