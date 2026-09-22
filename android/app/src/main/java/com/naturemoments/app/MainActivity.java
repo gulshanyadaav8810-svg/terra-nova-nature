@@ -187,8 +187,8 @@ public class MainActivity extends Activity {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             Window window = getWindow();
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(android.graphics.Color.parseColor("#060B13"));
-            window.setNavigationBarColor(android.graphics.Color.parseColor("#060B13"));
+            window.setStatusBarColor(android.graphics.Color.parseColor("#080711"));
+            window.setNavigationBarColor(android.graphics.Color.parseColor("#080711"));
         }
 
         webView = new WebView(this);
@@ -295,11 +295,11 @@ public class MainActivity extends Activity {
         });
 
         webView.addJavascriptInterface(new WebAppInterface(this), "AndroidBridge");
-        webView.setBackgroundColor(0xFF000000); // Black background matching Reels feed
+        webView.setBackgroundColor(android.graphics.Color.parseColor("#080711"));
 
-        // Load live Vercel app directly!
-        Log.d(TAG, "Loading live Vercel URL: " + ONLINE_URL);
-        webView.loadUrl(ONLINE_URL);
+        // Instant launch from local assets — zero network latency, instant animation popup!
+        Log.d(TAG, "Loading instant app from local assets: " + OFFLINE_FALLBACK_URL);
+        webView.loadUrl(OFFLINE_FALLBACK_URL);
     }
 
     private WebResourceResponse handleAssetVideoRange(WebResourceRequest request, Uri url) {
