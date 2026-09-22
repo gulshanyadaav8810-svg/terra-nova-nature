@@ -6,6 +6,126 @@ function computeGitBlobSha(buffer) {
   return crypto.createHash('sha1').update(store).digest('hex');
 }
 
+async function extractPinterestMedia(inputUrl) {
+  let targetUrl = (inputUrl || '').trim();
+  if (!targetUrl.startsWith('http')) {
+    targetUrl = 'https://' + targetUrl;
+  }
+
+  // If already a direct MP4, return as is
+  if (targetUrl.includes('.mp4')) {
+    return {
+      success: true,
+      video_url: targetUrl,
+      thumbnail_url: '',
+      title: ''
+    };
+  }
+
+  try {
+    const res = await fetch(targetUrl, {
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    });
+
+    const html = await res.text();
+
+    let videoUrl = '';
+    let thumbUrl = '';
+    let title = '';
+
+    // 1. Check JSON-LD
+    const ldMatches = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g) || [];
+    for (const block of ldMatches) {
+      try {
+        const jsonStr = block.replace(/<\/?script[^>]*>/g, '');
+        const data = JSON.parse(jsonStr);
+        if (data.video && (data.video.contentUrl || data.video.url)) {
+          videoUrl = data.video.contentUrl || data.video.url;
+        } else if (data.contentUrl && data.contentUrl.endsWith('.mp4')) {
+          videoUrl = data.contentUrl;
+        }
+        if (data.image) {
+          thumbUrl = typeof data.image === 'string' ? data.image : (data.image.url || '');
+        }
+        if (data.name) title = data.name;
+      } catch (e) {}
+    }
+
+    // 2. Regex for v.pinimg.com or v1.pinimg.com MP4s
+    if (!videoUrl) {
+      const mp4s = html.match(/https:\/\/(?:v1|v|v2|v3)\.pinimg\.com\/videos\/[^"'\s<>\\]+?\.mp4/g) || [];
+      if (mp4s.length > 0) {
+        const cleaned = mp4s.map(u => u.replace(/\\u0026/g, '&').replace(/\\/g, ''));
+        const highRes = cleaned.find(u => u.includes('720') || u.includes('1080') || u.includes('expMp4'));
+        videoUrl = highRes || cleaned[0];
+      }
+    }
+
+    // 3. Fallback regex for ANY mp4 in the page
+    if (!videoUrl) {
+      const anyMp4 = html.match(/https:\/\/[^"'\s<>\\]+?\.mp4[^"'\s<>\\]*/g) || [];
+      if (anyMp4.length > 0) {
+        videoUrl = anyMp4[0].replace(/\\u0026/g, '&').replace(/\\/g, '');
+      }
+    }
+
+    // Thumbnail
+    if (!thumbUrl) {
+      const pinImgs = html.match(/https:\/\/i\.pinimg\.com\/(?:originals|736x|564x|474x)\/[^"'\s<>\\]+?\.(?:jpg|png|webp|jpeg)/g) || [];
+      if (pinImgs.length > 0) {
+        thumbUrl = pinImgs[0].replace(/\\/g, '');
+      }
+    }
+
+    if (!thumbUrl) {
+      const ogImg = html.match(/<meta\s+(?:property|name)=["']og:image["']\s+content=["']([^"']+)["']/i);
+      if (ogImg && ogImg[1]) {
+        thumbUrl = ogImg[1];
+      }
+    }
+
+    // Title
+    if (!title) {
+      const ogTitle = html.match(/<meta\s+(?:property|name)=["']og:title["']\s+content=["']([^"']+)["']/i);
+      if (ogTitle && ogTitle[1]) {
+        title = ogTitle[1].replace(/\s*\|\s*Pinterest.*$/i, '').trim();
+      }
+    }
+
+    if (!title) {
+      const titleTag = html.match(/<title>([^<]+)<\/title>/i);
+      if (titleTag && titleTag[1]) {
+        title = titleTag[1].replace(/\s*\|\s*Pinterest.*$/i, '').trim();
+      }
+    }
+
+    if (videoUrl) {
+      return {
+        success: true,
+        video_url: videoUrl,
+        thumbnail_url: thumbUrl,
+        title: title || 'Nature Status Reel',
+        source: 'pinterest'
+      };
+    }
+
+    return {
+      success: false,
+      error: 'Could not extract MP4 video from Pinterest pin. Make sure this pin contains a video.'
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err.message
+    };
+  }
+}
+
 export default async function handler(req, res) {
   // Enable CORS for APK and web
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -23,6 +143,11 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
+      const { action, url } = req.query || {};
+      if (action === 'resolve_media' || action === 'resolve_pinterest') {
+        const result = await extractPinterestMedia(url);
+        return res.status(200).json(result);
+      }
       // Primary: Fetch authoritative current reels from GitHub Contents API
       try {
         const ghRes = await fetch(GITHUB_URL, {
@@ -67,6 +192,11 @@ export default async function handler(req, res) {
       }
 
       const { action, reel, reels, id, ids, fullList } = payload || {};
+
+      if (action === 'resolve_media' || action === 'resolve_pinterest') {
+        const result = await extractPinterestMedia(payload.url);
+        return res.status(200).json(result);
+      }
 
       // Handle video or thumbnail binary uploads
       if (action === 'upload_video' || action === 'upload_image' || action === 'upload_thumb') {

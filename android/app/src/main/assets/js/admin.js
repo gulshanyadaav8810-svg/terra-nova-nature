@@ -644,13 +644,40 @@ class AdminStudio {
     thumbDropzone?.addEventListener('click', () => this.inputThumbFile?.click());
     this.inputThumbFile?.addEventListener('change', (e) => this._handleThumbFileUpload(e.target.files[0]));
 
+    // Pinterest Auto-Fetch Button & Paste Detection
+    const btnFetchPin = document.getElementById('btn-fetch-pinterest');
+    btnFetchPin?.addEventListener('click', () => {
+      const url = this.inputVideoUrl?.value.trim();
+      this._resolvePinterestUrl(url);
+    });
+
+    let pinDebounceTimer = null;
+    this.inputVideoUrl?.addEventListener('paste', () => {
+      setTimeout(() => {
+        const val = this.inputVideoUrl?.value.trim() || '';
+        if (val.includes('pinterest.com') || val.includes('pin.it')) {
+          this._resolvePinterestUrl(val);
+        }
+      }, 100);
+    });
+
+    this.inputVideoUrl?.addEventListener('input', () => {
+      const val = this.inputVideoUrl?.value.trim() || '';
+      if (val.includes('pinterest.com') || val.includes('pin.it')) {
+        clearTimeout(pinDebounceTimer);
+        pinDebounceTimer = setTimeout(() => {
+          this._resolvePinterestUrl(val);
+        }, 800);
+      }
+    });
+
     // Input live updates for Phone Simulator
     [this.inputTitle, this.selectCategory, this.inputVideoUrl, this.inputThumbUrl, this.inputDesc].forEach(el => {
       if (el) {
         el.addEventListener('input', () => {
           if (el === this.inputVideoUrl) {
             const val = this.inputVideoUrl.value.trim();
-            if (val && (val.startsWith('http://') || val.startsWith('https://'))) {
+            if (val && !val.includes('pinterest.com') && !val.includes('pin.it') && (val.startsWith('http://') || val.startsWith('https://'))) {
               this._loadVideoToScrubber(val);
             }
           }
@@ -837,6 +864,92 @@ class AdminStudio {
       this.previewVideo.poster = thumbSrc;
       if (this.previewVideo.src !== videoSrc) {
         this.previewVideo.src = videoSrc;
+      }
+    }
+  }
+
+  async _resolvePinterestUrl(rawUrl) {
+    const statusEl = document.getElementById('pinterest-fetch-status');
+    const fetchBtn = document.getElementById('btn-fetch-pinterest');
+    if (!rawUrl || (!rawUrl.includes('pinterest.com') && !rawUrl.includes('pin.it'))) {
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.background = 'rgba(239, 68, 68, 0.15)';
+        statusEl.style.color = '#ef4444';
+        statusEl.innerHTML = '⚠️ Please enter a valid Pinterest link (e.g. pin.it/... or pinterest.com/pin/...)';
+      }
+      return;
+    }
+
+    if (fetchBtn) {
+      fetchBtn.disabled = true;
+      fetchBtn.innerHTML = '<span>⏳ Resolving Pin...</span>';
+    }
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.style.background = 'rgba(59, 130, 246, 0.15)';
+      statusEl.style.color = '#60a5fa';
+      statusEl.innerHTML = '⚡ Extracting HD Video & Cover from Pinterest Cloud CDN...';
+    }
+    this.showToast('Extracting HD Video & Cover from Pinterest...', '📌');
+
+    try {
+      const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      const apiEndpoint = isLocal ? '/api/reels' : 'https://nature-moments-app.vercel.app/api/reels';
+
+      const res = await fetch(`${apiEndpoint}?action=resolve_media&url=${encodeURIComponent(rawUrl)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.video_url) {
+          // 1. Set direct CloudFront MP4 URL
+          if (this.inputVideoUrl) this.inputVideoUrl.value = data.video_url;
+
+          // 2. Set extracted Title if title is empty or default
+          if (data.title && this.inputTitle && (!this.inputTitle.value || this.inputTitle.value.trim() === '')) {
+            this.inputTitle.value = data.title;
+          }
+
+          // 3. Set extracted HD Thumbnail
+          if (data.thumbnail_url) {
+            if (this.inputThumbUrl) this.inputThumbUrl.value = data.thumbnail_url;
+            if (this.activeThumbPreviewImg) this.activeThumbPreviewImg.src = data.thumbnail_url;
+            if (this.activeThumbStatusText) this.activeThumbStatusText.textContent = 'Pinterest HD Cover Photo Selected';
+            this.capturedThumbDataUrl = null;
+            this.uploadedThumbFile = null;
+            this.thumbMode = 'url';
+          }
+
+          if (statusEl) {
+            statusEl.style.display = 'block';
+            statusEl.style.background = 'rgba(16, 185, 129, 0.15)';
+            statusEl.style.color = '#34d399';
+            statusEl.innerHTML = '✅ <strong>Extracted:</strong> Direct HD MP4 from Pinterest Global CDN! Ready to Publish.';
+          }
+          this.showToast('✅ Pinterest HD Video & Cover Extracted!', '📌');
+
+          // Load video into scrubber & live simulator
+          this._loadVideoToScrubber(data.video_url);
+          this._updateLivePreview();
+          return;
+        } else {
+          throw new Error(data.error || 'Could not find video in this Pin');
+        }
+      } else {
+        throw new Error('Server connection error');
+      }
+    } catch (err) {
+      console.warn('Pinterest resolution error:', err);
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.background = 'rgba(239, 68, 68, 0.15)';
+        statusEl.style.color = '#ef4444';
+        statusEl.innerHTML = `⚠️ ${err.message || 'Could not extract video from this link'}. Make sure it is a public video Pin.`;
+      }
+      this.showToast('⚠️ Pinterest extraction: ' + err.message, '⚠️');
+    } finally {
+      if (fetchBtn) {
+        fetchBtn.disabled = false;
+        fetchBtn.innerHTML = '<span>📌 Auto-Fetch Pin</span>';
       }
     }
   }

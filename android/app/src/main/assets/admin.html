@@ -216,9 +216,15 @@
                 </div>
 
                 <div id="video-url-input-container">
-                  <input type="text" id="input-video-url" class="form-input" placeholder="https://.../video.mp4" value="" />
+                  <div style="display: flex; gap: 8px;">
+                    <input type="text" id="input-video-url" class="form-input" placeholder="Paste Pinterest link (pin.it/... or pinterest.com/pin/...) or direct MP4 URL" value="" style="flex: 1;" />
+                    <button type="button" class="btn btn-primary" id="btn-fetch-pinterest" style="white-space: nowrap; padding: 0 16px; font-size: 0.82rem; background: linear-gradient(135deg, #e60023 0%, #ad081b 100%); border-color: #ad081b;">
+                      <span>📌 Auto-Fetch Pin</span>
+                    </button>
+                  </div>
+                  <div id="pinterest-fetch-status" style="display: none; font-size: 0.8rem; margin-top: 6px; padding: 6px 10px; border-radius: 8px;"></div>
                   <div style="font-size: 0.75rem; color: var(--admin-text-dim); margin-top: 5px;">
-                    💡 Supports direct MP4, Cloudinary, Pexels CDN, Supabase, or any high-definition video URL.
+                    💡 <strong>Pinterest Supported:</strong> Paste any Pinterest link (e.g. <code>pin.it/...</code> or <code>pinterest.com/pin/...</code>). It will automatically extract the HD video, title, and cover photo in 1 second! Direct MP4 URLs are also supported.
                   </div>
                 </div>
 
