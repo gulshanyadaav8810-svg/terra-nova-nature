@@ -187,7 +187,7 @@
 .splash-logo-shine {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
+  border-radius: 30px;
   overflow: hidden;
   pointer-events: none;
 }
