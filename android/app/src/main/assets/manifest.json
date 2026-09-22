@@ -1,7 +1,7 @@
 {
-  "name": "Nature Status",
-  "short_name": "NS World",
-  "description": "Feel Nature's Pulse • Status Reels & Moments",
+  "name": "Nature Moments",
+  "short_name": "Nature",
+  "description": "Nature view only for Nature",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

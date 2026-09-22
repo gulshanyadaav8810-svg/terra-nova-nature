@@ -276,8 +276,9 @@
   top: 0;
   left: 0;
   height: 100%;
-  background: var(--color-soft-yellow);
+  background: linear-gradient(90deg, #00F2FE 0%, #3B82F6 40%, #8B5CF6 70%, #EC4899 100%);
   border-radius: var(--radius-full);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.8);
   width: 0%;
 }
 
@@ -288,7 +289,8 @@
   width: 12px;
   height: 12px;
   background: #FFFFFF;
-  border: 2px solid var(--color-dark-green);
+  border: 2px solid #00F2FE;
+  box-shadow: 0 0 8px rgba(0, 242, 254, 0.9);
   border-radius: var(--radius-full);
   opacity: 0;
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -401,7 +403,8 @@
 .download-progress-bar {
   height: 100%;
   width: 0%;
-  background: var(--color-primary-green);
+  background: linear-gradient(90deg, #00F2FE 0%, #3B82F6 40%, #8B5CF6 70%, #EC4899 100%);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.8);
   border-radius: var(--radius-full);
   transition: width 0.15s ease;
 }
@@ -409,7 +412,7 @@
 .download-progress-percent {
   font-size: 0.84rem;
   font-weight: 700;
-  color: var(--color-primary-green);
+  color: #00F2FE;
 }
 
 .download-cancel-btn {

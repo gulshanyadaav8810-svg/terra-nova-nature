@@ -2726,8 +2726,8 @@ ${shareUrl}`);
         <p class="feed-desc-text">${reel.description}</p>
         <div class="feed-sound-marquee">
           <div class="marquee-inner">
-            <span>\u{1F3B5} Original Nature Soundscape \u2014 Peaceful ${catLabel} Ambient Atmosphere & Birdsong \u2022 </span>
-            <span>\u{1F3B5} Original Nature Soundscape \u2014 Peaceful ${catLabel} Ambient Atmosphere & Birdsong \u2022 </span>
+            <span><span class="music-note-glyph">\u{1F3B5}</span> Original Nature Soundscape \u2014 Peaceful ${catLabel} Ambient Atmosphere & Birdsong \u2022 </span>
+            <span><span class="music-note-glyph">\u{1F3B5}</span> Original Nature Soundscape \u2014 Peaceful ${catLabel} Ambient Atmosphere & Birdsong \u2022 </span>
           </div>
         </div>
       </div>

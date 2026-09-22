@@ -3,9 +3,9 @@
         <item name="colorPrimary">@color/primary_green</item>
         <item name="colorPrimaryDark">@color/dark_green</item>
         <item name="colorAccent">@color/soft_yellow</item>
-        <item name="android:windowBackground">#080711</item>
-        <item name="android:navigationBarColor">#080711</item>
-        <item name="android:statusBarColor">#080711</item>
+        <item name="android:windowBackground">#03081a</item>
+        <item name="android:navigationBarColor">#03081a</item>
+        <item name="android:statusBarColor">#03081a</item>
     </style>
 
     <style name="Theme.NatureMoments.Fullscreen" parent="Theme.NatureMoments">
@@ -13,8 +13,8 @@
         <item name="android:windowActionBar">false</item>
         <item name="android:windowFullscreen">false</item>
         <item name="android:windowContentOverlay">@null</item>
-        <item name="android:windowBackground">#080711</item>
-        <item name="android:navigationBarColor">#080711</item>
-        <item name="android:statusBarColor">#080711</item>
+        <item name="android:windowBackground">#03081a</item>
+        <item name="android:navigationBarColor">#03081a</item>
+        <item name="android:statusBarColor">#03081a</item>
     </style>
 </resources>

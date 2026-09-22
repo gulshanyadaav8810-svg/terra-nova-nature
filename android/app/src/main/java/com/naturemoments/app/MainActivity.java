@@ -187,8 +187,8 @@ public class MainActivity extends Activity {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             Window window = getWindow();
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(android.graphics.Color.parseColor("#080711"));
-            window.setNavigationBarColor(android.graphics.Color.parseColor("#080711"));
+            window.setStatusBarColor(android.graphics.Color.parseColor("#03081a"));
+            window.setNavigationBarColor(android.graphics.Color.parseColor("#03081a"));
         }
 
         webView = new WebView(this);
@@ -295,7 +295,7 @@ public class MainActivity extends Activity {
         });
 
         webView.addJavascriptInterface(new WebAppInterface(this), "AndroidBridge");
-        webView.setBackgroundColor(android.graphics.Color.parseColor("#080711"));
+        webView.setBackgroundColor(android.graphics.Color.parseColor("#03081a"));
 
         // Instant launch from local assets — zero network latency, instant animation popup!
         Log.d(TAG, "Loading instant app from local assets: " + OFFLINE_FALLBACK_URL);

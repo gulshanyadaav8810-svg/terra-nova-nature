@@ -854,8 +854,8 @@ export class ReelsFeed {
         <p class="feed-desc-text">${reel.description}</p>
         <div class="feed-sound-marquee">
           <div class="marquee-inner">
-            <span>🎵 Original Nature Soundscape — Peaceful ${catLabel} Ambient Atmosphere & Birdsong • </span>
-            <span>🎵 Original Nature Soundscape — Peaceful ${catLabel} Ambient Atmosphere & Birdsong • </span>
+            <span><span class="music-note-glyph">🎵</span> Original Nature Soundscape — Peaceful ${catLabel} Ambient Atmosphere & Birdsong • </span>
+            <span><span class="music-note-glyph">🎵</span> Original Nature Soundscape — Peaceful ${catLabel} Ambient Atmosphere & Birdsong • </span>
           </div>
         </div>
       </div>

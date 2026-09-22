@@ -428,29 +428,47 @@
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
-/* Spinning Vinyl Record Disc */
+/* Spinning Vinyl Record Disc with 'N' Neon Hologram Border */
 .dock-vinyl-disc {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border-radius: 50% !important;
-  background: conic-gradient(#111, #333, #111, #444, #111);
-  border: 2.5px solid #94A3B8 !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7), 0 0 10px rgba(148, 163, 184, 0.45);
+  background: radial-gradient(circle at center, #07090e 35%, #131a29 65%, #080d16 100%) padding-box,
+              linear-gradient(135deg, #00F2FE 0%, #3B82F6 34%, #8B5CF6 68%, #EC4899 100%) border-box !important;
+  border: 3px solid transparent !important;
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.65), 
+              0 0 28px rgba(236, 72, 153, 0.5),
+              inset 0 0 8px rgba(59, 130, 246, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   animation: spinRecord 4s linear infinite;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dock-vinyl-disc:hover {
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.85), 0 0 35px rgba(236, 72, 153, 0.7);
+}
+
+.dock-vinyl-disc:active {
+  transform: scale(0.92);
 }
 
 .dock-vinyl-disc.paused {
   animation-play-state: paused;
+  opacity: 0.88;
+  filter: grayscale(0.2);
 }
 
 .vinyl-center-img {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: var(--radius-full);
   object-fit: cover;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.85);
 }
 
 @keyframes spinRecord {
@@ -478,11 +496,13 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: var(--radius-full);
-  background: rgba(23, 72, 60, 0.88);
-  color: var(--color-soft-yellow);
-  border: 1px solid rgba(233, 232, 91, 0.4);
+  background: rgba(10, 16, 30, 0.85);
+  color: #38BDF8;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
 .feed-title-text {
@@ -504,17 +524,17 @@
   overflow: hidden;
 }
 
-/* Marquee Sound Strip (Only runs on active playing reel) */
+/* Marquee Sound Strip with 'N' Logo Neon Gradient */
 .feed-sound-marquee {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.76rem;
-  font-weight: 600;
-  color: var(--color-soft-yellow);
+  font-size: 0.78rem;
+  font-weight: 700;
   overflow: hidden;
   white-space: nowrap;
   width: 100%;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.9));
 }
 
 .marquee-inner {
@@ -527,31 +547,69 @@
   animation-play-state: running;
 }
 
+.feed-sound-marquee span {
+  display: inline-block;
+  background: linear-gradient(90deg, #00F2FE 0%, #60A5FA 32%, #C084FC 68%, #F472B6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #38BDF8;
+  letter-spacing: 0.4px;
+}
+
+.feed-sound-marquee .music-note-glyph {
+  -webkit-text-fill-color: initial !important;
+  color: #00F2FE;
+  filter: drop-shadow(0 0 6px rgba(0, 242, 254, 0.9));
+  margin-right: 4px;
+}
+
 @keyframes marqueeRoll {
   0% { transform: translateX(0%); }
   100% { transform: translateX(-50%); }
 }
 
-/* Video Scrubber Line */
+/* Video Scrubber Line with 'N' Neon Glow */
 .feed-scrubber-line {
   position: absolute;
   bottom: 70px;
   left: 0;
   right: 0;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.25);
+  height: 3.5px;
+  background: rgba(255, 255, 255, 0.2);
   z-index: 28;
 }
 
 .feed-scrubber-filled {
   height: 100%;
   width: 0%;
-  background: var(--color-soft-yellow);
+  background: linear-gradient(90deg, #00F2FE 0%, #3B82F6 35%, #8B5CF6 70%, #EC4899 100%);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.85);
+}
+
+.dock-btn.btn-mute {
+  background: rgba(11, 15, 25, 0.7);
+  border: 1.5px solid rgba(0, 242, 254, 0.45);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 10px rgba(0, 242, 254, 0.3);
+}
+
+.dock-btn.btn-mute:hover {
+  border-color: #00F2FE;
+  box-shadow: 0 0 14px rgba(0, 242, 254, 0.6);
+}
+
+.dock-btn.btn-mute svg.sound-icon-active {
+  fill: #00F2FE;
+  filter: drop-shadow(0 0 6px rgba(0, 242, 254, 0.8));
+}
+
+.dock-btn.btn-mute svg.sound-icon-muted {
+  fill: #EC4899;
+  filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.8));
 }
 
 .dock-btn.muted {
-  background: rgba(220, 53, 69, 0.85);
-  border-color: #DC3545;
+  background: rgba(236, 72, 153, 0.25);
+  border-color: #EC4899;
   color: #FFFFFF;
 }
 
