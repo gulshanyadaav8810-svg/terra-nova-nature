@@ -1085,6 +1085,31 @@
     { id: "nature", name: "Nature", icon: "\u{1F33F}", image_url: "https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?auto=format&fit=crop&w=200&q=80", description: "Pure unadorned earth moments, organic beauty, and deep serenity" }
   ];
   var CATEGORIES = [...INITIAL_CATEGORIES];
+  var CATEGORY_THEMES = {
+    trending: { color: "#EF4444", border: "rgba(239, 68, 68, 0.5)", glow: "rgba(239, 68, 68, 0.45)" },
+    forest: { color: "#10B981", border: "rgba(16, 185, 129, 0.5)", glow: "rgba(16, 185, 129, 0.45)" },
+    mountain: { color: "#38BDF8", border: "rgba(56, 189, 248, 0.5)", glow: "rgba(56, 189, 248, 0.45)" },
+    waterfall: { color: "#06B6D4", border: "rgba(6, 182, 212, 0.5)", glow: "rgba(6, 182, 212, 0.45)" },
+    rain: { color: "#60A5FA", border: "rgba(96, 165, 250, 0.5)", glow: "rgba(96, 165, 250, 0.45)" },
+    ocean: { color: "#0284C7", border: "rgba(2, 132, 199, 0.5)", glow: "rgba(2, 132, 199, 0.45)" },
+    sunset: { color: "#F59E0B", border: "rgba(245, 158, 11, 0.5)", glow: "rgba(245, 158, 11, 0.45)" },
+    sunrise: { color: "#FB923C", border: "rgba(251, 146, 60, 0.5)", glow: "rgba(251, 146, 60, 0.45)" },
+    flowers: { color: "#EC4899", border: "rgba(236, 72, 153, 0.5)", glow: "rgba(236, 72, 153, 0.45)" },
+    wildlife: { color: "#D97706", border: "rgba(217, 119, 6, 0.5)", glow: "rgba(217, 119, 6, 0.45)" },
+    river: { color: "#14B8A6", border: "rgba(20, 184, 166, 0.5)", glow: "rgba(20, 184, 166, 0.45)" },
+    beach: { color: "#FBBF24", border: "rgba(251, 191, 36, 0.5)", glow: "rgba(251, 191, 36, 0.45)" },
+    clouds: { color: "#94A3B8", border: "rgba(148, 163, 184, 0.5)", glow: "rgba(148, 163, 184, 0.45)" },
+    snow: { color: "#BAE6FD", border: "rgba(186, 230, 253, 0.55)", glow: "rgba(186, 230, 253, 0.45)" },
+    greenery: { color: "#22C55E", border: "rgba(34, 197, 94, 0.5)", glow: "rgba(34, 197, 94, 0.45)" },
+    lake: { color: "#6366F1", border: "rgba(99, 102, 241, 0.5)", glow: "rgba(99, 102, 241, 0.45)" },
+    jungle: { color: "#84CC16", border: "rgba(132, 204, 22, 0.5)", glow: "rgba(132, 204, 22, 0.45)" },
+    "night-sky": { color: "#818CF8", border: "rgba(129, 140, 248, 0.5)", glow: "rgba(129, 140, 248, 0.45)" },
+    birds: { color: "#2DD4BF", border: "rgba(45, 212, 191, 0.5)", glow: "rgba(45, 212, 191, 0.45)" },
+    nature: { color: "#10B981", border: "rgba(16, 185, 129, 0.5)", glow: "rgba(16, 185, 129, 0.45)" }
+  };
+  function getCategoryTheme(id) {
+    return CATEGORY_THEMES[id] || { color: "#10B981", border: "rgba(16, 185, 129, 0.5)", glow: "rgba(16, 185, 129, 0.45)" };
+  }
   function loadDynamicCategories() {
     try {
       const custom = localStorage.getItem("nature_custom_categories");
@@ -2030,10 +2055,15 @@ ${shareUrl}`);
       if (!scroller) return;
       scroller.innerHTML = "";
       CATEGORIES.forEach((cat) => {
+        const theme = getCategoryTheme(cat.id);
         const pill = document.createElement("button");
         pill.className = `floating-cat-pill ${cat.id === this.activeCategory ? "active" : ""}`;
         pill.setAttribute("data-id", cat.id);
         pill.setAttribute("id", `reels-cat-${cat.id}`);
+        pill.style.backgroundImage = `url("${cat.image_url}")`;
+        pill.style.setProperty("--cat-color", theme.color);
+        pill.style.setProperty("--cat-border", theme.border);
+        pill.style.setProperty("--cat-glow", theme.glow);
         pill.innerHTML = `
         <span>${cat.icon}</span>
         <span class="cat-name">${cat.name}</span>
@@ -3752,12 +3782,17 @@ ${shareUrl}`);
       if (!scroller) return;
       scroller.innerHTML = "";
       CATEGORIES.forEach((cat) => {
+        const theme = getCategoryTheme(cat.id);
         const chip = document.createElement("button");
         chip.className = `home-cat-chip ${cat.id === this.currentCategory ? "active" : ""}`;
         chip.setAttribute("data-id", cat.id);
         chip.setAttribute("id", `home-cat-${cat.id}`);
         chip.setAttribute("type", "button");
         chip.setAttribute("aria-label", `Category ${cat.name}`);
+        chip.style.backgroundImage = `url("${cat.image_url}")`;
+        chip.style.setProperty("--cat-color", theme.color);
+        chip.style.setProperty("--cat-border", theme.border);
+        chip.style.setProperty("--cat-glow", theme.glow);
         chip.innerHTML = `
         <img src="${cat.image_url}" alt="${cat.name}" loading="lazy" />
         <span>${cat.name}</span>

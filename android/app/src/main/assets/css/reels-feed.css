@@ -278,47 +278,72 @@
 }
 
 .floating-cat-pill {
+  position: relative;
+  overflow: hidden;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 6px 14px;
+  padding: 6px 15px;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1.5px solid rgba(255, 255, 255, 0.22);
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.82rem;
+  background-size: cover;
+  background-position: center;
+  border: 1.5px solid var(--cat-border, rgba(255, 255, 255, 0.3));
+  color: #FFFFFF;
+  font-size: 0.84rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   touch-action: manipulation;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.floating-cat-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(8, 16, 13, 0.7) 0%, rgba(8, 16, 13, 0.6) 100%);
+  backdrop-filter: blur(1.5px);
+  -webkit-backdrop-filter: blur(1.5px);
+  z-index: 1;
+}
+
+.floating-cat-pill > * {
+  position: relative;
+  z-index: 2;
 }
 
 .floating-cat-pill:hover {
-  background: rgba(255, 255, 255, 0.24);
-  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+  border-color: var(--cat-color, #34D399);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), 0 0 12px var(--cat-glow, rgba(52, 211, 153, 0.4));
+}
+
+.floating-cat-pill:hover::before {
+  background: linear-gradient(90deg, rgba(8, 16, 13, 0.5) 0%, rgba(8, 16, 13, 0.4) 100%);
 }
 
 .floating-cat-pill.active {
-  background: linear-gradient(135deg, #17483C 0%, #2D7A66 100%);
-  border-color: #34D399;
-  color: #FFFFFF;
-  box-shadow: 0 4px 16px rgba(23, 72, 60, 0.7), 0 0 10px rgba(52, 211, 153, 0.35);
-  transform: scale(1.05);
+  border-color: #FFFFFF !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 16px var(--cat-glow, rgba(52, 211, 153, 0.6)) !important;
+  transform: scale(1.06);
+}
+
+.floating-cat-pill.active::before {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.25) 100%) !important;
 }
 
 .floating-cat-pill.active .cat-dot {
   display: inline-block;
-  background: #34D399;
-  box-shadow: 0 0 6px #34D399;
+  background: var(--cat-color, #34D399);
+  box-shadow: 0 0 8px var(--cat-color, #34D399);
 }
 
 .cat-dot {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: var(--radius-full);
   background: #34D399;
   display: none;

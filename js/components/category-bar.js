@@ -3,7 +3,7 @@
    Horizontal scrollable pill container with 20 categories
    ========================================================== */
 
-import { CATEGORIES } from '../data/categories.js';
+import { CATEGORIES, getCategoryTheme } from '../data/categories.js';
 import { i18n } from '../services/i18n.js';
 
 export class CategoryBar {
@@ -46,11 +46,16 @@ export class CategoryBar {
     this.container.innerHTML = '';
     
     CATEGORIES.forEach(category => {
+      const theme = getCategoryTheme(category.id);
       const pill = document.createElement('button');
       pill.className = `category-pill ${category.id === this.activeCategoryId ? 'active' : ''}`;
       pill.setAttribute('data-id', category.id);
       pill.setAttribute('type', 'button');
       pill.setAttribute('id', `cat-btn-${category.id}`);
+      pill.style.backgroundImage = `url("${category.image_url}")`;
+      pill.style.setProperty('--cat-color', theme.color);
+      pill.style.setProperty('--cat-border', theme.border);
+      pill.style.setProperty('--cat-glow', theme.glow);
 
       // Translated category name
       const i18nKey = `category_${category.id.replace(/-/g, '_')}`;

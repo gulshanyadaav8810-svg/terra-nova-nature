@@ -206,27 +206,58 @@
 }
 
 .home-cat-chip {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 16px 5px 5px;
+  gap: 9px;
+  padding: 5px 18px 5px 6px;
   border-radius: 50px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1.5px solid rgba(255, 255, 255, 0.95);
-  color: #17483C;
-  font-size: 0.88rem;
-  font-weight: 700;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1.5px solid var(--cat-border, rgba(255, 255, 255, 0.3));
+  color: #FFFFFF;
+  font-size: 0.92rem;
+  font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
   box-shadow: 
-    0 4px 14px rgba(23, 72, 60, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    0 4px 14px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
   outline: none;
+  overflow: hidden;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+}
+
+/* Semi-transparent dark scenic overlay so text is razor sharp readable */
+.home-cat-chip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(8, 16, 13, 0.72) 0%, rgba(8, 16, 13, 0.58) 50%, rgba(8, 16, 13, 0.74) 100%);
+  backdrop-filter: blur(1.5px);
+  -webkit-backdrop-filter: blur(1.5px);
+  z-index: 1;
+  transition: background 0.22s ease;
+}
+
+/* Category-tinted ambient glow on the left behind the icon */
+.home-cat-chip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20px 50%, var(--cat-glow, rgba(16, 185, 129, 0.4)) 0%, transparent 75%);
+  z-index: 1;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.home-cat-chip > * {
+  position: relative;
+  z-index: 2;
 }
 
 .home-cat-chip img {
@@ -234,21 +265,25 @@
   height: 32px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid rgba(16, 185, 129, 0.4);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-  transition: transform 0.22s ease, border-color 0.22s ease;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
 }
 
 .home-cat-chip:hover {
-  transform: translateY(-2px);
-  background: #FFFFFF;
-  border-color: rgba(16, 185, 129, 0.35);
-  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.16);
+  transform: translateY(-2px) scale(1.02);
+  border-color: var(--cat-color, #10B981);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38), 0 0 14px var(--cat-glow, rgba(16, 185, 129, 0.4));
+}
+
+.home-cat-chip:hover::before {
+  background: linear-gradient(90deg, rgba(8, 16, 13, 0.55) 0%, rgba(8, 16, 13, 0.42) 50%, rgba(8, 16, 13, 0.58) 100%);
 }
 
 .home-cat-chip:hover img {
   transform: scale(1.08);
-  border-color: #10B981;
+  border-color: var(--cat-color, #10B981);
+  box-shadow: 0 0 10px var(--cat-glow, rgba(16, 185, 129, 0.6));
 }
 
 .home-cat-chip:active {
@@ -257,18 +292,26 @@
 
 /* Active Highlighted Category Chip */
 .home-cat-chip.active {
-  background: linear-gradient(135deg, #059669 0%, #10B981 100%) !important;
-  color: #FFFFFF !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.6) !important;
+  border-color: #FFFFFF !important;
   box-shadow: 
-    0 8px 24px rgba(16, 185, 129, 0.45),
-    0 0 12px rgba(16, 185, 129, 0.3) !important;
-  transform: scale(1.04);
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    0 0 18px var(--cat-glow, rgba(16, 185, 129, 0.65)),
+    inset 0 0 0 1px var(--cat-color, #10B981) !important;
+  transform: scale(1.05);
+}
+
+.home-cat-chip.active::before {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0.3) 100%) !important;
+}
+
+.home-cat-chip.active::after {
+  opacity: 1;
+  background: radial-gradient(circle at 20px 50%, var(--cat-color, #10B981) 0%, transparent 80%) !important;
 }
 
 .home-cat-chip.active img {
   border-color: #FFFFFF;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 12px #FFFFFF, 0 0 16px var(--cat-glow, rgba(16, 185, 129, 0.8));
 }
 
 /* 4. Highlighted Category Section Header */

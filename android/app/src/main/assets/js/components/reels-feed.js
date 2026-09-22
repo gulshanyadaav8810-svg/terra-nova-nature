@@ -5,7 +5,7 @@
    ========================================================== */
 
 import { REELS_DATA, getReelsByCategory, trackEngagement } from '../data/reels.js';
-import { CATEGORIES } from '../data/categories.js';
+import { CATEGORIES, getCategoryTheme } from '../data/categories.js';
 import { storage } from '../services/storage.js';
 import { shareService } from '../services/share.js';
 import { downloader } from '../services/downloader.js';
@@ -81,10 +81,15 @@ export class ReelsFeed {
 
     scroller.innerHTML = '';
     CATEGORIES.forEach(cat => {
+      const theme = getCategoryTheme(cat.id);
       const pill = document.createElement('button');
       pill.className = `floating-cat-pill ${cat.id === this.activeCategory ? 'active' : ''}`;
       pill.setAttribute('data-id', cat.id);
       pill.setAttribute('id', `reels-cat-${cat.id}`);
+      pill.style.backgroundImage = `url("${cat.image_url}")`;
+      pill.style.setProperty('--cat-color', theme.color);
+      pill.style.setProperty('--cat-border', theme.border);
+      pill.style.setProperty('--cat-glow', theme.glow);
       pill.innerHTML = `
         <span>${cat.icon}</span>
         <span class="cat-name">${cat.name}</span>

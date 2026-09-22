@@ -6,7 +6,7 @@
 
 import { i18n } from './services/i18n.js';
 import { getReelsByCategory, getReelById } from './data/reels.js';
-import { CATEGORIES, getCategoryById } from './data/categories.js';
+import { CATEGORIES, getCategoryById, getCategoryTheme } from './data/categories.js';
 import { VideoPlayer } from './components/video-player.js';
 import { ReelsFeed } from './components/reels-feed.js';
 import { ReelsGrid } from './components/reels-grid.js';
@@ -214,12 +214,17 @@ class NatureMomentsApp {
 
     scroller.innerHTML = '';
     CATEGORIES.forEach(cat => {
+      const theme = getCategoryTheme(cat.id);
       const chip = document.createElement('button');
       chip.className = `home-cat-chip ${cat.id === this.currentCategory ? 'active' : ''}`;
       chip.setAttribute('data-id', cat.id);
       chip.setAttribute('id', `home-cat-${cat.id}`);
       chip.setAttribute('type', 'button');
       chip.setAttribute('aria-label', `Category ${cat.name}`);
+      chip.style.backgroundImage = `url("${cat.image_url}")`;
+      chip.style.setProperty('--cat-color', theme.color);
+      chip.style.setProperty('--cat-border', theme.border);
+      chip.style.setProperty('--cat-glow', theme.glow);
       chip.innerHTML = `
         <img src="${cat.image_url}" alt="${cat.name}" loading="lazy" />
         <span>${cat.name}</span>
