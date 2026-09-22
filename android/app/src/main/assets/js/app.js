@@ -69,20 +69,9 @@ class NatureMomentsApp {
   _initSplashScreen() {
     const splash = document.getElementById('app-splash-screen');
     if (!splash) return;
-
-    const dismiss = () => {
-      if (splash.classList.contains('splash-dismissed')) return;
-      splash.classList.add('splash-dismissed');
-      setTimeout(() => {
-        splash.style.display = 'none';
-      }, 500);
-    };
-
-    // Fast-tap skip
-    splash.addEventListener('click', dismiss);
-
-    // 2.6s cinematic intro duration matching user specification
-    setTimeout(dismiss, 2600);
+    splash.classList.add('splash-dismissed');
+    splash.style.display = 'none';
+    if (typeof splash.remove === 'function') splash.remove();
   }
 
   showToast(message, icon = '✨') {

@@ -4,8 +4,13 @@
    Premium Interactive Physics
    ========================================================== */
 
-/* 1. CINEMATIC FULLSCREEN SPLASH SCREEN */
-.app-splash-screen {
+/* 1. CINEMATIC FULLSCREEN SPLASH SCREEN (Disabled - Instant Launch) */
+.app-splash-screen,
+#app-splash-screen {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
   position: fixed;
   inset: 0;
   z-index: 999999;

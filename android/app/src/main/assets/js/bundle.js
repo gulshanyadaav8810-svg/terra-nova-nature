@@ -3680,15 +3680,9 @@ ${shareUrl}`);
     _initSplashScreen() {
       const splash = document.getElementById("app-splash-screen");
       if (!splash) return;
-      const dismiss = () => {
-        if (splash.classList.contains("splash-dismissed")) return;
-        splash.classList.add("splash-dismissed");
-        setTimeout(() => {
-          splash.style.display = "none";
-        }, 500);
-      };
-      splash.addEventListener("click", dismiss);
-      setTimeout(dismiss, 2600);
+      splash.classList.add("splash-dismissed");
+      splash.style.display = "none";
+      if (typeof splash.remove === "function") splash.remove();
     }
     showToast(message, icon = "\u2728") {
       if (!this.toastContainer) return;
