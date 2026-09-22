@@ -87,7 +87,7 @@ body {
   background-image: 
     radial-gradient(at 15% 15%, rgba(36, 92, 78, 0.04) 0px, transparent 60%),
     radial-gradient(at 85% 85%, rgba(233, 232, 91, 0.06) 0px, transparent 60%);
-  background-attachment: fixed;
+  background-attachment: scroll;
 }
 
 /* App Container (Responsive) */

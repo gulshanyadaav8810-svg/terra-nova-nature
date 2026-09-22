@@ -2445,6 +2445,13 @@ ${shareUrl}`);
           const otherVideo = item.querySelector("video");
           if (otherVideo) {
             otherVideo.pause();
+            const otherIdx = parseInt(item.getAttribute("data-index") || "0", 10);
+            if (Math.abs(otherIdx - targetIdx) > 2) {
+              if (otherVideo.src && otherVideo.src !== "" && otherVideo.src !== window.location.href) {
+                otherVideo.removeAttribute("src");
+                otherVideo.load();
+              }
+            }
           }
           const otherVinyl = item.querySelector(".dock-vinyl-disc");
           if (otherVinyl) otherVinyl.classList.add("paused");

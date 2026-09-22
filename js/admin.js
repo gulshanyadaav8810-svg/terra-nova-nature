@@ -886,7 +886,7 @@ class AdminStudio {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.url || data.cdn_url) return data.url || data.cdn_url;
+        if (data.cdn_url || data.url) return data.cdn_url || data.url;
       }
     } catch (e) {
       console.warn('Vercel API upload error:', e);
@@ -949,7 +949,7 @@ class AdminStudio {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.url || data.cdn_url) return data.url || data.cdn_url;
+        if (data.cdn_url || data.url) return data.cdn_url || data.url;
       }
     } catch (e) {
       console.warn('Vercel API thumb upload error:', e);
@@ -1028,6 +1028,10 @@ class AdminStudio {
 
     // Validate videoUrl
     if (!videoUrl || videoUrl.startsWith('blob:')) {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+      }
       alert('Please provide a valid streaming video URL (e.g. https://.../video.mp4) or select an MP4 file to upload.');
       return;
     }
@@ -1053,6 +1057,16 @@ class AdminStudio {
     addCustomReel(newReel);
     this.showToast('✨ Reel Published! Syncing to GitHub...', '☁️');
 
+    // Reset form and state cleanly
+    if (this.form) this.form.reset();
+    this.uploadedVideoFile = null;
+    this.uploadedThumbFile = null;
+    this.capturedThumbDataUrl = null;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnText;
+    }
+
     // Reload data
     this._loadData();
 
@@ -1077,6 +1091,19 @@ class AdminStudio {
     this.modalVideoEl.muted = false;
     this.modalVideoEl.volume = 1.0;
     this.modalPlayer.classList.add('show');
+
+    this.modalVideoEl.onerror = () => {
+      const cur = this.modalVideoEl.src || '';
+      if (cur.includes('cdn.jsdelivr.net') && cur.includes('/uploads/')) {
+        const fn = cur.split('/uploads/')[1];
+        const rawFallback = `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${fn}`;
+        if (this.modalVideoEl.src !== rawFallback) {
+          this.modalVideoEl.src = rawFallback;
+          this.modalVideoEl.play().catch(() => {});
+        }
+      }
+    };
+
     this.modalVideoEl.play().catch(() => {
       this.modalVideoEl.muted = true;
       this.modalVideoEl.play().catch(() => {});
@@ -1669,6 +1696,7 @@ class AdminStudio {
       const videoUrl = document.getElementById('edit-reel-video-url')?.value.trim();
       const isTrendingCheck = document.getElementById('edit-reel-trending')?.checked;
       const saveBtn = document.getElementById('btn-save-edit-reel');
+      const thumbUrlField = document.getElementById('edit-reel-thumb-url');
 
       if (!contentId || !title) return;
       if (!videoUrl) {
@@ -1684,49 +1712,54 @@ class AdminStudio {
         saveBtn.innerHTML = '<span>⏳ Uploading & Syncing...</span>';
       }
 
-      let thumbUrl = reel.thumbnail_url;
-      if (this.editReelThumbDataUrl) {
-        this.showToast('Uploading captured thumbnail to cloud CDN...', '🖼️');
-        try {
-          const uploaded = await this._uploadImageFileToCloud(this.editReelThumbDataUrl);
-          if (uploaded) thumbUrl = uploaded;
-        } catch (err) {
-          console.warn('Edit captured thumbnail upload failed:', err);
+      try {
+        let thumbUrl = reel.thumbnail_url;
+        if (this.editReelThumbDataUrl) {
+          this.showToast('Uploading captured thumbnail to cloud CDN...', '🖼️');
+          try {
+            const uploaded = await this._uploadImageFileToCloud(this.editReelThumbDataUrl);
+            if (uploaded) thumbUrl = uploaded;
+          } catch (err) {
+            console.warn('Edit captured thumbnail upload failed:', err);
+          }
+        } else if (this.editReelThumbFile) {
+          this.showToast('Uploading new thumbnail to cloud CDN...', '🖼️');
+          try {
+            const uploaded = await this._uploadImageFileToCloud(this.editReelThumbFile);
+            if (uploaded) thumbUrl = uploaded;
+          } catch (err) {
+            console.warn('Edit thumbnail upload failed:', err);
+          }
+        } else if (thumbUrlField && thumbUrlField.value.trim()) {
+          thumbUrl = thumbUrlField.value.trim();
         }
-      } else if (this.editReelThumbFile) {
-        this.showToast('Uploading new thumbnail to cloud CDN...', '🖼️');
-        try {
-          const uploaded = await this._uploadImageFileToCloud(this.editReelThumbFile);
-          if (uploaded) thumbUrl = uploaded;
-        } catch (err) {
-          console.warn('Edit thumbnail upload failed:', err);
+
+        const isTrending = isTrendingCheck || catId === 'trending';
+
+        const updatedReel = {
+          ...reel,
+          title,
+          category_id: catId,
+          video_url: videoUrl,
+          is_trending: isTrending,
+          thumbnail_url: thumbUrl
+        };
+
+        updateCustomReel(updatedReel);
+        this.modalEditReel?.classList.remove('show');
+        this.showToast('✅ Reel updated and synced to app & cloud!', '💾');
+
+        this._loadData();
+        await this._autoCommitReelsToGitHub(loadAllReels());
+      } catch (saveErr) {
+        console.error('Failed to save edited reel:', saveErr);
+        this.showToast('❌ Error saving reel: ' + saveErr.message, '⚠️');
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '💾 Save Changes & Sync to App';
         }
-      } else if (thumbUrlInput && thumbUrlInput.value.trim()) {
-        thumbUrl = thumbUrlInput.value.trim();
       }
-
-      const isTrending = isTrendingCheck || catId === 'trending';
-
-      const updatedReel = {
-        ...reel,
-        title,
-        category_id: catId,
-        video_url: videoUrl,
-        is_trending: isTrending,
-        thumbnail_url: thumbUrl
-      };
-
-      updateCustomReel(updatedReel);
-      this.modalEditReel?.classList.remove('show');
-      this.showToast('✅ Reel updated and synced to app & cloud!', '💾');
-
-      if (saveBtn) {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = '💾 Save Changes & Sync to App';
-      }
-
-      this._loadData();
-      await this._autoCommitReelsToGitHub(loadAllReels());
     });
   }
 
