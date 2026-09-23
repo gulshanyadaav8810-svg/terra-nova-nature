@@ -23,6 +23,7 @@ build/
 scratch/
 verification_screenshots/
 *.log
+*.apk
 screenshot_*.png
 emulator_*.png
 test_*.mjs

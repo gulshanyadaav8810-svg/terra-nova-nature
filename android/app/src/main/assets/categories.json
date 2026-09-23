@@ -1,0 +1,142 @@
+[
+  {
+    "id": "trending",
+    "name": "Trending",
+    "icon": "🔥",
+    "image_url": "https://images.unsplash.com/photo-1518495973542-4542c06a5843?auto=format&fit=crop&w=200&q=80",
+    "description": "Most watched and peaceful nature moments trending today"
+  },
+  {
+    "id": "forest",
+    "name": "Forest",
+    "icon": "🌲",
+    "image_url": "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=200&q=80",
+    "description": "Deep pine canopies, ancient redwoods, and whispering moss sanctuaries"
+  },
+  {
+    "id": "mountain",
+    "name": "Mountain",
+    "icon": "⛰️",
+    "image_url": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=200&q=80",
+    "description": "Majestic alpine summits, misty crags, and high-altitude vistas"
+  },
+  {
+    "id": "waterfall",
+    "name": "Waterfall",
+    "icon": "💦",
+    "image_url": "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=200&q=80",
+    "description": "Cascading emerald drops, roaring gorges, and hidden glacial streams"
+  },
+  {
+    "id": "rain",
+    "name": "Rain",
+    "icon": "🌧️",
+    "image_url": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=200&q=80",
+    "description": "Gentle drops falling on leaves, soothing storms, and ambient rainfall"
+  },
+  {
+    "id": "ocean",
+    "name": "Ocean",
+    "icon": "🐋",
+    "image_url": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=200&q=80",
+    "description": "Rhythmic ocean waves, turquoise shallows, and coastal tides"
+  },
+  {
+    "id": "sunset",
+    "name": "Sunset",
+    "icon": "🌇",
+    "image_url": "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?auto=format&fit=crop&w=200&q=80",
+    "description": "Golden twilight, fiery orange horizons, and dusk over mountains"
+  },
+  {
+    "id": "sunrise",
+    "name": "Sunrise",
+    "icon": "🌅",
+    "image_url": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=200&q=80",
+    "description": "First light breaking over misty valleys and serene dawn horizons"
+  },
+  {
+    "id": "flowers",
+    "name": "Flowers",
+    "icon": "🌸",
+    "image_url": "https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=200&q=80",
+    "description": "Blooming wild blossoms, spring meadows, and petal-draped valleys"
+  },
+  {
+    "id": "wildlife",
+    "name": "Wildlife",
+    "icon": "🦌",
+    "image_url": "https://images.unsplash.com/photo-1484406566174-9da000fda645?auto=format&fit=crop&w=200&q=80",
+    "description": "Graceful deer, playful river otters, and wild creatures in their habitats"
+  },
+  {
+    "id": "river",
+    "name": "River",
+    "icon": "🌊",
+    "image_url": "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=200&q=80",
+    "description": "Crystal mountain brooks, flowing gravel shallows, and winding streams"
+  },
+  {
+    "id": "beach",
+    "name": "Beach",
+    "icon": "🏖️",
+    "image_url": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=200&q=80",
+    "description": "Golden sandy shores, gentle lap of sea waves, and tropical dunes"
+  },
+  {
+    "id": "clouds",
+    "name": "Clouds",
+    "icon": "☁️",
+    "image_url": "https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=200&q=80",
+    "description": "Rolling cloud inversions, cotton vapor blankets, and sky drift"
+  },
+  {
+    "id": "snow",
+    "name": "Snow",
+    "icon": "❄️",
+    "image_url": "https://images.unsplash.com/photo-1491002052546-bf38f186af56?auto=format&fit=crop&w=200&q=80",
+    "description": "Quiet snowfall in pine woods, powdered peaks, and winter calm"
+  },
+  {
+    "id": "greenery",
+    "name": "Greenery",
+    "icon": "🍃",
+    "image_url": "https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=200&q=80",
+    "description": "Lush rolling green hills, clover pastures, and vibrant emerald lawns"
+  },
+  {
+    "id": "lake",
+    "name": "Lake",
+    "icon": "🛶",
+    "image_url": "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=200&q=80",
+    "description": "Mirror-calm mountain waters, tranquil shorelines, and misty reflections"
+  },
+  {
+    "id": "jungle",
+    "name": "Jungle",
+    "icon": "🌴",
+    "image_url": "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&w=200&q=80",
+    "description": "Tropical rainforests, exotic flora, and lively canopy sounds"
+  },
+  {
+    "id": "night-sky",
+    "name": "Night Sky",
+    "icon": "✨",
+    "image_url": "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=200&q=80",
+    "description": "Starlit celestial expanses, constellations, and quiet midnight skies"
+  },
+  {
+    "id": "birds",
+    "name": "Birds",
+    "icon": "🕊️",
+    "image_url": "https://images.unsplash.com/photo-1444464666168-49d633b86797?auto=format&fit=crop&w=200&q=80",
+    "description": "Melodic dawn chorus, migratory flocks, and avian woodland songs"
+  },
+  {
+    "id": "nature",
+    "name": "Nature",
+    "icon": "🌿",
+    "image_url": "https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?auto=format&fit=crop&w=200&q=80",
+    "description": "Pure unadorned earth moments, organic beauty, and deep serenity"
+  }
+]
