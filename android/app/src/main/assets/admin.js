@@ -954,10 +954,10 @@ class AdminStudio {
     }
   }
 
-  async _uploadVideoFileToCloud(file) {
+  async _uploadVideoFileToCloud(file, targetSafeName = null) {
     if (!file) return '';
     const filename = file.name || `video_${Date.now()}.mp4`;
-    const safeName = `reel_${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const safeName = targetSafeName || `reel_${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
 
     // 1. Direct GitHub REST API upload (supports up to 25MB via Contents API, instant CORS & Byte Ranges)
     try {
@@ -995,7 +995,7 @@ class AdminStudio {
       const res = await fetch('https://nature-moments-app.vercel.app/api/reels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'upload_video', filename, base64 })
+        body: JSON.stringify({ action: 'upload_video', filename: safeName, base64 })
       });
       if (res.ok) {
         const data = await res.json();
@@ -1008,7 +1008,7 @@ class AdminStudio {
     return '';
   }
 
-  async _uploadImageFileToCloud(fileOrDataUrl) {
+  async _uploadImageFileToCloud(fileOrDataUrl, targetSafeName = null) {
     if (!fileOrDataUrl) return '';
     let base64 = '';
     let filename = `thumb_${Date.now()}.jpg`;
@@ -1022,7 +1022,7 @@ class AdminStudio {
       return fileOrDataUrl;
     }
 
-    const safeName = `thumb_${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const safeName = targetSafeName || `thumb_${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
 
     // 1. Direct GitHub REST API upload
     try {
@@ -1386,7 +1386,7 @@ class AdminStudio {
     });
   }
 
-  _extractVideoFrame(blobUrl, seekSec = 1.5) {
+  _extractVideoFrame(blobUrl, seekSec = 1.0) {
     return new Promise((resolve) => {
       const v = document.createElement('video');
       v.muted = true;
@@ -1403,18 +1403,18 @@ class AdminStudio {
       };
 
       v.onloadeddata = () => {
-        const targetTime = (v.duration && seekSec >= v.duration) ? Math.max(0.2, v.duration / 2) : seekSec;
+        const targetTime = (v.duration && seekSec >= v.duration) ? Math.max(0.1, v.duration / 2) : seekSec;
         v.currentTime = targetTime;
       };
 
       v.onseeked = () => {
         try {
           const canvas = document.createElement('canvas');
-          canvas.width = 540;
-          canvas.height = 960;
+          canvas.width = 360;
+          canvas.height = 640;
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(v, 0, 0, 540, 960);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          ctx.drawImage(v, 0, 0, 360, 640);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.80);
           finish(dataUrl);
         } catch (e) {
           finish(null);
@@ -1422,19 +1422,23 @@ class AdminStudio {
       };
 
       v.onerror = () => finish(null);
-      setTimeout(() => finish(null), 3000);
+      setTimeout(() => finish(null), 1500);
     });
   }
 
   async _processBulkFiles(files) {
+    if (!files || files.length === 0) return;
+
     const defaultCat = document.getElementById('bulk-batch-category')?.value || 'forest';
     const isTrending = document.getElementById('bulk-batch-trending')?.checked ?? true;
 
-    this.showToast('Extracting thumbnails and processing videos...', '🎬');
+    this.showToast('Extracting thumbnails and processing videos in parallel...', '⚡');
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (!file.type.startsWith('video/')) continue;
+    const cat = getCategoryById(defaultCat);
+    const catFallbackImage = cat ? cat.image_url : 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';
+
+    const processFile = async (file, i) => {
+      if (!file.type || !file.type.startsWith('video/')) return null;
 
       const cleanTitle = file.name
         .replace(/\.[^/.]+$/, '')
@@ -1442,32 +1446,35 @@ class AdminStudio {
         .replace(/\b\w/g, l => l.toUpperCase());
 
       const blobUrl = URL.createObjectURL(file);
-      const cat = getCategoryById(defaultCat);
       const randomSuffix = Math.random().toString(36).substring(2, 7);
 
-      // Read duration
-      const duration = await this._getVideoDuration(blobUrl);
+      // Parallel extraction of duration and frame
+      const [duration, frameDataUrl] = await Promise.all([
+        this._getVideoDuration(blobUrl),
+        this._extractVideoFrame(blobUrl, 1.0)
+      ]);
 
-      // Automatically extract video frame for thumbnail
-      const frameDataUrl = await this._extractVideoFrame(blobUrl, 1.5);
-
-      this.bulkFilesQueue.push({
-        id: `reel-${defaultCat}-${randomSuffix}`,
+      return {
+        id: `reel-${defaultCat}-${Date.now().toString(36)}-${randomSuffix}-${i}`,
         title: cleanTitle,
         file: file,
         blobUrl: blobUrl,
         category_id: defaultCat,
         thumbnail_data_url: frameDataUrl,
         thumbnail_file: null,
-        thumbnail_url: frameDataUrl || (cat ? cat.image_url : ''),
-        duration: duration,
+        thumbnail_url: frameDataUrl || catFallbackImage,
+        duration: duration || '0:24',
         is_trending: isTrending,
         is_downloadable: true,
         description: `Trending WhatsApp Status video: ${cleanTitle}`
-      });
-    }
+      };
+    };
+
+    const newItems = await Promise.all(Array.from(files).map((f, i) => processFile(f, i)));
+    newItems.filter(Boolean).forEach(item => this.bulkFilesQueue.push(item));
 
     this._renderBulkFilesQueue();
+    this.showToast(`⚡ ${this.bulkFilesQueue.length} videos queued and ready to publish!`, '🚀');
   }
 
   _getVideoDuration(url) {
@@ -1586,75 +1593,127 @@ class AdminStudio {
     if (this.bulkFilesQueue.length === 0) return;
 
     const btnPublish = document.getElementById('btn-publish-bulk-files');
+    const queueSnapshot = [...this.bulkFilesQueue];
+    const totalCount = queueSnapshot.length;
+
     if (btnPublish) {
       btnPublish.disabled = true;
-      btnPublish.textContent = `⏳ Uploading ${this.bulkFilesQueue.length} videos to cloud...`;
+      btnPublish.textContent = `🚀 Publishing ${totalCount} videos...`;
     }
 
+    this.showToast(`⚡ Publishing ${totalCount} reels to app...`, '🚀');
+
+    // 1. Instantly construct all reel objects with deterministic permanent CDN URLs
+    const batchTimestamp = Date.now();
+    const itemsToUpload = [];
     const reelsToPublish = [];
-    for (let i = 0; i < this.bulkFilesQueue.length; i++) {
-      const q = this.bulkFilesQueue[i];
-      let finalVideoUrl = '';
-      if (q.file) {
-        this.showToast(`Uploading video ${i + 1}/${this.bulkFilesQueue.length} to cloud...`, '☁️');
-        try {
-          finalVideoUrl = await this._uploadVideoFileToCloud(q.file);
-        } catch (e) {
-          console.warn('Bulk upload error:', e);
-        }
-      } else {
-        finalVideoUrl = q.video_url || '';
-      }
 
-      if (!finalVideoUrl || finalVideoUrl.startsWith('blob:')) {
-        continue;
-      }
+    for (let i = 0; i < queueSnapshot.length; i++) {
+      const q = queueSnapshot[i];
+      const filename = q.file ? (q.file.name || `video_${batchTimestamp}_${i}.mp4`) : `video_${batchTimestamp}_${i}.mp4`;
+      const safeVideoName = `reel_${batchTimestamp}_${i}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const cdnVideoUrl = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeVideoName}`;
 
-      // Upload thumbnail frame or custom image if provided
-      let finalThumbUrl = q.thumbnail_url;
-      if (q.thumbnail_file || (q.thumbnail_data_url && q.thumbnail_data_url.startsWith('data:'))) {
-        try {
-          const uploadedThumb = await this._uploadImageFileToCloud(q.thumbnail_file || q.thumbnail_data_url);
-          if (uploadedThumb && !uploadedThumb.startsWith('data:')) {
-            finalThumbUrl = uploadedThumb;
-          }
-        } catch (te) {
-          console.warn('Bulk thumb upload error:', te);
-        }
-      }
+      const safeThumbName = `thumb_${batchTimestamp}_${i}.jpg`;
+      const cdnThumbUrl = (q.thumbnail_file || q.thumbnail_data_url)
+        ? `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeThumbName}`
+        : (q.thumbnail_url || '');
 
-      reelsToPublish.push({
+      const reelObj = {
         content_id: q.id,
         title: q.title,
         description: q.description,
         category_id: q.category_id,
-        thumbnail_url: finalThumbUrl || q.thumbnail_url,
-        video_url: finalVideoUrl,
-        duration: q.duration,
+        thumbnail_url: cdnThumbUrl || q.thumbnail_url,
+        video_url: cdnVideoUrl,
+        duration: q.duration || '0:24',
         likes_count: 0,
         shares_count: 0,
         downloads_count: 0,
         views_count: 0,
-        is_downloadable: q.is_downloadable,
+        is_downloadable: q.is_downloadable ?? true,
         is_trending: q.is_trending || (q.category_id === 'trending'),
         created_at: new Date().toISOString()
+      };
+
+      reelsToPublish.push(reelObj);
+      itemsToUpload.push({
+        ...q,
+        safeVideoName,
+        cdnVideoUrl,
+        safeThumbName,
+        cdnThumbUrl,
+        reelObj
       });
     }
 
+    // 2. INSTANT OPTIMISTIC PUBLISH (0ms):
+    // Register immediately in app state, localStorage, and BroadcastChannel
     addCustomReelsBatch(reelsToPublish);
-    this.showToast(`🚀 Successfully published ${reelsToPublish.length} reels to live app!`, '✨');
     this.bulkFilesQueue = [];
     this._renderBulkFilesQueue();
     this._loadData();
+    this.showToast(`🚀 ${totalCount} reels published instantly! Syncing to cloud...`, '✨');
 
     if (btnPublish) {
       btnPublish.disabled = false;
       btnPublish.textContent = '🚀 Publish All to App';
     }
 
+    // Switch to library tab right away so user sees their new reels immediately
     setTimeout(() => {
       this.switchTab('tab-library');
-    }, 600);
+    }, 300);
+
+    // 3. HIGH-SPEED CONCURRENT CLOUD UPLOADER (Pool Concurrency = 3)
+    // Uploads files simultaneously in background without blocking UI
+    (async () => {
+      const concurrency = 3;
+      let completedCount = 0;
+
+      const uploadItem = async (item) => {
+        try {
+          const tasks = [];
+          if (item.file) {
+            tasks.push(this._uploadVideoFileToCloud(item.file, item.safeVideoName));
+          }
+          if (item.thumbnail_file || (item.thumbnail_data_url && item.thumbnail_data_url.startsWith('data:'))) {
+            tasks.push(this._uploadImageFileToCloud(item.thumbnail_file || item.thumbnail_data_url, item.safeThumbName));
+          }
+          await Promise.all(tasks);
+          completedCount++;
+          this.showToast(`☁️ Cloud sync: ${completedCount}/${totalCount} videos stored!`, '⚡');
+        } catch (err) {
+          console.warn('Background upload failed for item:', item.safeVideoName, err);
+        }
+      };
+
+      // Concurrent runner queue
+      const queue = [...itemsToUpload];
+      const executing = [];
+
+      const startNext = () => {
+        if (queue.length === 0) return Promise.resolve();
+        const item = queue.shift();
+        const p = uploadItem(item).then(() => {
+          executing.splice(executing.indexOf(p), 1);
+          return startNext();
+        });
+        executing.push(p);
+        return p;
+      };
+
+      const initialBatch = [];
+      for (let c = 0; c < Math.min(concurrency, queue.length); c++) {
+        initialBatch.push(startNext());
+      }
+      await Promise.all(initialBatch);
+
+      // 4. Update data/reels.json once for the whole batch
+      const allReels = loadAllReels();
+      await this._autoCommitReelsToGitHub(allReels);
+      this.showToast(`🎉 All ${totalCount} videos permanently saved to Cloud & GitHub!`, '✅');
+    })();
   }
 
   _bindCategoryModal() {
