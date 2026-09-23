@@ -182,15 +182,19 @@
 }
 
 .header-brand-word.header-brand-nature {
-  color: #FFFFFF !important;
+  background: linear-gradient(135deg, #00FFFF 0%, #00D2FE 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: #00D2FE !important;
   filter: none !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) !important;
+  text-shadow: none !important;
 }
 
 .header-brand-word.header-brand-status {
-  background: linear-gradient(135deg, #00FFE0 0%, #00D2A0 100%) !important;
+  background: linear-gradient(135deg, #FFFFFF 0%, #D4EBF8 50%, #A2C8DF 100%) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
+  color: #FFFFFF !important;
   filter: none !important;
   text-shadow: none !important;
 }

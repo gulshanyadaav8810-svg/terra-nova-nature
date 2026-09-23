@@ -112,19 +112,20 @@
 }
 
 .home-brand-word.brand-nature {
-  color: #17483C !important;
-  background: none !important;
-  -webkit-text-fill-color: #17483C !important;
+  background: linear-gradient(135deg, #00F2FE 0%, #0284C7 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: #0284C7 !important;
   text-shadow: none !important;
   filter: none !important;
   transform: none !important;
 }
 
 .home-brand-word.brand-status {
-  color: #059669 !important;
-  background: linear-gradient(135deg, #00C896 0%, #059669 100%) !important;
+  background: linear-gradient(135deg, #8FA5B8 0%, #4B6278 50%, #1F2D3D 100%) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
+  color: #1F2D3D !important;
   text-shadow: none !important;
   filter: none !important;
   transform: none !important;
