@@ -69,9 +69,24 @@ class NatureMomentsApp {
   _initSplashScreen() {
     const splash = document.getElementById('app-splash-screen');
     if (!splash) return;
-    splash.classList.add('splash-dismissed');
-    splash.style.display = 'none';
-    if (typeof splash.remove === 'function') splash.remove();
+
+    let dismissed = false;
+    const dismissSplash = () => {
+      if (dismissed) return;
+      dismissed = true;
+      splash.classList.add('splash-dismissed');
+      setTimeout(() => {
+        splash.style.display = 'none';
+        if (typeof splash.remove === 'function') splash.remove();
+      }, 700);
+    };
+
+    // Auto dismiss after 1.5s to reveal the app smoothly from inside
+    setTimeout(dismissSplash, 1500);
+
+    // Also dismiss immediately if tapped
+    splash.addEventListener('click', dismissSplash, { once: true });
+    splash.addEventListener('touchstart', dismissSplash, { passive: true, once: true });
   }
 
   showToast(message, icon = '✨') {
