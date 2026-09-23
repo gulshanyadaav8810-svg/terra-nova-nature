@@ -127,7 +127,7 @@ export class ReelsGrid {
       <p class="empty-state-subtitle" style="color: #61756D; font-size: 0.9rem; max-width: 320px; margin: 0 auto 20px; line-height: 1.5;">
         New status videos will appear here soon. Explore trending status videos or check other categories!
       </p>
-      <button type="button" id="btn-empty-explore" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #25D366; color: #fff; border: none; border-radius: 9999px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 14px rgba(37,211,102,0.4);">
+      <button type="button" id="btn-empty-explore" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(10, 16, 30, 0.85); color: #38BDF8; border: 1.5px solid rgba(56, 189, 248, 0.45); border-radius: 9999px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 0 12px rgba(56, 189, 248, 0.25);">
         <span>🔥 View Trending Status</span>
       </button>
     `;

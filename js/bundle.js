@@ -2793,10 +2793,10 @@ ${shareUrl}`);
             There are currently no videos in "${catName}". Explore other categories or check back soon.
           </p>
           <div style="display: flex; gap: 12px;">
-            <button type="button" class="btn-feed-go-trending" style="padding: 12px 26px; background: rgba(37, 211, 102, 0.25); border: 1px solid rgba(37, 211, 102, 0.5); color: #fff; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+            <button type="button" class="btn-feed-go-trending" style="padding: 12px 26px; background: rgba(10, 16, 30, 0.85); border: 1.5px solid rgba(56, 189, 248, 0.45); color: #38BDF8; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 0 10px rgba(56, 189, 248, 0.25);">
               \u{1F525} Explore Trending
             </button>
-            <button type="button" class="btn-feed-refresh" style="padding: 12px 24px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+            <button type="button" class="btn-feed-refresh" style="padding: 12px 24px; background: rgba(10, 16, 30, 0.85); border: 1.5px solid rgba(56, 189, 248, 0.45); color: #38BDF8; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 0 10px rgba(56, 189, 248, 0.25);">
               \u{1F504} Refresh
             </button>
           </div>
@@ -2948,7 +2948,7 @@ ${shareUrl}`);
       <p class="empty-state-subtitle" style="color: #61756D; font-size: 0.9rem; max-width: 320px; margin: 0 auto 20px; line-height: 1.5;">
         New status videos will appear here soon. Explore trending status videos or check other categories!
       </p>
-      <button type="button" id="btn-empty-explore" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #25D366; color: #fff; border: none; border-radius: 9999px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 14px rgba(37,211,102,0.4);">
+      <button type="button" id="btn-empty-explore" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(10, 16, 30, 0.85); color: #38BDF8; border: 1.5px solid rgba(56, 189, 248, 0.45); border-radius: 9999px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 0 12px rgba(56, 189, 248, 0.25);">
         <span>\u{1F525} View Trending Status</span>
       </button>
     `;

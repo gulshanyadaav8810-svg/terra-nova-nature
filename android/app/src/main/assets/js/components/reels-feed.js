@@ -930,10 +930,10 @@ export class ReelsFeed {
             There are currently no videos in "${catName}". Explore other categories or check back soon.
           </p>
           <div style="display: flex; gap: 12px;">
-            <button type="button" class="btn-feed-go-trending" style="padding: 12px 26px; background: rgba(37, 211, 102, 0.25); border: 1px solid rgba(37, 211, 102, 0.5); color: #fff; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+            <button type="button" class="btn-feed-go-trending" style="padding: 12px 26px; background: rgba(10, 16, 30, 0.85); border: 1.5px solid rgba(56, 189, 248, 0.45); color: #38BDF8; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 0 10px rgba(56, 189, 248, 0.25);">
               🔥 Explore Trending
             </button>
-            <button type="button" class="btn-feed-refresh" style="padding: 12px 24px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+            <button type="button" class="btn-feed-refresh" style="padding: 12px 24px; background: rgba(10, 16, 30, 0.85); border: 1.5px solid rgba(56, 189, 248, 0.45); color: #38BDF8; border-radius: 9999px; font-weight: 700; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 0 10px rgba(56, 189, 248, 0.25);">
               🔄 Refresh
             </button>
           </div>
