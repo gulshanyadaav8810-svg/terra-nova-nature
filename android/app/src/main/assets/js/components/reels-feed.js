@@ -498,11 +498,10 @@ export class ReelsFeed {
 
     this.container.addEventListener('touchend', () => {
       this._isUserTouching = false;
-      // Fast settle check once finger releases
       if (settleTimer) clearTimeout(settleTimer);
       settleTimer = setTimeout(() => {
         this._detectAndPlaySnappedReel();
-      }, 50);
+      }, 140);
     }, { passive: true });
 
     // Detect snapped reel when scroll movement settles
@@ -517,7 +516,7 @@ export class ReelsFeed {
         if (!this._isUserTouching) {
           this._detectAndPlaySnappedReel();
         }
-      }, 50);
+      }, 140);
     };
 
     this.container.addEventListener('scroll', onScroll, { passive: true });
@@ -556,33 +555,32 @@ export class ReelsFeed {
     }
   }
 
-  // Active Android MediaCodec Hardware Decoder Windowing
-  // Keeps active item, 1 prior, and next 2 pre-buffered; purges all distant videos to eliminate crashes and lag!
-  _recycleDecoders(activeIndex) {
+  // Lightweight 0ms background pause (Zero main thread freeze, zero trembling/lag)
+  _pauseInactiveVideos(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
 
-    const total = items.length;
-    const minKeep = Math.max(0, activeIndex - 1);
-    const maxKeep = Math.min(total - 1, activeIndex + 2);
-
-    for (let i = 0; i < total; i++) {
-      const item = items[i];
-      const video = item.querySelector('video');
-      if (!video) continue;
-
-      if (i >= minKeep && i <= maxKeep) {
-        const dataSrc = video.getAttribute('data-src');
-        if (dataSrc && (!video.src || video.src === '' || video.src === window.location.href)) {
-          video.src = dataSrc;
+    // Pre-buffer next reel for 0ms instant playback
+    const nextItem = items[activeIndex + 1];
+    if (nextItem) {
+      const nextVid = nextItem.querySelector('video');
+      if (nextVid) {
+        const nextSrc = nextVid.getAttribute('data-src');
+        if (nextSrc && !nextVid.src) {
+          nextVid.src = nextSrc;
+          nextVid.preload = 'metadata';
         }
-        video.preload = 'auto';
-      } else {
-        // Free hardware video decoder to guarantee zero crashes & buttery 60/120 FPS
-        if (video.src && video.src !== '' && video.src !== window.location.href) {
-          try { video.pause(); } catch(e) {}
-          video.removeAttribute('src');
-          video.load();
+      }
+    }
+
+    // Only pause other videos that are currently playing (0ms cost, no video.load)
+    for (let i = 0; i < items.length; i++) {
+      if (i !== activeIndex) {
+        const item = items[i];
+        item.classList.remove('active-playing', 'video-ready', 'is-buffering');
+        const v = item.querySelector('video');
+        if (v && !v.paused) {
+          try { v.pause(); } catch(e) {}
         }
       }
     }
@@ -602,12 +600,12 @@ export class ReelsFeed {
     const video = targetItem.querySelector('video');
     if (!video) return;
 
-    // High performance O(1) deactivation of previous reel
+    // Deactivate previous reel
     if (this.activeItem && this.activeItem !== targetItem) {
       this.activeItem.classList.remove('active-playing', 'video-ready', 'is-buffering');
       const oldVinyl = this.activeItem.querySelector('.dock-vinyl-disc');
       if (oldVinyl) oldVinyl.classList.add('paused');
-      if (this.activeVideo) {
+      if (this.activeVideo && !this.activeVideo.paused) {
         try {
           this.activeVideo.pause();
         } catch(e) {}
@@ -623,7 +621,7 @@ export class ReelsFeed {
     if (vinyl) vinyl.classList.remove('paused');
 
     const currentIndex = parseInt(targetItem.getAttribute('data-index') || '0', 10);
-    this._recycleDecoders(currentIndex);
+    this._pauseInactiveVideos(currentIndex);
 
     // Ensure active video has src loaded
     const dataSrc = video.getAttribute('data-src') || video.src;

@@ -2914,7 +2914,7 @@ ${shareUrl}`);
         if (settleTimer) clearTimeout(settleTimer);
         settleTimer = setTimeout(() => {
           this._detectAndPlaySnappedReel();
-        }, 50);
+        }, 140);
       }, { passive: true });
       const onScroll = () => {
         const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
@@ -2926,7 +2926,7 @@ ${shareUrl}`);
           if (!this._isUserTouching) {
             this._detectAndPlaySnappedReel();
           }
-        }, 50);
+        }, 140);
       };
       this.container.addEventListener("scroll", onScroll, { passive: true });
       this.container.addEventListener("scrollend", () => {
@@ -2955,32 +2955,31 @@ ${shareUrl}`);
         this._playReelItem(closestItem);
       }
     }
-    // Active Android MediaCodec Hardware Decoder Windowing
-    // Keeps active item, 1 prior, and next 2 pre-buffered; purges all distant videos to eliminate crashes and lag!
-    _recycleDecoders(activeIndex) {
+    // Lightweight 0ms background pause (Zero main thread freeze, zero trembling/lag)
+    _pauseInactiveVideos(activeIndex) {
       const items = this.container.children;
       if (!items || !items.length) return;
-      const total = items.length;
-      const minKeep = Math.max(0, activeIndex - 1);
-      const maxKeep = Math.min(total - 1, activeIndex + 2);
-      for (let i = 0; i < total; i++) {
-        const item = items[i];
-        const video = item.querySelector("video");
-        if (!video) continue;
-        if (i >= minKeep && i <= maxKeep) {
-          const dataSrc = video.getAttribute("data-src");
-          if (dataSrc && (!video.src || video.src === "" || video.src === window.location.href)) {
-            video.src = dataSrc;
+      const nextItem = items[activeIndex + 1];
+      if (nextItem) {
+        const nextVid = nextItem.querySelector("video");
+        if (nextVid) {
+          const nextSrc = nextVid.getAttribute("data-src");
+          if (nextSrc && !nextVid.src) {
+            nextVid.src = nextSrc;
+            nextVid.preload = "metadata";
           }
-          video.preload = "auto";
-        } else {
-          if (video.src && video.src !== "" && video.src !== window.location.href) {
+        }
+      }
+      for (let i = 0; i < items.length; i++) {
+        if (i !== activeIndex) {
+          const item = items[i];
+          item.classList.remove("active-playing", "video-ready", "is-buffering");
+          const v = item.querySelector("video");
+          if (v && !v.paused) {
             try {
-              video.pause();
+              v.pause();
             } catch (e) {
             }
-            video.removeAttribute("src");
-            video.load();
           }
         }
       }
@@ -3000,7 +2999,7 @@ ${shareUrl}`);
         this.activeItem.classList.remove("active-playing", "video-ready", "is-buffering");
         const oldVinyl = this.activeItem.querySelector(".dock-vinyl-disc");
         if (oldVinyl) oldVinyl.classList.add("paused");
-        if (this.activeVideo) {
+        if (this.activeVideo && !this.activeVideo.paused) {
           try {
             this.activeVideo.pause();
           } catch (e) {
@@ -3014,7 +3013,7 @@ ${shareUrl}`);
       const vinyl = targetItem.querySelector(".dock-vinyl-disc");
       if (vinyl) vinyl.classList.remove("paused");
       const currentIndex = parseInt(targetItem.getAttribute("data-index") || "0", 10);
-      this._recycleDecoders(currentIndex);
+      this._pauseInactiveVideos(currentIndex);
       const dataSrc = video.getAttribute("data-src") || video.src;
       if (dataSrc && (!video.src || video.src === "" || video.src === window.location.href)) {
         video.src = dataSrc;
@@ -4200,6 +4199,9 @@ ${shareUrl}`);
     }
     _initSplashScreen() {
       const splash = document.getElementById("app-splash-screen");
+      if (window.AndroidBridge && typeof window.AndroidBridge.hideNativeSplash === "function") {
+        window.AndroidBridge.hideNativeSplash();
+      }
       if (!splash) return;
       let dismissed = false;
       const dismissSplash = () => {

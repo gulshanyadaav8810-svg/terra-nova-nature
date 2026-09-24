@@ -28,6 +28,10 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.Toast;
+import android.widget.ImageView;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 
 import androidx.webkit.WebViewAssetLoader;
 import java.io.File;
@@ -55,6 +59,8 @@ public class MainActivity extends Activity {
     // Google Official Sample Test Banner ID (Automatic immediate fallback before Play Store review approval)
     public static final String TEST_BANNER_ID = "ca-app-pub-3940256099942544/6300978111";
 
+    private FrameLayout rootContainer;
+    private FrameLayout splashOverlay;
     private LinearLayout rootLayout;
     private WebView webView;
     private FrameLayout adContainer;
@@ -210,6 +216,26 @@ public class MainActivity extends Activity {
             isBannerEnabledByJs = visible;
             runOnUiThread(() -> updateBannerVisibility());
         }
+
+        @JavascriptInterface
+        public void hideNativeSplash() {
+            mActivity.runOnUiThread(() -> dismissNativeSplash());
+        }
+    }
+
+    public void dismissNativeSplash() {
+        if (splashOverlay != null && splashOverlay.getVisibility() == View.VISIBLE) {
+            splashOverlay.animate()
+                .alpha(0f)
+                .setDuration(250)
+                .withEndAction(() -> {
+                    splashOverlay.setVisibility(View.GONE);
+                    if (rootContainer != null) {
+                        rootContainer.removeView(splashOverlay);
+                    }
+                })
+                .start();
+        }
     }
 
     @Override
@@ -229,13 +255,19 @@ public class MainActivity extends Activity {
             window.setNavigationBarColor(android.graphics.Color.parseColor("#03081a"));
         }
 
+        rootContainer = new FrameLayout(this);
+        rootContainer.setLayoutParams(new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+
         rootLayout = new LinearLayout(this);
         rootLayout.setOrientation(LinearLayout.VERTICAL);
         rootLayout.setLayoutParams(new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.MATCH_PARENT
         ));
-        rootLayout.setBackgroundColor(android.graphics.Color.parseColor("#03081a"));
+        rootLayout.setBackgroundColor(Color.parseColor("#03081a"));
 
         webView = new WebView(this);
         LinearLayout.LayoutParams webViewParams = new LinearLayout.LayoutParams(
@@ -252,11 +284,38 @@ public class MainActivity extends Activity {
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
         adContainer.setLayoutParams(adContainerParams);
-        adContainer.setBackgroundColor(android.graphics.Color.parseColor("#03081a"));
+        adContainer.setBackgroundColor(Color.parseColor("#03081a"));
         adContainer.setVisibility(View.GONE);
         rootLayout.addView(adContainer);
 
-        setContentView(rootLayout);
+        rootContainer.addView(rootLayout);
+
+        // Instant Native Splash Overlay with Centered Logo: Zero blank blue screen gap!
+        splashOverlay = new FrameLayout(this);
+        splashOverlay.setLayoutParams(new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+        splashOverlay.setBackgroundColor(Color.parseColor("#03081a"));
+
+        ImageView splashLogo = new ImageView(this);
+        try {
+            InputStream is = getAssets().open("assets/logo.png");
+            Bitmap bitmap = BitmapFactory.decodeStream(is);
+            splashLogo.setImageBitmap(bitmap);
+            is.close();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to load splash logo from assets", e);
+        }
+        int logoSize = (int) (130 * getResources().getDisplayMetrics().density);
+        FrameLayout.LayoutParams logoParams = new FrameLayout.LayoutParams(logoSize, logoSize);
+        logoParams.gravity = Gravity.CENTER;
+        splashLogo.setLayoutParams(logoParams);
+        splashOverlay.addView(splashLogo);
+
+        rootContainer.addView(splashOverlay);
+
+        setContentView(rootContainer);
 
         // Initialize Google Mobile Ads SDK for Banner Ad only
         MobileAds.initialize(this, initializationStatus -> {
@@ -356,6 +415,12 @@ public class MainActivity extends Activity {
                     Log.w(TAG, "Online load failed (legacy), falling back to local assets: " + OFFLINE_FALLBACK_URL);
                     view.loadUrl(OFFLINE_FALLBACK_URL);
                 }
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                runOnUiThread(() -> dismissNativeSplash());
             }
         });
 

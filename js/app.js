@@ -81,6 +81,9 @@ class NatureMomentsApp {
 
   _initSplashScreen() {
     const splash = document.getElementById('app-splash-screen');
+    if (window.AndroidBridge && typeof window.AndroidBridge.hideNativeSplash === 'function') {
+      window.AndroidBridge.hideNativeSplash();
+    }
     if (!splash) return;
 
     let dismissed = false;
