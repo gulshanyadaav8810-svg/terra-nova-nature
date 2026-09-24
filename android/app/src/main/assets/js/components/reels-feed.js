@@ -490,41 +490,46 @@ export class ReelsFeed {
   }
 
   _bindScrollSnapHandler() {
-    let scrollTimeout = null;
+    let settleTimer = null;
     this._isUserTouching = false;
 
     // Track user touch state to prevent gesture interruption
     this.container.addEventListener('touchstart', () => {
       this._isUserTouching = true;
+      if (settleTimer) clearTimeout(settleTimer);
     }, { passive: true });
 
     this.container.addEventListener('touchend', () => {
       this._isUserTouching = false;
-      if (scrollTimeout) clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
+      // Wait for momentum fling to finish decelerating naturally
+      if (settleTimer) clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => {
         this._detectAndPlaySnappedReel();
-      }, 60);
+      }, 160);
     }, { passive: true });
 
-    // Detect snapped reel when scroll movement settles
+    // Detect snapped reel when scroll movement settles completely
     const onScroll = () => {
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
       const reelsView = document.getElementById('view-reels');
       const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
       if (!isReelsTab || !isReelsVisible) return;
 
-      if (scrollTimeout) clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
+      // Reset timer on every frame of scroll. Never trigger video switches mid-fling!
+      if (settleTimer) clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => {
         if (!this._isUserTouching) {
           this._detectAndPlaySnappedReel();
         }
-      }, 70);
+      }, 160);
     };
 
     this.container.addEventListener('scroll', onScroll, { passive: true });
     this.container.addEventListener('scrollend', () => {
-      if (scrollTimeout) clearTimeout(scrollTimeout);
-      this._detectAndPlaySnappedReel();
+      if (settleTimer) clearTimeout(settleTimer);
+      if (!this._isUserTouching) {
+        this._detectAndPlaySnappedReel();
+      }
     }, { passive: true });
   }
 
@@ -537,7 +542,7 @@ export class ReelsFeed {
     const containerHeight = this.container.clientHeight || window.innerHeight;
     if (!containerHeight) return;
 
-    // Instant O(1) index calculation
+    // Calculate snapped reel index
     const targetIdx = Math.round(this.container.scrollTop / containerHeight);
     const items = this.container.children;
     if (!items || !items.length) return;
@@ -545,7 +550,12 @@ export class ReelsFeed {
     const clampedIdx = Math.max(0, Math.min(items.length - 1, targetIdx));
     const closestItem = items[clampedIdx];
 
-    if (closestItem && (this.activeItem !== closestItem || !this.activeVideo || this.activeVideo.paused)) {
+    // If this item is already active and its video is playing, do not interrupt
+    if (closestItem && this.activeItem === closestItem && this.activeVideo && !this.activeVideo.paused) {
+      return;
+    }
+
+    if (closestItem) {
       this._playReelItem(closestItem);
     }
   }

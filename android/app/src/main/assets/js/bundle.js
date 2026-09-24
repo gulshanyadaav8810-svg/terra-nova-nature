@@ -2906,34 +2906,37 @@ ${shareUrl}`);
       }
     }
     _bindScrollSnapHandler() {
-      let scrollTimeout = null;
+      let settleTimer = null;
       this._isUserTouching = false;
       this.container.addEventListener("touchstart", () => {
         this._isUserTouching = true;
+        if (settleTimer) clearTimeout(settleTimer);
       }, { passive: true });
       this.container.addEventListener("touchend", () => {
         this._isUserTouching = false;
-        if (scrollTimeout) clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
+        if (settleTimer) clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
           this._detectAndPlaySnappedReel();
-        }, 60);
+        }, 160);
       }, { passive: true });
       const onScroll = () => {
         const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
         const reelsView = document.getElementById("view-reels");
         const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
         if (!isReelsTab || !isReelsVisible) return;
-        if (scrollTimeout) clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
+        if (settleTimer) clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
           if (!this._isUserTouching) {
             this._detectAndPlaySnappedReel();
           }
-        }, 70);
+        }, 160);
       };
       this.container.addEventListener("scroll", onScroll, { passive: true });
       this.container.addEventListener("scrollend", () => {
-        if (scrollTimeout) clearTimeout(scrollTimeout);
-        this._detectAndPlaySnappedReel();
+        if (settleTimer) clearTimeout(settleTimer);
+        if (!this._isUserTouching) {
+          this._detectAndPlaySnappedReel();
+        }
       }, { passive: true });
     }
     _detectAndPlaySnappedReel() {
@@ -2948,7 +2951,10 @@ ${shareUrl}`);
       if (!items || !items.length) return;
       const clampedIdx = Math.max(0, Math.min(items.length - 1, targetIdx));
       const closestItem = items[clampedIdx];
-      if (closestItem && (this.activeItem !== closestItem || !this.activeVideo || this.activeVideo.paused)) {
+      if (closestItem && this.activeItem === closestItem && this.activeVideo && !this.activeVideo.paused) {
+        return;
+      }
+      if (closestItem) {
         this._playReelItem(closestItem);
       }
     }
