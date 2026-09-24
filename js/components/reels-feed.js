@@ -948,8 +948,8 @@ export class ReelsFeed {
       return;
     }
 
-    // Initial batch: render only 5 items for instantaneous 60FPS launch
-    const initialBatch = Math.min(5, this.filteredReels.length);
+    // Render all reels immediately so user can scroll through all videos smoothly
+    const initialBatch = Math.min(50, this.filteredReels.length);
     for (let i = 0; i < initialBatch; i++) {
       const item = this._createReelItem(this.filteredReels[i], i);
       this.container.appendChild(item);

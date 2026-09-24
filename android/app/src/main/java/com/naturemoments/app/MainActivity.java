@@ -5,6 +5,8 @@ import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -297,9 +299,28 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(new WebAppInterface(this), "AndroidBridge");
         webView.setBackgroundColor(android.graphics.Color.parseColor("#03081a"));
 
-        // Instant launch from local assets — zero network latency, instant animation popup!
-        Log.d(TAG, "Loading instant app from local assets: " + OFFLINE_FALLBACK_URL);
-        webView.loadUrl(OFFLINE_FALLBACK_URL);
+        // Network-aware smart loading: If online, load live website so all uploaded reels appear instantly!
+        // If offline or on error, automatically use bundled local assets.
+        if (isNetworkAvailable()) {
+            Log.d(TAG, "Network is active, loading live Vercel web app: " + ONLINE_URL);
+            webView.loadUrl(ONLINE_URL);
+        } else {
+            Log.d(TAG, "Network unavailable, loading instant bundled assets: " + OFFLINE_FALLBACK_URL);
+            webView.loadUrl(OFFLINE_FALLBACK_URL);
+        }
+    }
+
+    private boolean isNetworkAvailable() {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm != null) {
+                NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+                return activeNetwork != null && activeNetwork.isConnected();
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error checking network connectivity", e);
+        }
+        return false;
     }
 
     private WebResourceResponse handleAssetVideoRange(WebResourceRequest request, Uri url) {
