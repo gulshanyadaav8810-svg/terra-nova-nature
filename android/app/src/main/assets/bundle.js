@@ -4271,8 +4271,15 @@ ${shareUrl}`);
     }
     _initSplashScreen() {
       const splash = document.getElementById("app-splash-screen");
-      if (window.AndroidBridge && typeof window.AndroidBridge.hideNativeSplash === "function") {
-        window.AndroidBridge.hideNativeSplash();
+      const isNativeAndroid = window.AndroidBridge && typeof window.AndroidBridge.hideNativeSplash === "function";
+      if (isNativeAndroid) {
+        if (splash) splash.style.display = "none";
+        setTimeout(() => {
+          if (window.AndroidBridge && typeof window.AndroidBridge.hideNativeSplash === "function") {
+            window.AndroidBridge.hideNativeSplash();
+          }
+        }, 1800);
+        return;
       }
       if (!splash) return;
       let dismissed = false;
@@ -4285,7 +4292,7 @@ ${shareUrl}`);
           if (typeof splash.remove === "function") splash.remove();
         }, 700);
       };
-      setTimeout(dismissSplash, 1500);
+      setTimeout(dismissSplash, 1800);
       splash.addEventListener("click", dismissSplash, { once: true });
       splash.addEventListener("touchstart", dismissSplash, { passive: true, once: true });
     }

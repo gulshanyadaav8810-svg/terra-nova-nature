@@ -29,6 +29,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -290,7 +291,8 @@ public class MainActivity extends Activity {
 
         rootContainer.addView(rootLayout);
 
-        // Instant Native Splash Overlay with Centered Logo: Zero blank blue screen gap!
+        // Instant Native Splash Overlay with Background, Logo AND Tagline:
+        // Direct 0ms display of the signature splash - Zero double-screen flash!
         splashOverlay = new FrameLayout(this);
         splashOverlay.setLayoutParams(new FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
@@ -298,20 +300,75 @@ public class MainActivity extends Activity {
         ));
         splashOverlay.setBackgroundColor(Color.parseColor("#03081a"));
 
-        ImageView splashLogo = new ImageView(this);
+        // 1. Starry Night Background
+        ImageView splashBg = new ImageView(this);
+        splashBg.setLayoutParams(new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+        splashBg.setScaleType(ImageView.ScaleType.CENTER_CROP);
         try {
-            InputStream is = getAssets().open("assets/logo.png");
-            Bitmap bitmap = BitmapFactory.decodeStream(is);
-            splashLogo.setImageBitmap(bitmap);
-            is.close();
+            InputStream isBg = getAssets().open("assets/splash-bg.png");
+            Bitmap bgBitmap = BitmapFactory.decodeStream(isBg);
+            splashBg.setImageBitmap(bgBitmap);
+            isBg.close();
+        } catch (Exception e) {
+            try {
+                InputStream isBg2 = getAssets().open("splash-bg.png");
+                Bitmap bgBitmap2 = BitmapFactory.decodeStream(isBg2);
+                splashBg.setImageBitmap(bgBitmap2);
+                isBg2.close();
+            } catch (Exception ignored) {}
+        }
+        splashOverlay.addView(splashBg);
+
+        // 2. Centered Container for Logo + Tagline
+        LinearLayout centerContent = new LinearLayout(this);
+        centerContent.setOrientation(LinearLayout.VERTICAL);
+        centerContent.setGravity(Gravity.CENTER);
+        FrameLayout.LayoutParams centerParams = new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT
+        );
+        centerParams.gravity = Gravity.CENTER;
+        centerContent.setLayoutParams(centerParams);
+
+        // Logo (136dp)
+        ImageView splashLogo = new ImageView(this);
+        int logoSize = (int) (136 * getResources().getDisplayMetrics().density);
+        LinearLayout.LayoutParams logoParams = new LinearLayout.LayoutParams(logoSize, logoSize);
+        logoParams.gravity = Gravity.CENTER_HORIZONTAL;
+        splashLogo.setLayoutParams(logoParams);
+        try {
+            InputStream isLogo = getAssets().open("assets/logo.png");
+            Bitmap logoBitmap = BitmapFactory.decodeStream(isLogo);
+            splashLogo.setImageBitmap(logoBitmap);
+            isLogo.close();
         } catch (Exception e) {
             Log.e(TAG, "Failed to load splash logo from assets", e);
         }
-        int logoSize = (int) (130 * getResources().getDisplayMetrics().density);
-        FrameLayout.LayoutParams logoParams = new FrameLayout.LayoutParams(logoSize, logoSize);
-        logoParams.gravity = Gravity.CENTER;
-        splashLogo.setLayoutParams(logoParams);
-        splashOverlay.addView(splashLogo);
+        centerContent.addView(splashLogo);
+
+        // Tagline ("Nature View Only For Nature")
+        TextView splashTagline = new TextView(this);
+        LinearLayout.LayoutParams taglineParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        taglineParams.gravity = Gravity.CENTER_HORIZONTAL;
+        taglineParams.topMargin = (int) (22 * getResources().getDisplayMetrics().density);
+        splashTagline.setLayoutParams(taglineParams);
+        splashTagline.setText("Nature View Only For Nature");
+        splashTagline.setTextColor(Color.WHITE);
+        splashTagline.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16);
+        splashTagline.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        splashTagline.setLetterSpacing(0.08f);
+        splashTagline.setGravity(Gravity.CENTER);
+        splashTagline.setShadowLayer(14, 0, 2, Color.parseColor("#38BDF8"));
+        centerContent.addView(splashTagline);
+
+        splashOverlay.addView(centerContent);
+        splashOverlay.setOnClickListener(v -> dismissNativeSplash());
 
         rootContainer.addView(splashOverlay);
 
@@ -454,7 +511,10 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                runOnUiThread(() -> dismissNativeSplash());
+                // Safety fallback: auto-dismiss after 2.5s if hideNativeSplash wasn't received from JS
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    dismissNativeSplash();
+                }, 2500);
             }
         });
 

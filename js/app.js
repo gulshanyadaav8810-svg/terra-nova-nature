@@ -81,9 +81,22 @@ class NatureMomentsApp {
 
   _initSplashScreen() {
     const splash = document.getElementById('app-splash-screen');
-    if (window.AndroidBridge && typeof window.AndroidBridge.hideNativeSplash === 'function') {
-      window.AndroidBridge.hideNativeSplash();
+    const isNativeAndroid = window.AndroidBridge && typeof window.AndroidBridge.hideNativeSplash === 'function';
+
+    if (isNativeAndroid) {
+      // In native Android app, native splashOverlay already displays the Star Background + Logo + Tagline from Frame 1!
+      // Hide the HTML splash container immediately so there is ZERO double-screen flashing!
+      if (splash) splash.style.display = 'none';
+
+      // Keep the native splash visible for 1.8s to give user a premium splash experience, then smoothly reveal the app
+      setTimeout(() => {
+        if (window.AndroidBridge && typeof window.AndroidBridge.hideNativeSplash === 'function') {
+          window.AndroidBridge.hideNativeSplash();
+        }
+      }, 1800);
+      return;
     }
+
     if (!splash) return;
 
     let dismissed = false;
@@ -97,8 +110,8 @@ class NatureMomentsApp {
       }, 700);
     };
 
-    // Auto dismiss after 1.5s to reveal the app smoothly from inside
-    setTimeout(dismissSplash, 1500);
+    // Auto dismiss after 1.8s to reveal the app smoothly from inside
+    setTimeout(dismissSplash, 1800);
 
     // Also dismiss immediately if tapped
     splash.addEventListener('click', dismissSplash, { once: true });
