@@ -272,6 +272,9 @@ export class ReelsFeed {
       const dlBtn = e.target.closest('.feed-download-btn');
       if (dlBtn) {
         e.stopPropagation();
+        if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === 'function') {
+          window.AndroidBridge.showInterstitialAd('download');
+        }
         trackEngagement(reel.content_id, 'download');
         this.showToast(i18n.t('download_started'), '⬇️');
         downloader.downloadReel(
@@ -474,8 +477,25 @@ export class ReelsFeed {
     }
   }
 
+  // Fast O(1) snap scroll directly to an index
+  scrollToIndex(index) {
+    const items = this.container.children;
+    if (!items || !items.length) return;
+    const clamped = Math.max(0, Math.min(items.length - 1, index));
+    const targetItem = items[clamped];
+    if (targetItem) {
+      this.pauseAll();
+      this.container.scrollTop = targetItem.offsetTop;
+      setTimeout(() => {
+        this._playReelItem(targetItem);
+      }, 50);
+    }
+  }
+
   _bindScrollSnapHandler() {
     let scrollTimeout = null;
+
+    // Detect snapped reel when scroll movement ceases (Native 120/60 FPS snap)
     const onScroll = () => {
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
       const reelsView = document.getElementById('view-reels');
@@ -485,11 +505,12 @@ export class ReelsFeed {
       if (scrollTimeout) clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         this._detectAndPlaySnappedReel();
-      }, 60);
+      }, 80);
     };
 
     this.container.addEventListener('scroll', onScroll, { passive: true });
     this.container.addEventListener('scrollend', () => {
+      if (scrollTimeout) clearTimeout(scrollTimeout);
       this._detectAndPlaySnappedReel();
     }, { passive: true });
   }
@@ -500,27 +521,28 @@ export class ReelsFeed {
     const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
     if (!isReelsTab || !isReelsVisible) return;
 
-    const containerTop = this.container.scrollTop;
     const containerHeight = this.container.clientHeight || window.innerHeight;
-    const centerPoint = containerTop + containerHeight / 2;
+    if (!containerHeight) return;
 
-    const items = Array.from(this.container.querySelectorAll('.feed-reel-item'));
-    if (!items.length) return;
+    // Instant O(1) index calculation without querying DOM offsets during scroll
+    const targetIdx = Math.round(this.container.scrollTop / containerHeight);
+    const items = this.container.children;
+    if (!items || !items.length) return;
 
-    let closestItem = null;
-    let minDistance = Infinity;
-
-    for (const item of items) {
-      const itemCenter = item.offsetTop + (item.clientHeight || containerHeight) / 2;
-      const dist = Math.abs(centerPoint - itemCenter);
-      if (dist < minDistance) {
-        minDistance = dist;
-        closestItem = item;
-      }
-    }
+    const clampedIdx = Math.max(0, Math.min(items.length - 1, targetIdx));
+    const closestItem = items[clampedIdx];
 
     if (closestItem && (this.activeItem !== closestItem || !this.activeVideo || this.activeVideo.paused)) {
       this._playReelItem(closestItem);
+
+      // Trigger Interstitial AdMob ad every 3 reels viewed
+      this._reelsCountSinceAd = (this._reelsCountSinceAd || 0) + 1;
+      if (this._reelsCountSinceAd >= 3) {
+        this._reelsCountSinceAd = 0;
+        if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === 'function') {
+          window.AndroidBridge.showInterstitialAd('reels_scroll');
+        }
+      }
     }
   }
 
@@ -538,28 +560,16 @@ export class ReelsFeed {
     const video = targetItem.querySelector('video');
     if (!video) return;
 
-    // Pause all other items cleanly without destroying buffered video data
-    const targetIdx = parseInt(targetItem.getAttribute('data-index') || '0', 10);
-    const items = this.container.querySelectorAll('.feed-reel-item');
-    items.forEach(item => {
-      if (item !== targetItem) {
-        item.classList.remove('active-playing');
-        item.classList.remove('is-buffering');
-        const otherVideo = item.querySelector('video');
-        if (otherVideo) {
-          otherVideo.pause();
-          const otherIdx = parseInt(item.getAttribute('data-index') || '0', 10);
-          if (Math.abs(otherIdx - targetIdx) > 2) {
-            if (otherVideo.src && otherVideo.src !== '' && otherVideo.src !== window.location.href) {
-              otherVideo.removeAttribute('src');
-              otherVideo.load();
-            }
-          }
-        }
-        const otherVinyl = item.querySelector('.dock-vinyl-disc');
-        if (otherVinyl) otherVinyl.classList.add('paused');
+    // High performance O(1) deactivation of previous reel (zero DOM querying or decoder resetting)
+    if (this.activeItem && this.activeItem !== targetItem) {
+      this.activeItem.classList.remove('active-playing');
+      this.activeItem.classList.remove('is-buffering');
+      const oldVinyl = this.activeItem.querySelector('.dock-vinyl-disc');
+      if (oldVinyl) oldVinyl.classList.add('paused');
+      if (this.activeVideo) {
+        this.activeVideo.pause();
       }
-    });
+    }
 
     this.activeItem = targetItem;
     this.activeVideo = video;
@@ -676,8 +686,11 @@ export class ReelsFeed {
           return;
         }
 
-        // When entry dominates viewport (> 50% visible)
-        if (entry.intersectionRatio >= 0.5) {
+        // Do not interrupt active touch gesture while user is swiping
+        if (this._isUserTouching) return;
+
+        // When entry dominates viewport (> 60% visible) and user is not dragging
+        if (entry.intersectionRatio >= 0.6) {
           if (this.activeItem !== entry.target) {
             this._playReelItem(entry.target);
           } else if (video.paused && !entry.target.classList.contains('is-paused')) {
@@ -956,8 +969,8 @@ export class ReelsFeed {
       return;
     }
 
-    // Initial batch: render only 5 items for instantaneous 60FPS launch
-    const initialBatch = Math.min(5, this.filteredReels.length);
+    // Render all reels immediately so user can scroll through all videos smoothly
+    const initialBatch = Math.min(50, this.filteredReels.length);
     for (let i = 0; i < initialBatch; i++) {
       const item = this._createReelItem(this.filteredReels[i], i);
       this.container.appendChild(item);

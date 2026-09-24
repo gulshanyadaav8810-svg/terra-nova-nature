@@ -56,6 +56,12 @@ class NatureMomentsApp {
     this._bindNavigation();
     this._checkUrlParameters();
 
+    // Initialize Home view & enable banner ad display
+    this.switchView('home');
+    if (window.AndroidBridge && typeof window.AndroidBridge.setBannerVisibility === 'function') {
+      window.AndroidBridge.setBannerVisibility(true);
+    }
+
     // Ensure 100% strict silence on app boot
     window.pauseAllMedia();
 
@@ -451,6 +457,9 @@ class NatureMomentsApp {
   // Opens reel directly in full-screen snap-scrolling Reels Feed so user can continuously scroll
   openReelInFeed(reel) {
     if (!reel || !reel.content_id) return;
+    if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === 'function') {
+      window.AndroidBridge.showInterstitialAd('card_click');
+    }
     this.switchView('reels', true);
     if (this.reelsFeed) {
       this.reelsFeed.scrollToReel(reel.content_id, this.currentCategory);

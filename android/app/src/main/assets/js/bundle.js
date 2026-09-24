@@ -2941,7 +2941,7 @@ ${shareUrl}`);
       if (closestItem && (this.activeItem !== closestItem || !this.activeVideo || this.activeVideo.paused)) {
         this._playReelItem(closestItem);
         this._reelsCountSinceAd = (this._reelsCountSinceAd || 0) + 1;
-        if (this._reelsCountSinceAd >= 6) {
+        if (this._reelsCountSinceAd >= 3) {
           this._reelsCountSinceAd = 0;
           if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === "function") {
             window.AndroidBridge.showInterstitialAd("reels_scroll");
@@ -4184,6 +4184,10 @@ ${shareUrl}`);
       this._initHomeCategories();
       this._bindNavigation();
       this._checkUrlParameters();
+      this.switchView("home");
+      if (window.AndroidBridge && typeof window.AndroidBridge.setBannerVisibility === "function") {
+        window.AndroidBridge.setBannerVisibility(true);
+      }
       window.pauseAllMedia();
       try {
         syncRemoteReels().catch(() => {
@@ -4519,6 +4523,9 @@ ${shareUrl}`);
     // Opens reel directly in full-screen snap-scrolling Reels Feed so user can continuously scroll
     openReelInFeed(reel) {
       if (!reel || !reel.content_id) return;
+      if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === "function") {
+        window.AndroidBridge.showInterstitialAd("card_click");
+      }
       this.switchView("reels", true);
       if (this.reelsFeed) {
         this.reelsFeed.scrollToReel(reel.content_id, this.currentCategory);

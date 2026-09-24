@@ -535,9 +535,9 @@ export class ReelsFeed {
     if (closestItem && (this.activeItem !== closestItem || !this.activeVideo || this.activeVideo.paused)) {
       this._playReelItem(closestItem);
 
-      // Trigger Interstitial AdMob ad every 6 reels viewed
+      // Trigger Interstitial AdMob ad every 3 reels viewed
       this._reelsCountSinceAd = (this._reelsCountSinceAd || 0) + 1;
-      if (this._reelsCountSinceAd >= 6) {
+      if (this._reelsCountSinceAd >= 3) {
         this._reelsCountSinceAd = 0;
         if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === 'function') {
           window.AndroidBridge.showInterstitialAd('reels_scroll');

@@ -5,7 +5,7 @@
    ========================================================== */
 
 import { i18n } from './services/i18n.js';
-import { getReelsByCategory, getReelById } from './data/reels.js';
+import { getReelsByCategory, getReelById, syncRemoteReels } from './data/reels.js';
 import { CATEGORIES, getCategoryById, getCategoryTheme } from './data/categories.js';
 import { VideoPlayer } from './components/video-player.js';
 import { ReelsFeed } from './components/reels-feed.js';
@@ -56,9 +56,22 @@ class NatureMomentsApp {
     this._bindNavigation();
     this._checkUrlParameters();
 
+    // Initialize Home view & enable banner ad display
+    this.switchView('home');
+    if (window.AndroidBridge && typeof window.AndroidBridge.setBannerVisibility === 'function') {
+      window.AndroidBridge.setBannerVisibility(true);
+    }
+
     // Ensure 100% strict silence on app boot
     window.pauseAllMedia();
 
+    // Initial background sync and periodic sync every 30s
+    try { syncRemoteReels().catch(() => {}); } catch(e) {}
+    setInterval(() => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        try { syncRemoteReels().catch(() => {}); } catch(e) {}
+      }
+    }, 30000);
   }
 
   _initToast() {
@@ -382,6 +395,11 @@ class NatureMomentsApp {
 
     const floatingHeader = document.getElementById('reels-floating-header');
 
+    // Control Native AdMob Banner Ad visibility
+    if (window.AndroidBridge && typeof window.AndroidBridge.setBannerVisibility === 'function') {
+      window.AndroidBridge.setBannerVisibility(viewName === 'home' || viewName === 'save');
+    }
+
     if (viewName === 'home') {
       if (bottomNav) {
         bottomNav.classList.remove('bottom-nav-dark');
@@ -397,6 +415,7 @@ class NatureMomentsApp {
       if (this.reelsFeed) this.reelsFeed.pauseAll();
       if (this.player && this.player.video) this.player.video.pause();
       if (window.pauseAllMedia) window.pauseAllMedia();
+      try { syncRemoteReels().catch(() => {}); } catch(e) {}
     } else if (viewName === 'reels') {
       if (bottomNav) {
         bottomNav.classList.remove('bottom-nav-dark');
@@ -415,6 +434,7 @@ class NatureMomentsApp {
       if (this.reelsFeed && !skipResume) {
         this.reelsFeed.resumeActive();
       }
+      try { syncRemoteReels().catch(() => {}); } catch(e) {}
     } else if (viewName === 'save') {
       if (bottomNav) {
         bottomNav.classList.remove('bottom-nav-dark');
@@ -437,6 +457,9 @@ class NatureMomentsApp {
   // Opens reel directly in full-screen snap-scrolling Reels Feed so user can continuously scroll
   openReelInFeed(reel) {
     if (!reel || !reel.content_id) return;
+    if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === 'function') {
+      window.AndroidBridge.showInterstitialAd('card_click');
+    }
     this.switchView('reels', true);
     if (this.reelsFeed) {
       this.reelsFeed.scrollToReel(reel.content_id, this.currentCategory);

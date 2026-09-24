@@ -9,7 +9,10 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -22,6 +25,8 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.webkit.WebViewAssetLoader;
@@ -31,7 +36,6 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import android.media.MediaScannerConnection;
-import android.widget.RelativeLayout;
 
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.AdRequest;
@@ -49,22 +53,26 @@ public class MainActivity extends Activity {
     public static final String ONLINE_URL = "https://nature-moments-app.vercel.app";
     public static final String OFFLINE_FALLBACK_URL = "https://appassets.androidplatform.net/assets/index.html";
 
-    // Production AdMob IDs (Provided by user)
+    // Production AdMob IDs (Provided by user - will automatically show live ads once approved)
     public static final String ADMOB_BANNER_ID = "ca-app-pub-3199277482182252/9402582339";
     public static final String ADMOB_INTERSTITIAL_ID = "ca-app-pub-3199277482182252/6776418993";
 
-    // Google Official Sample Test Unit IDs (Automatic fallback before Play Store review approval)
+    // Google Official Sample Test Unit IDs (Automatic immediate fallback before Play Store review approval)
     public static final String TEST_BANNER_ID = "ca-app-pub-3940256099942544/6300978111";
     public static final String TEST_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/1033173712";
 
-    private RelativeLayout rootLayout;
+    private LinearLayout rootLayout;
     private WebView webView;
+    private FrameLayout adContainer;
     private AdView adView;
     private InterstitialAd mInterstitialAd;
     private boolean isInterstitialLoading = false;
     private long lastInterstitialShownTime = 0;
-    private static final long INTERSTITIAL_MIN_INTERVAL_MS = 30000; // 30 sec cooldown
+    private static final long INTERSTITIAL_MIN_INTERVAL_MS = 15000; // 15 sec cooldown
     private boolean isBannerUsingTestId = false;
+    private boolean isBannerLoaded = false;
+    private boolean isBannerEnabledByJs = true;
+    private String pendingInterstitialTrigger = null;
 
     public class WebAppInterface {
         Activity mActivity;
@@ -210,11 +218,8 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void setBannerVisibility(boolean visible) {
-            runOnUiThread(() -> {
-                if (adView != null) {
-                    adView.setVisibility(visible ? View.VISIBLE : View.GONE);
-                }
-            });
+            isBannerEnabledByJs = visible;
+            runOnUiThread(() -> updateBannerVisibility());
         }
     }
 
@@ -234,20 +239,32 @@ public class MainActivity extends Activity {
             window.setNavigationBarColor(android.graphics.Color.parseColor("#03081a"));
         }
 
-        rootLayout = new RelativeLayout(this);
-        rootLayout.setLayoutParams(new RelativeLayout.LayoutParams(
-            RelativeLayout.LayoutParams.MATCH_PARENT,
-            RelativeLayout.LayoutParams.MATCH_PARENT
+        rootLayout = new LinearLayout(this);
+        rootLayout.setOrientation(LinearLayout.VERTICAL);
+        rootLayout.setLayoutParams(new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.MATCH_PARENT
         ));
         rootLayout.setBackgroundColor(android.graphics.Color.parseColor("#03081a"));
 
         webView = new WebView(this);
-        RelativeLayout.LayoutParams webViewParams = new RelativeLayout.LayoutParams(
-            RelativeLayout.LayoutParams.MATCH_PARENT,
-            RelativeLayout.LayoutParams.MATCH_PARENT
+        LinearLayout.LayoutParams webViewParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            0,
+            1.0f
         );
         webView.setLayoutParams(webViewParams);
         rootLayout.addView(webView);
+
+        adContainer = new FrameLayout(this);
+        LinearLayout.LayoutParams adContainerParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        adContainer.setLayoutParams(adContainerParams);
+        adContainer.setBackgroundColor(android.graphics.Color.parseColor("#03081a"));
+        adContainer.setVisibility(View.GONE);
+        rootLayout.addView(adContainer);
 
         setContentView(rootLayout);
 
@@ -259,6 +276,13 @@ public class MainActivity extends Activity {
                 loadInterstitialAd(false);
             });
         });
+
+        // Trigger welcome interstitial test ad after 5 seconds on launch
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (!isFinishing() && !isDestroyed()) {
+                triggerInterstitialAd("welcome_launch");
+            }
+        }, 5000);
 
         // WebSettings configuration
         WebSettings settings = webView.getSettings();
@@ -503,65 +527,68 @@ public class MainActivity extends Activity {
     }
 
     // =========================================================================
-    // GOOGLE ADMOB INTEGRATION (Automatic Production + Review Test Fallback)
+    // GOOGLE ADMOB INTEGRATION (Automatic Production + Immediate Test Fallback)
     // =========================================================================
 
     private void setupBannerAd() {
-        try {
-            if (adView != null) return;
-            adView = new AdView(this);
-            adView.setId(View.generateViewId());
-            adView.setAdSize(AdSize.BANNER);
-            adView.setAdUnitId(ADMOB_BANNER_ID);
-
-            RelativeLayout.LayoutParams adParams = new RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.WRAP_CONTENT,
-                RelativeLayout.LayoutParams.WRAP_CONTENT
-            );
-            adParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-            adParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
-            adView.setLayoutParams(adParams);
-            adView.setVisibility(View.GONE); // Default hidden until requested on Home
-
-            adView.setAdListener(new AdListener() {
-                @Override
-                public void onAdLoaded() {
-                    Log.d(TAG, "AdMob Banner loaded successfully!");
+        runOnUiThread(() -> {
+            try {
+                if (adContainer == null) return;
+                adContainer.removeAllViews();
+                if (adView != null) {
+                    adView.destroy();
+                    adView = null;
                 }
 
-                @Override
-                public void onAdFailedToLoad(LoadAdError error) {
-                    Log.w(TAG, "Banner Ad failed with ID: " + adView.getAdUnitId() + " (" + error.getMessage() + ")");
-                    // If real ID fails (account still in review or unlinked to Play Store), fallback to Google Test Banner
-                    if (!isBannerUsingTestId) {
-                        isBannerUsingTestId = true;
-                        Log.d(TAG, "Retrying with official Google Test Banner unit...");
-                        runOnUiThread(() -> {
-                            try {
-                                rootLayout.removeView(adView);
-                                adView.destroy();
-                                adView = new AdView(MainActivity.this);
-                                adView.setId(View.generateViewId());
-                                adView.setAdSize(AdSize.BANNER);
-                                adView.setAdUnitId(TEST_BANNER_ID);
-                                adView.setLayoutParams(adParams);
-                                adView.setVisibility(View.GONE);
-                                rootLayout.addView(adView);
-                                AdRequest testReq = new AdRequest.Builder().build();
-                                adView.loadAd(testReq);
-                            } catch (Exception ex) {
-                                Log.e(TAG, "Error switching to test banner", ex);
-                            }
-                        });
+                adView = new AdView(this);
+                adView.setId(View.generateViewId());
+                adView.setAdSize(AdSize.BANNER);
+                final String unitId = isBannerUsingTestId ? TEST_BANNER_ID : ADMOB_BANNER_ID;
+                adView.setAdUnitId(unitId);
+
+                FrameLayout.LayoutParams adParams = new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.CENTER
+                );
+                adView.setLayoutParams(adParams);
+                adContainer.addView(adView);
+
+                adView.setAdListener(new AdListener() {
+                    @Override
+                    public void onAdLoaded() {
+                        Log.d(TAG, "AdMob Banner loaded successfully! Unit: " + unitId);
+                        isBannerLoaded = true;
+                        runOnUiThread(() -> updateBannerVisibility());
                     }
-                }
-            });
 
-            rootLayout.addView(adView);
-            AdRequest request = new AdRequest.Builder().build();
-            adView.loadAd(request);
-        } catch (Exception e) {
-            Log.e(TAG, "Error in setupBannerAd", e);
+                    @Override
+                    public void onAdFailedToLoad(LoadAdError error) {
+                        Log.w(TAG, "Banner Ad failed with ID " + unitId + " (Code: " + error.getCode() + ", Msg: " + error.getMessage() + ")");
+                        isBannerLoaded = false;
+                        runOnUiThread(() -> updateBannerVisibility());
+
+                        // If real ID fails (account not approved or in review), automatically fallback to official Google Test Banner
+                        if (!isBannerUsingTestId) {
+                            isBannerUsingTestId = true;
+                            Log.d(TAG, "Real banner unit not serving yet. Switching automatically to Google Test Banner: " + TEST_BANNER_ID);
+                            setupBannerAd();
+                        }
+                    }
+                });
+
+                AdRequest request = new AdRequest.Builder().build();
+                adView.loadAd(request);
+            } catch (Exception e) {
+                Log.e(TAG, "Error in setupBannerAd", e);
+            }
+        });
+    }
+
+    private void updateBannerVisibility() {
+        if (adContainer != null) {
+            boolean shouldShow = isBannerLoaded && isBannerEnabledByJs;
+            adContainer.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
         }
     }
 
@@ -569,7 +596,7 @@ public class MainActivity extends Activity {
         if (isInterstitialLoading) return;
         isInterstitialLoading = true;
 
-        String unitId = useFallbackTest ? TEST_INTERSTITIAL_ID : ADMOB_INTERSTITIAL_ID;
+        final String unitId = useFallbackTest ? TEST_INTERSTITIAL_ID : ADMOB_INTERSTITIAL_ID;
         AdRequest adRequest = new AdRequest.Builder().build();
 
         InterstitialAd.load(this, unitId, adRequest, new InterstitialAdLoadCallback() {
@@ -603,15 +630,22 @@ public class MainActivity extends Activity {
                         }
                     }
                 });
+
+                // If user tapped a card or triggered an ad while loading, show immediately
+                if (pendingInterstitialTrigger != null) {
+                    String reason = pendingInterstitialTrigger;
+                    pendingInterstitialTrigger = null;
+                    triggerInterstitialAd(reason);
+                }
             }
 
             @Override
             public void onAdFailedToLoad(LoadAdError loadAdError) {
                 isInterstitialLoading = false;
                 Log.w(TAG, "Interstitial failed to load (" + unitId + "): " + loadAdError.getMessage());
-                // If real ID fails during testing/review, retry with Google Test Interstitial
+                // If real ID fails during testing/review, retry with official Google Test Interstitial
                 if (!useFallbackTest) {
-                    Log.d(TAG, "Retrying with official Google Test Interstitial unit...");
+                    Log.d(TAG, "Real interstitial not serving yet. Retrying with official Google Test Interstitial unit...");
                     runOnUiThread(() -> loadInterstitialAd(true));
                 }
             }
@@ -630,8 +664,11 @@ public class MainActivity extends Activity {
                 Log.d(TAG, "Showing Interstitial Ad: " + triggerReason);
                 mInterstitialAd.show(MainActivity.this);
             } else {
-                Log.d(TAG, "Interstitial not ready yet, preloading for next opportunity...");
-                loadInterstitialAd(false);
+                Log.d(TAG, "Interstitial not ready yet, queuing trigger and preloading: " + triggerReason);
+                pendingInterstitialTrigger = triggerReason;
+                if (!isInterstitialLoading) {
+                    loadInterstitialAd(false);
+                }
             }
         });
     }
