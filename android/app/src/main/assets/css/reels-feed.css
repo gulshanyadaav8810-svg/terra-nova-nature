@@ -75,14 +75,14 @@
   -webkit-transform: translate3d(0, 0, 0);
 }
 
-/* 9:16 Video Canvas - Pure Hardware Overlay (Zero GPU Filter Overhead for 60/120 FPS Buttery Motion) */
+/* 9:16 Video Canvas - Pure Hardware Overlay (Zero Jiggle, Instant Seamless Playback) */
 .feed-reel-video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  background: transparent;
+  background: #000000;
   cursor: pointer;
   z-index: 2;
   transform: translate3d(0, 0, 0);
@@ -110,32 +110,14 @@
   z-index: 3;
 }
 
-/* Center Tap Play/Pause Pulse Animation */
-.feed-play-pulse {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0.65);
-  width: 76px;
-  height: 76px;
-  border-radius: var(--radius-full);
-  background: rgba(0, 0, 0, 0.72);
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  color: #FFFFFF;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 20;
-  opacity: 0;
-  pointer-events: none;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.75);
-  transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
+/* Play button pulse completely disabled per user requirement - Reel plays directly and cleanly */
+.feed-play-pulse,
 .feed-reel-item.is-paused .feed-play-pulse,
 .feed-play-pulse.show {
-  opacity: 1 !important;
-  transform: translate(-50%, -50%) scale(1) !important;
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 /* Floating Glass Header over Reel & Home */

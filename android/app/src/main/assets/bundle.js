@@ -2727,9 +2727,6 @@ ${shareUrl}`);
         const dlBtn = e.target.closest(".feed-download-btn");
         if (dlBtn) {
           e.stopPropagation();
-          if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === "function") {
-            window.AndroidBridge.showInterstitialAd("download");
-          }
           trackEngagement(reel.content_id, "download");
           this.showToast(i18n.t("download_started"), "\u2B07\uFE0F");
           downloader.downloadReel(
@@ -2763,7 +2760,6 @@ ${shareUrl}`);
           }
           this._lastTapTime = now;
           const video = item.querySelector("video");
-          const playPulse = item.querySelector(".feed-play-pulse");
           const vinyl = item.querySelector(".dock-vinyl-disc");
           if (video) {
             e.stopPropagation();
@@ -2771,7 +2767,6 @@ ${shareUrl}`);
             this._singleTapTimeout = setTimeout(() => {
               if (video.paused) {
                 item.classList.remove("is-paused");
-                if (playPulse) playPulse.classList.remove("show");
                 if (vinyl) vinyl.classList.remove("paused");
                 video.playsInline = true;
                 video.muted = this.isMuted;
@@ -2787,7 +2782,6 @@ ${shareUrl}`);
               } else {
                 video.pause();
                 item.classList.add("is-paused");
-                if (playPulse) playPulse.classList.add("show");
                 if (vinyl) vinyl.classList.add("paused");
               }
             }, 150);
@@ -2909,27 +2903,43 @@ ${shareUrl}`);
       }
     }
     _bindScrollSnapHandler() {
-      let scrollTimeout = null;
+      let settleTimer = null;
+      this._isUserTouching = false;
+      this.container.addEventListener("touchstart", () => {
+        this._isUserTouching = true;
+        if (settleTimer) clearTimeout(settleTimer);
+      }, { passive: true });
+      this.container.addEventListener("touchend", () => {
+        this._isUserTouching = false;
+        if (settleTimer) clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
+          this._detectAndPlaySnappedReel();
+        }, 50);
+      }, { passive: true });
       const onScroll = () => {
         const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
         const reelsView = document.getElementById("view-reels");
-        const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
+        const isReelsVisible = reelsView && reelsView.style.display === "block";
         if (!isReelsTab || !isReelsVisible) return;
-        if (scrollTimeout) clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-          this._detectAndPlaySnappedReel();
-        }, 80);
+        if (settleTimer) clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
+          if (!this._isUserTouching) {
+            this._detectAndPlaySnappedReel();
+          }
+        }, 50);
       };
       this.container.addEventListener("scroll", onScroll, { passive: true });
       this.container.addEventListener("scrollend", () => {
-        if (scrollTimeout) clearTimeout(scrollTimeout);
-        this._detectAndPlaySnappedReel();
+        if (settleTimer) clearTimeout(settleTimer);
+        if (!this._isUserTouching) {
+          this._detectAndPlaySnappedReel();
+        }
       }, { passive: true });
     }
     _detectAndPlaySnappedReel() {
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
       const reelsView = document.getElementById("view-reels");
-      const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
+      const isReelsVisible = reelsView && reelsView.style.display === "block";
       if (!isReelsTab || !isReelsVisible) return;
       const containerHeight = this.container.clientHeight || window.innerHeight;
       if (!containerHeight) return;
@@ -2938,13 +2948,39 @@ ${shareUrl}`);
       if (!items || !items.length) return;
       const clampedIdx = Math.max(0, Math.min(items.length - 1, targetIdx));
       const closestItem = items[clampedIdx];
-      if (closestItem && (this.activeItem !== closestItem || !this.activeVideo || this.activeVideo.paused)) {
+      if (closestItem && this.activeItem === closestItem && this.activeVideo && !this.activeVideo.paused) {
+        return;
+      }
+      if (closestItem) {
         this._playReelItem(closestItem);
-        this._reelsCountSinceAd = (this._reelsCountSinceAd || 0) + 1;
-        if (this._reelsCountSinceAd >= 6) {
-          this._reelsCountSinceAd = 0;
-          if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === "function") {
-            window.AndroidBridge.showInterstitialAd("reels_scroll");
+      }
+    }
+    // Active Android MediaCodec Hardware Decoder Windowing
+    // Keeps active item, 1 prior, and next 2 pre-buffered; purges all distant videos to eliminate crashes and lag!
+    _recycleDecoders(activeIndex) {
+      const items = this.container.children;
+      if (!items || !items.length) return;
+      const total = items.length;
+      const minKeep = Math.max(0, activeIndex - 1);
+      const maxKeep = Math.min(total - 1, activeIndex + 2);
+      for (let i = 0; i < total; i++) {
+        const item = items[i];
+        const video = item.querySelector("video");
+        if (!video) continue;
+        if (i >= minKeep && i <= maxKeep) {
+          const dataSrc = video.getAttribute("data-src");
+          if (dataSrc && (!video.src || video.src === "" || video.src === window.location.href)) {
+            video.src = dataSrc;
+          }
+          video.preload = "auto";
+        } else {
+          if (video.src && video.src !== "" && video.src !== window.location.href) {
+            try {
+              video.pause();
+            } catch (e) {
+            }
+            video.removeAttribute("src");
+            video.load();
           }
         }
       }
@@ -2953,7 +2989,7 @@ ${shareUrl}`);
       if (!targetItem) return;
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
       const reelsView = document.getElementById("view-reels");
-      const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
+      const isReelsVisible = reelsView && reelsView.style.display === "block";
       if (!isReelsTab || !isReelsVisible) {
         this.pauseAll();
         return;
@@ -2961,12 +2997,14 @@ ${shareUrl}`);
       const video = targetItem.querySelector("video");
       if (!video) return;
       if (this.activeItem && this.activeItem !== targetItem) {
-        this.activeItem.classList.remove("active-playing");
-        this.activeItem.classList.remove("is-buffering");
+        this.activeItem.classList.remove("active-playing", "video-ready", "is-buffering");
         const oldVinyl = this.activeItem.querySelector(".dock-vinyl-disc");
         if (oldVinyl) oldVinyl.classList.add("paused");
         if (this.activeVideo) {
-          this.activeVideo.pause();
+          try {
+            this.activeVideo.pause();
+          } catch (e) {
+          }
         }
       }
       this.activeItem = targetItem;
@@ -2974,9 +3012,9 @@ ${shareUrl}`);
       targetItem.classList.add("active-playing");
       targetItem.classList.remove("is-paused");
       const vinyl = targetItem.querySelector(".dock-vinyl-disc");
-      const playPulse = targetItem.querySelector(".feed-play-pulse");
       if (vinyl) vinyl.classList.remove("paused");
-      if (playPulse) playPulse.classList.remove("show");
+      const currentIndex = parseInt(targetItem.getAttribute("data-index") || "0", 10);
+      this._recycleDecoders(currentIndex);
       const dataSrc = video.getAttribute("data-src") || video.src;
       if (dataSrc && (!video.src || video.src === "" || video.src === window.location.href)) {
         video.src = dataSrc;
@@ -2992,6 +3030,7 @@ ${shareUrl}`);
         video._bufferEngineBound = true;
         video.addEventListener("playing", () => {
           targetItem.classList.remove("is-buffering");
+          targetItem.classList.add("video-ready");
         });
         video.addEventListener("canplay", () => {
           targetItem.classList.remove("is-buffering");
@@ -3003,13 +3042,7 @@ ${shareUrl}`);
         video.addEventListener("error", () => {
           targetItem.classList.remove("is-buffering");
           const cur = video.src || "";
-          if (cur.includes("nature-moments-app.vercel.app") || cur.startsWith("/uploads/")) {
-            const fn = cur.split("/uploads/")[1];
-            video.src = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${fn}`;
-            video.load();
-            video.play().catch(() => {
-            });
-          } else if (cur.includes("cdn.jsdelivr.net") && cur.includes("/uploads/")) {
+          if (cur.includes("cdn.jsdelivr.net") && cur.includes("/uploads/")) {
             const fn = cur.split("/uploads/")[1];
             const rawFallback = `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${fn}`;
             if (video.src !== rawFallback) {
@@ -3024,30 +3057,12 @@ ${shareUrl}`);
       }
       const p = video.play();
       if (p !== void 0) {
-        p.catch((err) => {
+        p.catch(() => {
           video.muted = true;
-          video.play().catch((e) => console.warn("Autoplay handled:", e));
+          video.play().catch(() => {
+          });
         });
       }
-      const nextItem = targetItem.nextElementSibling;
-      if (nextItem) {
-        const nv = nextItem.querySelector("video");
-        if (nv) {
-          const nextSrc = nv.getAttribute("data-src");
-          if (nextSrc && (!nv.src || nv.src === window.location.href)) nv.src = nextSrc;
-          nv.preload = "auto";
-        }
-      }
-      const prevItem = targetItem.previousElementSibling;
-      if (prevItem) {
-        const pv = prevItem.querySelector("video");
-        if (pv) {
-          const prevSrc = pv.getAttribute("data-src");
-          if (prevSrc && (!pv.src || pv.src === window.location.href)) pv.src = prevSrc;
-          pv.preload = "auto";
-        }
-      }
-      const currentIndex = parseInt(targetItem.getAttribute("data-index") || "0", 10);
       if (currentIndex >= this.renderedCount - 2) {
         this.appendBatch();
       }
@@ -3056,34 +3071,19 @@ ${shareUrl}`);
       if (this.observer) this.observer.disconnect();
       const options = {
         root: this.container,
-        threshold: [0.1, 0.5, 0.8]
+        threshold: [0, 0.1]
       };
       this.observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           const video = entry.target.querySelector("video");
           if (!video) return;
-          const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
-          const reelsView = document.getElementById("view-reels");
-          const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
-          if (!isReelsTab || !isReelsVisible) {
-            video.pause();
-            return;
-          }
-          if (this._isUserTouching) return;
-          if (entry.intersectionRatio >= 0.6) {
+          if (entry.intersectionRatio <= 0.05) {
             if (this.activeItem !== entry.target) {
-              this._playReelItem(entry.target);
-            } else if (video.paused && !entry.target.classList.contains("is-paused")) {
-              video.play().catch(() => {
-                video.muted = true;
-                video.play().catch(() => {
-                });
-              });
-            }
-          } else if (entry.intersectionRatio < 0.2) {
-            if (this.activeItem === entry.target) {
-              entry.target.classList.remove("active-playing");
-              video.pause();
+              entry.target.classList.remove("active-playing", "video-ready");
+              try {
+                video.pause();
+              } catch (e) {
+              }
             }
           }
         });
@@ -3150,21 +3150,11 @@ ${shareUrl}`);
       const catObj = CATEGORIES.find((c) => c.id === reel.category_id);
       const catIcon = catObj ? catObj.icon : "\u2728";
       item.innerHTML = `
-      <!-- Fast 0ms Poster with CDN Fallback -->
-      <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? "eager" : "lazy"}" onerror="if(this.src.includes('cdn.jsdelivr.net')){this.src=this.src.replace('cdn.jsdelivr.net/gh/','raw.githubusercontent.com/').replace('@main/','/main/');}else{this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';}" />
-
-      <!-- 9:16 Video Canvas (Preloaded for instant 0ms playback) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 3 ? `src="${reel.video_url}" preload="auto"` : 'preload="metadata"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
+      <!-- 9:16 Video Canvas (Native Poster + 0ms Preload, Zero Jiggle) -->
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 3 ? `src="${reel.video_url}" preload="auto"` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
-
-      <!-- Center Tap Play Pulse -->
-      <div class="feed-play-pulse">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
-          <polygon points="6 3 20 12 6 21 6 3"></polygon>
-        </svg>
-      </div>
 
       <!-- Right-Side Instagram Action Dock -->
       <div class="feed-actions-dock">
@@ -4184,6 +4174,10 @@ ${shareUrl}`);
       this._initHomeCategories();
       this._bindNavigation();
       this._checkUrlParameters();
+      this.switchView("home");
+      if (window.AndroidBridge && typeof window.AndroidBridge.setBannerVisibility === "function") {
+        window.AndroidBridge.setBannerVisibility(true);
+      }
       window.pauseAllMedia();
       try {
         syncRemoteReels().catch(() => {

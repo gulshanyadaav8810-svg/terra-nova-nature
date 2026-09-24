@@ -3,7 +3,7 @@
         <item name="colorPrimary">@color/primary_green</item>
         <item name="colorPrimaryDark">@color/dark_green</item>
         <item name="colorAccent">@color/soft_yellow</item>
-        <item name="android:windowBackground">#03081a</item>
+        <item name="android:windowBackground">@drawable/splash_background</item>
         <item name="android:navigationBarColor">#03081a</item>
         <item name="android:statusBarColor">#03081a</item>
     </style>
@@ -13,7 +13,7 @@
         <item name="android:windowActionBar">false</item>
         <item name="android:windowFullscreen">false</item>
         <item name="android:windowContentOverlay">@null</item>
-        <item name="android:windowBackground">#03081a</item>
+        <item name="android:windowBackground">@drawable/splash_background</item>
         <item name="android:navigationBarColor">#03081a</item>
         <item name="android:statusBarColor">#03081a</item>
     </style>

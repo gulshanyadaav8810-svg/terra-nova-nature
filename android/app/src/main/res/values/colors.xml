@@ -5,4 +5,5 @@
     <color name="soft_yellow">#E9E85B</color>
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
+    <color name="splash_bg">#03081a</color>
 </resources>

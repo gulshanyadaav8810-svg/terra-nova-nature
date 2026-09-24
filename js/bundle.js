@@ -2760,7 +2760,6 @@ ${shareUrl}`);
           }
           this._lastTapTime = now;
           const video = item.querySelector("video");
-          const playPulse = item.querySelector(".feed-play-pulse");
           const vinyl = item.querySelector(".dock-vinyl-disc");
           if (video) {
             e.stopPropagation();
@@ -2768,7 +2767,6 @@ ${shareUrl}`);
             this._singleTapTimeout = setTimeout(() => {
               if (video.paused) {
                 item.classList.remove("is-paused");
-                if (playPulse) playPulse.classList.remove("show");
                 if (vinyl) vinyl.classList.remove("paused");
                 video.playsInline = true;
                 video.muted = this.isMuted;
@@ -2784,7 +2782,6 @@ ${shareUrl}`);
               } else {
                 video.pause();
                 item.classList.add("is-paused");
-                if (playPulse) playPulse.classList.add("show");
                 if (vinyl) vinyl.classList.add("paused");
               }
             }, 150);
@@ -2922,7 +2919,7 @@ ${shareUrl}`);
       const onScroll = () => {
         const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
         const reelsView = document.getElementById("view-reels");
-        const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
+        const isReelsVisible = reelsView && reelsView.style.display === "block";
         if (!isReelsTab || !isReelsVisible) return;
         if (settleTimer) clearTimeout(settleTimer);
         settleTimer = setTimeout(() => {
@@ -2942,7 +2939,7 @@ ${shareUrl}`);
     _detectAndPlaySnappedReel() {
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
       const reelsView = document.getElementById("view-reels");
-      const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
+      const isReelsVisible = reelsView && reelsView.style.display === "block";
       if (!isReelsTab || !isReelsVisible) return;
       const containerHeight = this.container.clientHeight || window.innerHeight;
       if (!containerHeight) return;
@@ -2958,11 +2955,41 @@ ${shareUrl}`);
         this._playReelItem(closestItem);
       }
     }
+    // Active Android MediaCodec Hardware Decoder Windowing
+    // Keeps active item, 1 prior, and next 2 pre-buffered; purges all distant videos to eliminate crashes and lag!
+    _recycleDecoders(activeIndex) {
+      const items = this.container.children;
+      if (!items || !items.length) return;
+      const total = items.length;
+      const minKeep = Math.max(0, activeIndex - 1);
+      const maxKeep = Math.min(total - 1, activeIndex + 2);
+      for (let i = 0; i < total; i++) {
+        const item = items[i];
+        const video = item.querySelector("video");
+        if (!video) continue;
+        if (i >= minKeep && i <= maxKeep) {
+          const dataSrc = video.getAttribute("data-src");
+          if (dataSrc && (!video.src || video.src === "" || video.src === window.location.href)) {
+            video.src = dataSrc;
+          }
+          video.preload = "auto";
+        } else {
+          if (video.src && video.src !== "" && video.src !== window.location.href) {
+            try {
+              video.pause();
+            } catch (e) {
+            }
+            video.removeAttribute("src");
+            video.load();
+          }
+        }
+      }
+    }
     _playReelItem(targetItem) {
       if (!targetItem) return;
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
       const reelsView = document.getElementById("view-reels");
-      const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
+      const isReelsVisible = reelsView && reelsView.style.display === "block";
       if (!isReelsTab || !isReelsVisible) {
         this.pauseAll();
         return;
@@ -2985,9 +3012,9 @@ ${shareUrl}`);
       targetItem.classList.add("active-playing");
       targetItem.classList.remove("is-paused");
       const vinyl = targetItem.querySelector(".dock-vinyl-disc");
-      const playPulse = targetItem.querySelector(".feed-play-pulse");
       if (vinyl) vinyl.classList.remove("paused");
-      if (playPulse) playPulse.classList.remove("show");
+      const currentIndex = parseInt(targetItem.getAttribute("data-index") || "0", 10);
+      this._recycleDecoders(currentIndex);
       const dataSrc = video.getAttribute("data-src") || video.src;
       if (dataSrc && (!video.src || video.src === "" || video.src === window.location.href)) {
         video.src = dataSrc;
@@ -2999,20 +3026,6 @@ ${shareUrl}`);
       video.setAttribute("x5-playsinline", "");
       video.muted = this.isMuted;
       video.volume = this.isMuted ? 0 : 1;
-      let nextEl = targetItem.nextElementSibling;
-      let count = 0;
-      while (nextEl && count < 2) {
-        const nv = nextEl.querySelector("video");
-        if (nv) {
-          const nextSrc = nv.getAttribute("data-src");
-          if (nextSrc && (!nv.src || nv.src === "" || nv.src === window.location.href)) {
-            nv.src = nextSrc;
-          }
-          nv.preload = "auto";
-        }
-        nextEl = nextEl.nextElementSibling;
-        count++;
-      }
       if (!video._bufferEngineBound) {
         video._bufferEngineBound = true;
         video.addEventListener("playing", () => {
@@ -3050,7 +3063,6 @@ ${shareUrl}`);
           });
         });
       }
-      const currentIndex = parseInt(targetItem.getAttribute("data-index") || "0", 10);
       if (currentIndex >= this.renderedCount - 2) {
         this.appendBatch();
       }
@@ -3138,21 +3150,11 @@ ${shareUrl}`);
       const catObj = CATEGORIES.find((c) => c.id === reel.category_id);
       const catIcon = catObj ? catObj.icon : "\u2728";
       item.innerHTML = `
-      <!-- Fast 0ms Poster with CDN Fallback -->
-      <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? "eager" : "lazy"}" onerror="if(this.src.includes('cdn.jsdelivr.net')){this.src=this.src.replace('cdn.jsdelivr.net/gh/','raw.githubusercontent.com/').replace('@main/','/main/');}else{this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';}" />
-
-      <!-- 9:16 Video Canvas (Preloaded for instant 0ms playback) -->
+      <!-- 9:16 Video Canvas (Native Poster + 0ms Preload, Zero Jiggle) -->
       <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 3 ? `src="${reel.video_url}" preload="auto"` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
-
-      <!-- Center Tap Play Pulse -->
-      <div class="feed-play-pulse">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
-          <polygon points="6 3 20 12 6 21 6 3"></polygon>
-        </svg>
-      </div>
 
       <!-- Right-Side Instagram Action Dock -->
       <div class="feed-actions-dock">
