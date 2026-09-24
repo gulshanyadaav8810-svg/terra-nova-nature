@@ -2892,72 +2892,35 @@ ${shareUrl}`);
       }
     }
     // Fast O(1) snap scroll directly to an index
-    scrollToIndex(index, behavior = "smooth") {
+    scrollToIndex(index) {
       const items = this.container.children;
       if (!items || !items.length) return;
       const clamped = Math.max(0, Math.min(items.length - 1, index));
       const targetItem = items[clamped];
       if (targetItem) {
-        this.container.scrollTo({
-          top: targetItem.offsetTop,
-          behavior
-        });
-        if (this._scrollSnapTimeout) clearTimeout(this._scrollSnapTimeout);
-        this._scrollSnapTimeout = setTimeout(() => {
+        this.pauseAll();
+        this.container.scrollTop = targetItem.offsetTop;
+        setTimeout(() => {
           this._playReelItem(targetItem);
-        }, behavior === "instant" ? 20 : 180);
+        }, 50);
       }
     }
     _bindScrollSnapHandler() {
-      this._isUserTouching = false;
-      let touchStartY = 0;
-      let touchStartTime = 0;
-      this.container.addEventListener("touchstart", (e) => {
-        if (e.touches && e.touches.length === 1) {
-          touchStartY = e.touches[0].clientY;
-          touchStartTime = Date.now();
-          this._isUserTouching = true;
-        }
-      }, { passive: true });
-      this.container.addEventListener("touchend", (e) => {
-        this._isUserTouching = false;
-        if (!e.changedTouches || e.changedTouches.length !== 1) return;
-        const deltaY = touchStartY - e.changedTouches[0].clientY;
-        const deltaTime = Date.now() - touchStartTime;
-        const containerHeight = this.container.clientHeight || window.innerHeight;
-        const currentIdx = Math.round(this.container.scrollTop / containerHeight);
-        if (Math.abs(deltaY) > 35 && deltaTime < 320) {
-          if (deltaY > 0 && currentIdx < this.container.children.length - 1) {
-            this.scrollToIndex(currentIdx + 1, "smooth");
-            return;
-          } else if (deltaY < 0 && currentIdx > 0) {
-            this.scrollToIndex(currentIdx - 1, "smooth");
-            return;
-          }
-        }
-        setTimeout(() => {
-          if (!this._isUserTouching) {
-            this._detectAndPlaySnappedReel();
-          }
-        }, 70);
-      }, { passive: true });
+      let scrollTimeout = null;
       const onScroll = () => {
         const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
         const reelsView = document.getElementById("view-reels");
         const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
         if (!isReelsTab || !isReelsVisible) return;
-        if (this._scrollSnapTimeout) clearTimeout(this._scrollSnapTimeout);
-        this._scrollSnapTimeout = setTimeout(() => {
-          if (!this._isUserTouching) {
-            this._detectAndPlaySnappedReel();
-          }
-        }, 90);
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          this._detectAndPlaySnappedReel();
+        }, 80);
       };
       this.container.addEventListener("scroll", onScroll, { passive: true });
       this.container.addEventListener("scrollend", () => {
-        if (!this._isUserTouching) {
-          this._detectAndPlaySnappedReel();
-        }
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+        this._detectAndPlaySnappedReel();
       }, { passive: true });
     }
     _detectAndPlaySnappedReel() {
