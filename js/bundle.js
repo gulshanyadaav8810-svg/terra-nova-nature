@@ -2917,7 +2917,7 @@ ${shareUrl}`);
         if (settleTimer) clearTimeout(settleTimer);
         settleTimer = setTimeout(() => {
           this._detectAndPlaySnappedReel();
-        }, 160);
+        }, 50);
       }, { passive: true });
       const onScroll = () => {
         const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
@@ -2929,7 +2929,7 @@ ${shareUrl}`);
           if (!this._isUserTouching) {
             this._detectAndPlaySnappedReel();
           }
-        }, 160);
+        }, 50);
       };
       this.container.addEventListener("scroll", onScroll, { passive: true });
       this.container.addEventListener("scrollend", () => {
@@ -2999,24 +2999,25 @@ ${shareUrl}`);
       video.setAttribute("x5-playsinline", "");
       video.muted = this.isMuted;
       video.volume = this.isMuted ? 0 : 1;
+      let nextEl = targetItem.nextElementSibling;
+      let count = 0;
+      while (nextEl && count < 2) {
+        const nv = nextEl.querySelector("video");
+        if (nv) {
+          const nextSrc = nv.getAttribute("data-src");
+          if (nextSrc && (!nv.src || nv.src === "" || nv.src === window.location.href)) {
+            nv.src = nextSrc;
+          }
+          nv.preload = "auto";
+        }
+        nextEl = nextEl.nextElementSibling;
+        count++;
+      }
       if (!video._bufferEngineBound) {
         video._bufferEngineBound = true;
         video.addEventListener("playing", () => {
           targetItem.classList.remove("is-buffering");
           targetItem.classList.add("video-ready");
-          setTimeout(() => {
-            if (this.activeItem === targetItem) {
-              const nextItem = targetItem.nextElementSibling;
-              if (nextItem) {
-                const nv = nextItem.querySelector("video");
-                if (nv) {
-                  const nextSrc = nv.getAttribute("data-src");
-                  if (nextSrc && (!nv.src || nv.src === window.location.href)) nv.src = nextSrc;
-                  nv.preload = "metadata";
-                }
-              }
-            }
-          }, 800);
         });
         video.addEventListener("canplay", () => {
           targetItem.classList.remove("is-buffering");
@@ -3141,7 +3142,7 @@ ${shareUrl}`);
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? "eager" : "lazy"}" onerror="if(this.src.includes('cdn.jsdelivr.net')){this.src=this.src.replace('cdn.jsdelivr.net/gh/','raw.githubusercontent.com/').replace('@main/','/main/');}else{this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';}" />
 
       <!-- 9:16 Video Canvas (Preloaded for instant 0ms playback) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index === 0 ? `src="${reel.video_url}" preload="auto"` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 3 ? `src="${reel.video_url}" preload="auto"` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
