@@ -377,13 +377,47 @@ public class MainActivity extends Activity {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 Uri url = request.getUrl();
-                if (url != null && url.getHost() != null && url.getHost().equals("appassets.androidplatform.net")) {
+                if (url != null) {
                     String path = url.getPath();
                     if (path != null && path.toLowerCase().endsWith(".mp4")) {
-                        WebResourceResponse rangeResp = handleAssetVideoRange(request, url);
-                        if (rangeResp != null) return rangeResp;
+                        String filename = url.getLastPathSegment();
+                        if (filename != null && !filename.trim().isEmpty()) {
+                            // 1. Check if bundled in APK assets/uploads/
+                            try {
+                                String assetPath = "assets/uploads/" + filename;
+                                android.content.res.AssetFileDescriptor afd = getAssets().openFd(assetPath);
+                                if (afd != null) {
+                                    afd.close();
+                                    WebResourceResponse assetResp = handleAssetVideoRange(request, Uri.parse("https://appassets.androidplatform.net/assets/uploads/" + filename));
+                                    if (assetResp != null) return assetResp;
+                                }
+                            } catch (Exception ignored) {}
+
+                            // 2. Check if cached in app internal cache directory
+                            try {
+                                File cacheDir = new File(getCacheDir(), "reels_media");
+                                File cachedFile = new File(cacheDir, filename);
+                                if (cachedFile.exists() && cachedFile.length() > 50000) {
+                                    WebResourceResponse fileResp = handleFileVideoRange(request, cachedFile);
+                                    if (fileResp != null) return fileResp;
+                                } else {
+                                    // Trigger background cache download if URL is remote HTTP
+                                    final String urlStr = url.toString();
+                                    if (urlStr.startsWith("http://") || urlStr.startsWith("https://")) {
+                                        cacheVideoInBackground(urlStr, filename);
+                                    }
+                                }
+                            } catch (Exception ignored) {}
+                        }
                     }
-                    return assetLoader.shouldInterceptRequest(url);
+
+                    if (url.getHost() != null && url.getHost().equals("appassets.androidplatform.net")) {
+                        if (path != null && path.toLowerCase().endsWith(".mp4")) {
+                            WebResourceResponse rangeResp = handleAssetVideoRange(request, url);
+                            if (rangeResp != null) return rangeResp;
+                        }
+                        return assetLoader.shouldInterceptRequest(url);
+                    }
                 }
                 return null;
             }
@@ -523,6 +557,109 @@ public class MainActivity extends Activity {
             Log.w(TAG, "Error handling asset video range: " + url, e);
             return null;
         }
+    }
+
+    private WebResourceResponse handleFileVideoRange(WebResourceRequest request, File file) {
+        try {
+            long fileLength = file.length();
+            java.io.RandomAccessFile raf = new java.io.RandomAccessFile(file, "r");
+
+            Map<String, String> requestHeaders = request.getRequestHeaders();
+            String rangeHeader = requestHeaders != null ? requestHeaders.get("Range") : null;
+            if (rangeHeader == null && requestHeaders != null) {
+                rangeHeader = requestHeaders.get("range");
+            }
+
+            if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+                String rangeValue = rangeHeader.substring(6);
+                String[] parts = rangeValue.split("-");
+                long start = Long.parseLong(parts[0]);
+                long end = (parts.length > 1 && !parts[1].trim().isEmpty()) ? Long.parseLong(parts[1].trim()) : fileLength - 1;
+                if (end >= fileLength) end = fileLength - 1;
+                final long rangeLength = end - start + 1;
+
+                raf.seek(start);
+                InputStream is = new java.io.FileInputStream(raf.getFD()) {
+                    private long remaining = rangeLength;
+                    @Override
+                    public int read() throws java.io.IOException {
+                        if (remaining <= 0) return -1;
+                        int b = super.read();
+                        if (b != -1) remaining--;
+                        return b;
+                    }
+                    @Override
+                    public int read(byte[] b, int off, int len) throws java.io.IOException {
+                        if (remaining <= 0) return -1;
+                        int toRead = (int) Math.min(len, remaining);
+                        int bytesRead = super.read(b, off, toRead);
+                        if (bytesRead > 0) remaining -= bytesRead;
+                        return bytesRead;
+                    }
+                    @Override
+                    public void close() throws java.io.IOException {
+                        try { raf.close(); } catch (Exception ignored) {}
+                        super.close();
+                    }
+                };
+
+                Map<String, String> responseHeaders = new HashMap<>();
+                responseHeaders.put("Content-Type", "video/mp4");
+                responseHeaders.put("Content-Range", "bytes " + start + "-" + end + "/" + fileLength);
+                responseHeaders.put("Content-Length", String.valueOf(rangeLength));
+                responseHeaders.put("Accept-Ranges", "bytes");
+                responseHeaders.put("Access-Control-Allow-Origin", "*");
+
+                return new WebResourceResponse("video/mp4", "UTF-8", 206, "Partial Content", responseHeaders, is);
+            } else {
+                java.io.FileInputStream fis = new java.io.FileInputStream(file);
+                Map<String, String> responseHeaders = new HashMap<>();
+                responseHeaders.put("Content-Type", "video/mp4");
+                responseHeaders.put("Content-Length", String.valueOf(fileLength));
+                responseHeaders.put("Accept-Ranges", "bytes");
+                responseHeaders.put("Access-Control-Allow-Origin", "*");
+
+                return new WebResourceResponse("video/mp4", "UTF-8", 200, "OK", responseHeaders, fis);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error handling cached file video range: " + file.getName(), e);
+            return null;
+        }
+    }
+
+    private void cacheVideoInBackground(final String urlStr, final String filename) {
+        new Thread(() -> {
+            try {
+                File cacheDir = new File(getCacheDir(), "reels_media");
+                if (!cacheDir.exists()) cacheDir.mkdirs();
+                File targetFile = new File(cacheDir, filename);
+                File tempFile = new File(cacheDir, filename + ".part");
+                if (targetFile.exists() || tempFile.exists()) return;
+
+                java.net.URL url = new java.net.URL(urlStr);
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setConnectTimeout(8000);
+                conn.setReadTimeout(15000);
+                conn.connect();
+
+                if (conn.getResponseCode() == 200) {
+                    try (InputStream in = conn.getInputStream();
+                         FileOutputStream out = new FileOutputStream(tempFile)) {
+                        byte[] buffer = new byte[8192];
+                        int read;
+                        while ((read = in.read(buffer)) != -1) {
+                            out.write(buffer, 0, read);
+                        }
+                    }
+                    if (tempFile.exists() && tempFile.length() > 50000) {
+                        tempFile.renameTo(targetFile);
+                        Log.d(TAG, "Successfully cached reel in background: " + filename);
+                    } else {
+                        tempFile.delete();
+                    }
+                }
+            } catch (Exception ignored) {}
+        }).start();
     }
 
     @Override
