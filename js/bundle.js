@@ -2891,21 +2891,73 @@ ${shareUrl}`);
         this.resumeActive();
       }
     }
+    // Fast O(1) snap scroll directly to an index
+    scrollToIndex(index, behavior = "smooth") {
+      const items = this.container.children;
+      if (!items || !items.length) return;
+      const clamped = Math.max(0, Math.min(items.length - 1, index));
+      const targetItem = items[clamped];
+      if (targetItem) {
+        this.container.scrollTo({
+          top: targetItem.offsetTop,
+          behavior
+        });
+        if (this._scrollSnapTimeout) clearTimeout(this._scrollSnapTimeout);
+        this._scrollSnapTimeout = setTimeout(() => {
+          this._playReelItem(targetItem);
+        }, behavior === "instant" ? 20 : 180);
+      }
+    }
     _bindScrollSnapHandler() {
-      let scrollTimeout = null;
+      this._isUserTouching = false;
+      let touchStartY = 0;
+      let touchStartTime = 0;
+      this.container.addEventListener("touchstart", (e) => {
+        if (e.touches && e.touches.length === 1) {
+          touchStartY = e.touches[0].clientY;
+          touchStartTime = Date.now();
+          this._isUserTouching = true;
+        }
+      }, { passive: true });
+      this.container.addEventListener("touchend", (e) => {
+        this._isUserTouching = false;
+        if (!e.changedTouches || e.changedTouches.length !== 1) return;
+        const deltaY = touchStartY - e.changedTouches[0].clientY;
+        const deltaTime = Date.now() - touchStartTime;
+        const containerHeight = this.container.clientHeight || window.innerHeight;
+        const currentIdx = Math.round(this.container.scrollTop / containerHeight);
+        if (Math.abs(deltaY) > 35 && deltaTime < 320) {
+          if (deltaY > 0 && currentIdx < this.container.children.length - 1) {
+            this.scrollToIndex(currentIdx + 1, "smooth");
+            return;
+          } else if (deltaY < 0 && currentIdx > 0) {
+            this.scrollToIndex(currentIdx - 1, "smooth");
+            return;
+          }
+        }
+        setTimeout(() => {
+          if (!this._isUserTouching) {
+            this._detectAndPlaySnappedReel();
+          }
+        }, 70);
+      }, { passive: true });
       const onScroll = () => {
         const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
         const reelsView = document.getElementById("view-reels");
         const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
         if (!isReelsTab || !isReelsVisible) return;
-        if (scrollTimeout) clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-          this._detectAndPlaySnappedReel();
-        }, 60);
+        if (this._scrollSnapTimeout) clearTimeout(this._scrollSnapTimeout);
+        this._scrollSnapTimeout = setTimeout(() => {
+          if (!this._isUserTouching) {
+            this._detectAndPlaySnappedReel();
+          }
+        }, 90);
       };
       this.container.addEventListener("scroll", onScroll, { passive: true });
       this.container.addEventListener("scrollend", () => {
-        this._detectAndPlaySnappedReel();
+        if (!this._isUserTouching) {
+          this._detectAndPlaySnappedReel();
+        }
       }, { passive: true });
     }
     _detectAndPlaySnappedReel() {
@@ -2935,27 +2987,15 @@ ${shareUrl}`);
       }
       const video = targetItem.querySelector("video");
       if (!video) return;
-      const targetIdx = parseInt(targetItem.getAttribute("data-index") || "0", 10);
-      const items = this.container.querySelectorAll(".feed-reel-item");
-      items.forEach((item) => {
-        if (item !== targetItem) {
-          item.classList.remove("active-playing");
-          item.classList.remove("is-buffering");
-          const otherVideo = item.querySelector("video");
-          if (otherVideo) {
-            otherVideo.pause();
-            const otherIdx = parseInt(item.getAttribute("data-index") || "0", 10);
-            if (Math.abs(otherIdx - targetIdx) > 2) {
-              if (otherVideo.src && otherVideo.src !== "" && otherVideo.src !== window.location.href) {
-                otherVideo.removeAttribute("src");
-                otherVideo.load();
-              }
-            }
-          }
-          const otherVinyl = item.querySelector(".dock-vinyl-disc");
-          if (otherVinyl) otherVinyl.classList.add("paused");
+      if (this.activeItem && this.activeItem !== targetItem) {
+        this.activeItem.classList.remove("active-playing");
+        this.activeItem.classList.remove("is-buffering");
+        const oldVinyl = this.activeItem.querySelector(".dock-vinyl-disc");
+        if (oldVinyl) oldVinyl.classList.add("paused");
+        if (this.activeVideo) {
+          this.activeVideo.pause();
         }
-      });
+      }
       this.activeItem = targetItem;
       this.activeVideo = video;
       targetItem.classList.add("active-playing");
@@ -3056,7 +3096,8 @@ ${shareUrl}`);
             video.pause();
             return;
           }
-          if (entry.intersectionRatio >= 0.5) {
+          if (this._isUserTouching) return;
+          if (entry.intersectionRatio >= 0.6) {
             if (this.activeItem !== entry.target) {
               this._playReelItem(entry.target);
             } else if (video.paused && !entry.target.classList.contains("is-paused")) {

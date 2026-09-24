@@ -474,23 +474,87 @@ export class ReelsFeed {
     }
   }
 
+  // Fast O(1) snap scroll directly to an index
+  scrollToIndex(index, behavior = 'smooth') {
+    const items = this.container.children;
+    if (!items || !items.length) return;
+    const clamped = Math.max(0, Math.min(items.length - 1, index));
+    const targetItem = items[clamped];
+    if (targetItem) {
+      this.container.scrollTo({
+        top: targetItem.offsetTop,
+        behavior: behavior
+      });
+
+      if (this._scrollSnapTimeout) clearTimeout(this._scrollSnapTimeout);
+      this._scrollSnapTimeout = setTimeout(() => {
+        this._playReelItem(targetItem);
+      }, behavior === 'instant' ? 20 : 180);
+    }
+  }
+
   _bindScrollSnapHandler() {
-    let scrollTimeout = null;
+    this._isUserTouching = false;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    // High-Velocity Touch Swipe / Flick Acceleration
+    this.container.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length === 1) {
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = Date.now();
+        this._isUserTouching = true;
+      }
+    }, { passive: true });
+
+    this.container.addEventListener('touchend', (e) => {
+      this._isUserTouching = false;
+      if (!e.changedTouches || e.changedTouches.length !== 1) return;
+
+      const deltaY = touchStartY - e.changedTouches[0].clientY;
+      const deltaTime = Date.now() - touchStartTime;
+      const containerHeight = this.container.clientHeight || window.innerHeight;
+      const currentIdx = Math.round(this.container.scrollTop / containerHeight);
+
+      // Fast flick gesture (> 35px in < 320ms) -> Instant smooth glide to next/prev reel
+      if (Math.abs(deltaY) > 35 && deltaTime < 320) {
+        if (deltaY > 0 && currentIdx < this.container.children.length - 1) {
+          this.scrollToIndex(currentIdx + 1, 'smooth');
+          return;
+        } else if (deltaY < 0 && currentIdx > 0) {
+          this.scrollToIndex(currentIdx - 1, 'smooth');
+          return;
+        }
+      }
+
+      // Settle snapped reel immediately after drag release
+      setTimeout(() => {
+        if (!this._isUserTouching) {
+          this._detectAndPlaySnappedReel();
+        }
+      }, 70);
+    }, { passive: true });
+
+    // Non-blocking scroll debouncing: Keep 60FPS UI fluid during rapid scroll
     const onScroll = () => {
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
       const reelsView = document.getElementById('view-reels');
       const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
       if (!isReelsTab || !isReelsVisible) return;
 
-      if (scrollTimeout) clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        this._detectAndPlaySnappedReel();
-      }, 60);
+      if (this._scrollSnapTimeout) clearTimeout(this._scrollSnapTimeout);
+      this._scrollSnapTimeout = setTimeout(() => {
+        if (!this._isUserTouching) {
+          this._detectAndPlaySnappedReel();
+        }
+      }, 90);
     };
 
     this.container.addEventListener('scroll', onScroll, { passive: true });
     this.container.addEventListener('scrollend', () => {
-      this._detectAndPlaySnappedReel();
+      if (!this._isUserTouching) {
+        this._detectAndPlaySnappedReel();
+      }
     }, { passive: true });
   }
 
@@ -530,28 +594,16 @@ export class ReelsFeed {
     const video = targetItem.querySelector('video');
     if (!video) return;
 
-    // Pause all other items cleanly without destroying buffered video data
-    const targetIdx = parseInt(targetItem.getAttribute('data-index') || '0', 10);
-    const items = this.container.querySelectorAll('.feed-reel-item');
-    items.forEach(item => {
-      if (item !== targetItem) {
-        item.classList.remove('active-playing');
-        item.classList.remove('is-buffering');
-        const otherVideo = item.querySelector('video');
-        if (otherVideo) {
-          otherVideo.pause();
-          const otherIdx = parseInt(item.getAttribute('data-index') || '0', 10);
-          if (Math.abs(otherIdx - targetIdx) > 2) {
-            if (otherVideo.src && otherVideo.src !== '' && otherVideo.src !== window.location.href) {
-              otherVideo.removeAttribute('src');
-              otherVideo.load();
-            }
-          }
-        }
-        const otherVinyl = item.querySelector('.dock-vinyl-disc');
-        if (otherVinyl) otherVinyl.classList.add('paused');
+    // High performance O(1) deactivation of previous reel (zero DOM querying or decoder resetting)
+    if (this.activeItem && this.activeItem !== targetItem) {
+      this.activeItem.classList.remove('active-playing');
+      this.activeItem.classList.remove('is-buffering');
+      const oldVinyl = this.activeItem.querySelector('.dock-vinyl-disc');
+      if (oldVinyl) oldVinyl.classList.add('paused');
+      if (this.activeVideo) {
+        this.activeVideo.pause();
       }
-    });
+    }
 
     this.activeItem = targetItem;
     this.activeVideo = video;
@@ -668,8 +720,11 @@ export class ReelsFeed {
           return;
         }
 
-        // When entry dominates viewport (> 50% visible)
-        if (entry.intersectionRatio >= 0.5) {
+        // Do not interrupt active touch gesture while user is swiping
+        if (this._isUserTouching) return;
+
+        // When entry dominates viewport (> 60% visible) and user is not dragging
+        if (entry.intersectionRatio >= 0.6) {
           if (this.activeItem !== entry.target) {
             this._playReelItem(entry.target);
           } else if (video.paused && !entry.target.classList.contains('is-paused')) {

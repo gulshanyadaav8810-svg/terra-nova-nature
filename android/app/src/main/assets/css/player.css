@@ -50,13 +50,26 @@
   }
 }
 
-/* Video Element */
+/* Video Element with Ultra-HD Clarity & Vivid Nature Filter */
 .player-video {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   background: #000000;
   cursor: pointer;
+
+  /* GPU Hardware Acceleration */
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform, filter;
+
+  /* Edge Sharpness & Dynamic Clarity */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  filter: contrast(1.06) saturate(1.10) brightness(1.02);
 }
 
 /* Loading Spinner permanently disabled for direct seamless playback */

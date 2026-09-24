@@ -726,11 +726,13 @@ class AdminStudio {
     }
     try {
       const canvas = document.createElement('canvas');
-      canvas.width = 540;
-      canvas.height = 960;
+      canvas.width = 720;
+      canvas.height = 1280;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(this.scrubberVideo, 0, 0, 540, 960);
-      this.capturedThumbDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(this.scrubberVideo, 0, 0, 720, 1280);
+      this.capturedThumbDataUrl = canvas.toDataURL('image/jpeg', 0.94);
       this.uploadedThumbFile = null;
 
       if (this.activeThumbPreviewImg) this.activeThumbPreviewImg.src = this.capturedThumbDataUrl;
@@ -798,11 +800,13 @@ class AdminStudio {
       if (!this.uploadedThumbFile && (this.thumbMode === 'capture' || !this.capturedThumbDataUrl)) {
         try {
           const canvas = document.createElement('canvas');
-          canvas.width = 540;
-          canvas.height = 960;
+          canvas.width = 720;
+          canvas.height = 1280;
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(this.scrubberVideo, 0, 0, 540, 960);
-          this.capturedThumbDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(this.scrubberVideo, 0, 0, 720, 1280);
+          this.capturedThumbDataUrl = canvas.toDataURL('image/jpeg', 0.94);
           if (this.activeThumbPreviewImg) this.activeThumbPreviewImg.src = this.capturedThumbDataUrl;
           if (this.activeThumbStatusText) {
             const sec = Math.round(this.scrubberVideo.currentTime);
@@ -1410,11 +1414,13 @@ class AdminStudio {
       v.onseeked = () => {
         try {
           const canvas = document.createElement('canvas');
-          canvas.width = 360;
-          canvas.height = 640;
+          canvas.width = 720;
+          canvas.height = 1280;
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(v, 0, 0, 360, 640);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.80);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(v, 0, 0, 720, 1280);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
           finish(dataUrl);
         } catch (e) {
           finish(null);
@@ -1817,11 +1823,13 @@ class AdminStudio {
         clearTimeout(timer);
         try {
           const canvas = document.createElement('canvas');
-          canvas.width = 540;
-          canvas.height = 960;
+          canvas.width = 720;
+          canvas.height = 1280;
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(tempVideo, 0, 0, 540, 960);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(tempVideo, 0, 0, 720, 1280);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
           this.editReelThumbDataUrl = dataUrl;
           this.editReelThumbFile = null;
           if (thumbPreview) thumbPreview.src = dataUrl;
