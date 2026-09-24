@@ -2727,9 +2727,6 @@ ${shareUrl}`);
         const dlBtn = e.target.closest(".feed-download-btn");
         if (dlBtn) {
           e.stopPropagation();
-          if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === "function") {
-            window.AndroidBridge.showInterstitialAd("download");
-          }
           trackEngagement(reel.content_id, "download");
           this.showToast(i18n.t("download_started"), "\u2B07\uFE0F");
           downloader.downloadReel(
@@ -2910,6 +2907,17 @@ ${shareUrl}`);
     }
     _bindScrollSnapHandler() {
       let scrollTimeout = null;
+      this._isUserTouching = false;
+      this.container.addEventListener("touchstart", () => {
+        this._isUserTouching = true;
+      }, { passive: true });
+      this.container.addEventListener("touchend", () => {
+        this._isUserTouching = false;
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          this._detectAndPlaySnappedReel();
+        }, 60);
+      }, { passive: true });
       const onScroll = () => {
         const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
         const reelsView = document.getElementById("view-reels");
@@ -2917,8 +2925,10 @@ ${shareUrl}`);
         if (!isReelsTab || !isReelsVisible) return;
         if (scrollTimeout) clearTimeout(scrollTimeout);
         scrollTimeout = setTimeout(() => {
-          this._detectAndPlaySnappedReel();
-        }, 80);
+          if (!this._isUserTouching) {
+            this._detectAndPlaySnappedReel();
+          }
+        }, 70);
       };
       this.container.addEventListener("scroll", onScroll, { passive: true });
       this.container.addEventListener("scrollend", () => {
@@ -2940,13 +2950,6 @@ ${shareUrl}`);
       const closestItem = items[clampedIdx];
       if (closestItem && (this.activeItem !== closestItem || !this.activeVideo || this.activeVideo.paused)) {
         this._playReelItem(closestItem);
-        this._reelsCountSinceAd = (this._reelsCountSinceAd || 0) + 1;
-        if (this._reelsCountSinceAd >= 3) {
-          this._reelsCountSinceAd = 0;
-          if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === "function") {
-            window.AndroidBridge.showInterstitialAd("reels_scroll");
-          }
-        }
       }
     }
     _playReelItem(targetItem) {
@@ -2961,12 +2964,14 @@ ${shareUrl}`);
       const video = targetItem.querySelector("video");
       if (!video) return;
       if (this.activeItem && this.activeItem !== targetItem) {
-        this.activeItem.classList.remove("active-playing");
-        this.activeItem.classList.remove("is-buffering");
+        this.activeItem.classList.remove("active-playing", "video-ready", "is-buffering");
         const oldVinyl = this.activeItem.querySelector(".dock-vinyl-disc");
         if (oldVinyl) oldVinyl.classList.add("paused");
         if (this.activeVideo) {
-          this.activeVideo.pause();
+          try {
+            this.activeVideo.pause();
+          } catch (e) {
+          }
         }
       }
       this.activeItem = targetItem;
@@ -2992,6 +2997,20 @@ ${shareUrl}`);
         video._bufferEngineBound = true;
         video.addEventListener("playing", () => {
           targetItem.classList.remove("is-buffering");
+          targetItem.classList.add("video-ready");
+          setTimeout(() => {
+            if (this.activeItem === targetItem) {
+              const nextItem = targetItem.nextElementSibling;
+              if (nextItem) {
+                const nv = nextItem.querySelector("video");
+                if (nv) {
+                  const nextSrc = nv.getAttribute("data-src");
+                  if (nextSrc && (!nv.src || nv.src === window.location.href)) nv.src = nextSrc;
+                  nv.preload = "metadata";
+                }
+              }
+            }
+          }, 800);
         });
         video.addEventListener("canplay", () => {
           targetItem.classList.remove("is-buffering");
@@ -3003,13 +3022,7 @@ ${shareUrl}`);
         video.addEventListener("error", () => {
           targetItem.classList.remove("is-buffering");
           const cur = video.src || "";
-          if (cur.includes("nature-moments-app.vercel.app") || cur.startsWith("/uploads/")) {
-            const fn = cur.split("/uploads/")[1];
-            video.src = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${fn}`;
-            video.load();
-            video.play().catch(() => {
-            });
-          } else if (cur.includes("cdn.jsdelivr.net") && cur.includes("/uploads/")) {
+          if (cur.includes("cdn.jsdelivr.net") && cur.includes("/uploads/")) {
             const fn = cur.split("/uploads/")[1];
             const rawFallback = `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${fn}`;
             if (video.src !== rawFallback) {
@@ -3024,28 +3037,11 @@ ${shareUrl}`);
       }
       const p = video.play();
       if (p !== void 0) {
-        p.catch((err) => {
+        p.catch(() => {
           video.muted = true;
-          video.play().catch((e) => console.warn("Autoplay handled:", e));
+          video.play().catch(() => {
+          });
         });
-      }
-      const nextItem = targetItem.nextElementSibling;
-      if (nextItem) {
-        const nv = nextItem.querySelector("video");
-        if (nv) {
-          const nextSrc = nv.getAttribute("data-src");
-          if (nextSrc && (!nv.src || nv.src === window.location.href)) nv.src = nextSrc;
-          nv.preload = "auto";
-        }
-      }
-      const prevItem = targetItem.previousElementSibling;
-      if (prevItem) {
-        const pv = prevItem.querySelector("video");
-        if (pv) {
-          const prevSrc = pv.getAttribute("data-src");
-          if (prevSrc && (!pv.src || pv.src === window.location.href)) pv.src = prevSrc;
-          pv.preload = "auto";
-        }
       }
       const currentIndex = parseInt(targetItem.getAttribute("data-index") || "0", 10);
       if (currentIndex >= this.renderedCount - 2) {
@@ -3056,34 +3052,19 @@ ${shareUrl}`);
       if (this.observer) this.observer.disconnect();
       const options = {
         root: this.container,
-        threshold: [0.1, 0.5, 0.8]
+        threshold: [0, 0.1]
       };
       this.observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           const video = entry.target.querySelector("video");
           if (!video) return;
-          const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
-          const reelsView = document.getElementById("view-reels");
-          const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
-          if (!isReelsTab || !isReelsVisible) {
-            video.pause();
-            return;
-          }
-          if (this._isUserTouching) return;
-          if (entry.intersectionRatio >= 0.6) {
+          if (entry.intersectionRatio <= 0.05) {
             if (this.activeItem !== entry.target) {
-              this._playReelItem(entry.target);
-            } else if (video.paused && !entry.target.classList.contains("is-paused")) {
-              video.play().catch(() => {
-                video.muted = true;
-                video.play().catch(() => {
-                });
-              });
-            }
-          } else if (entry.intersectionRatio < 0.2) {
-            if (this.activeItem === entry.target) {
-              entry.target.classList.remove("active-playing");
-              video.pause();
+              entry.target.classList.remove("active-playing", "video-ready");
+              try {
+                video.pause();
+              } catch (e) {
+              }
             }
           }
         });
@@ -3154,7 +3135,7 @@ ${shareUrl}`);
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? "eager" : "lazy"}" onerror="if(this.src.includes('cdn.jsdelivr.net')){this.src=this.src.replace('cdn.jsdelivr.net/gh/','raw.githubusercontent.com/').replace('@main/','/main/');}else{this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';}" />
 
       <!-- 9:16 Video Canvas (Preloaded for instant 0ms playback) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 3 ? `src="${reel.video_url}" preload="auto"` : 'preload="metadata"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index === 0 ? `src="${reel.video_url}" preload="auto"` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
@@ -4523,9 +4504,6 @@ ${shareUrl}`);
     // Opens reel directly in full-screen snap-scrolling Reels Feed so user can continuously scroll
     openReelInFeed(reel) {
       if (!reel || !reel.content_id) return;
-      if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === "function") {
-        window.AndroidBridge.showInterstitialAd("card_click");
-      }
       this.switchView("reels", true);
       if (this.reelsFeed) {
         this.reelsFeed.scrollToReel(reel.content_id, this.currentCategory);

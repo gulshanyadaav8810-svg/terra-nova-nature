@@ -43,36 +43,25 @@ import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.LoadAdError;
-import com.google.android.gms.ads.interstitial.InterstitialAd;
-import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
-import com.google.android.gms.ads.FullScreenContentCallback;
-import com.google.android.gms.ads.AdError;
 
 public class MainActivity extends Activity {
     private static final String TAG = "NatureMomentsApp";
     public static final String ONLINE_URL = "https://nature-moments-app.vercel.app";
     public static final String OFFLINE_FALLBACK_URL = "https://appassets.androidplatform.net/assets/index.html";
 
-    // Production AdMob IDs (Provided by user - will automatically show live ads once approved)
+    // Production AdMob Banner ID (Provided by user - will automatically show live banner ad once approved)
     public static final String ADMOB_BANNER_ID = "ca-app-pub-3199277482182252/9402582339";
-    public static final String ADMOB_INTERSTITIAL_ID = "ca-app-pub-3199277482182252/6776418993";
 
-    // Google Official Sample Test Unit IDs (Automatic immediate fallback before Play Store review approval)
+    // Google Official Sample Test Banner ID (Automatic immediate fallback before Play Store review approval)
     public static final String TEST_BANNER_ID = "ca-app-pub-3940256099942544/6300978111";
-    public static final String TEST_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/1033173712";
 
     private LinearLayout rootLayout;
     private WebView webView;
     private FrameLayout adContainer;
     private AdView adView;
-    private InterstitialAd mInterstitialAd;
-    private boolean isInterstitialLoading = false;
-    private long lastInterstitialShownTime = 0;
-    private static final long INTERSTITIAL_MIN_INTERVAL_MS = 15000; // 15 sec cooldown
     private boolean isBannerUsingTestId = false;
     private boolean isBannerLoaded = false;
     private boolean isBannerEnabledByJs = true;
-    private String pendingInterstitialTrigger = null;
 
     public class WebAppInterface {
         Activity mActivity;
@@ -213,7 +202,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void showInterstitialAd(String triggerReason) {
-            triggerInterstitialAd(triggerReason);
+            // Disabled: video interstitial ads removed per user request, only bottom banner ad active
         }
 
         @JavascriptInterface
@@ -231,6 +220,7 @@ public class MainActivity extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED, WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             Window window = getWindow();
@@ -268,23 +258,13 @@ public class MainActivity extends Activity {
 
         setContentView(rootLayout);
 
-        // Initialize Google Mobile Ads SDK
+        // Initialize Google Mobile Ads SDK for Banner Ad only
         MobileAds.initialize(this, initializationStatus -> {
             Log.d(TAG, "Google Mobile Ads SDK Initialized");
-            runOnUiThread(() -> {
-                setupBannerAd();
-                loadInterstitialAd(false);
-            });
+            runOnUiThread(() -> setupBannerAd());
         });
 
-        // Trigger welcome interstitial test ad after 5 seconds on launch
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            if (!isFinishing() && !isDestroyed()) {
-                triggerInterstitialAd("welcome_launch");
-            }
-        }, 5000);
-
-        // WebSettings configuration
+        // WebSettings configuration for 60/120 FPS high performance
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -297,11 +277,15 @@ public class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
 
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        webView.setVerticalScrollBarEnabled(false);
+        webView.setHorizontalScrollBarEnabled(false);
 
         // Initialize Android Jetpack WebViewAssetLoader for offline fallback
         final WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
@@ -387,15 +371,10 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(new WebAppInterface(this), "AndroidBridge");
         webView.setBackgroundColor(android.graphics.Color.parseColor("#03081a"));
 
-        // Network-aware smart loading: If online, load live website so all uploaded reels appear instantly!
-        // If offline or on error, automatically use bundled local assets.
-        if (isNetworkAvailable()) {
-            Log.d(TAG, "Network is active, loading live Vercel web app: " + ONLINE_URL);
-            webView.loadUrl(ONLINE_URL);
-        } else {
-            Log.d(TAG, "Network unavailable, loading instant bundled assets: " + OFFLINE_FALLBACK_URL);
-            webView.loadUrl(OFFLINE_FALLBACK_URL);
-        }
+        // High-Performance 60/120 FPS loading: Always load local bundled assets directly for 0ms latency.
+        // Remote reels & uploads are synced automatically in the background via IndexedDB/localStorage!
+        Log.d(TAG, "Loading local APK assets for 60 FPS fluid performance: " + OFFLINE_FALLBACK_URL);
+        webView.loadUrl(OFFLINE_FALLBACK_URL);
     }
 
     private boolean isNetworkAvailable() {
@@ -590,87 +569,6 @@ public class MainActivity extends Activity {
             boolean shouldShow = isBannerLoaded && isBannerEnabledByJs;
             adContainer.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
         }
-    }
-
-    private void loadInterstitialAd(boolean useFallbackTest) {
-        if (isInterstitialLoading) return;
-        isInterstitialLoading = true;
-
-        final String unitId = useFallbackTest ? TEST_INTERSTITIAL_ID : ADMOB_INTERSTITIAL_ID;
-        AdRequest adRequest = new AdRequest.Builder().build();
-
-        InterstitialAd.load(this, unitId, adRequest, new InterstitialAdLoadCallback() {
-            @Override
-            public void onAdLoaded(InterstitialAd interstitialAd) {
-                mInterstitialAd = interstitialAd;
-                isInterstitialLoading = false;
-                Log.d(TAG, "AdMob Interstitial Ad loaded successfully (" + unitId + ")");
-
-                mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
-                    @Override
-                    public void onAdDismissedFullScreenContent() {
-                        mInterstitialAd = null;
-                        lastInterstitialShownTime = System.currentTimeMillis();
-                        if (webView != null) {
-                            webView.evaluateJavascript("if (window.natureAppInstance && window.natureAppInstance.reelsFeed) { window.natureAppInstance.reelsFeed.resumeActive(); }", null);
-                        }
-                        loadInterstitialAd(false); // Preload next ad
-                    }
-
-                    @Override
-                    public void onAdFailedToShowFullScreenContent(AdError adError) {
-                        mInterstitialAd = null;
-                        loadInterstitialAd(false);
-                    }
-
-                    @Override
-                    public void onAdShowedFullScreenContent() {
-                        if (webView != null) {
-                            webView.evaluateJavascript("if (typeof window.pauseAllMedia === 'function') { window.pauseAllMedia(); }", null);
-                        }
-                    }
-                });
-
-                // If user tapped a card or triggered an ad while loading, show immediately
-                if (pendingInterstitialTrigger != null) {
-                    String reason = pendingInterstitialTrigger;
-                    pendingInterstitialTrigger = null;
-                    triggerInterstitialAd(reason);
-                }
-            }
-
-            @Override
-            public void onAdFailedToLoad(LoadAdError loadAdError) {
-                isInterstitialLoading = false;
-                Log.w(TAG, "Interstitial failed to load (" + unitId + "): " + loadAdError.getMessage());
-                // If real ID fails during testing/review, retry with official Google Test Interstitial
-                if (!useFallbackTest) {
-                    Log.d(TAG, "Real interstitial not serving yet. Retrying with official Google Test Interstitial unit...");
-                    runOnUiThread(() -> loadInterstitialAd(true));
-                }
-            }
-        });
-    }
-
-    public void triggerInterstitialAd(String triggerReason) {
-        runOnUiThread(() -> {
-            long now = System.currentTimeMillis();
-            if (now - lastInterstitialShownTime < INTERSTITIAL_MIN_INTERVAL_MS) {
-                Log.d(TAG, "Interstitial skipped: cooldown active (" + triggerReason + ")");
-                return;
-            }
-
-            if (mInterstitialAd != null) {
-                Log.d(TAG, "Showing Interstitial Ad: " + triggerReason);
-                mInterstitialAd.show(MainActivity.this);
-            } else {
-                Log.d(TAG, "Interstitial not ready yet, queuing trigger and preloading: " + triggerReason);
-                pendingInterstitialTrigger = triggerReason;
-                if (!isInterstitialLoading) {
-                    loadInterstitialAd(false);
-                }
-            }
-        });
     }
 
     @Override

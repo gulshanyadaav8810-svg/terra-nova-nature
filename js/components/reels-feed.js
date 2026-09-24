@@ -272,9 +272,6 @@ export class ReelsFeed {
       const dlBtn = e.target.closest('.feed-download-btn');
       if (dlBtn) {
         e.stopPropagation();
-        if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === 'function') {
-          window.AndroidBridge.showInterstitialAd('download');
-        }
         trackEngagement(reel.content_id, 'download');
         this.showToast(i18n.t('download_started'), '⬇️');
         downloader.downloadReel(
@@ -494,8 +491,22 @@ export class ReelsFeed {
 
   _bindScrollSnapHandler() {
     let scrollTimeout = null;
+    this._isUserTouching = false;
 
-    // Detect snapped reel when scroll movement ceases (Native 120/60 FPS snap)
+    // Track user touch state to prevent gesture interruption
+    this.container.addEventListener('touchstart', () => {
+      this._isUserTouching = true;
+    }, { passive: true });
+
+    this.container.addEventListener('touchend', () => {
+      this._isUserTouching = false;
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        this._detectAndPlaySnappedReel();
+      }, 60);
+    }, { passive: true });
+
+    // Detect snapped reel when scroll movement settles
     const onScroll = () => {
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
       const reelsView = document.getElementById('view-reels');
@@ -504,8 +515,10 @@ export class ReelsFeed {
 
       if (scrollTimeout) clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
-        this._detectAndPlaySnappedReel();
-      }, 80);
+        if (!this._isUserTouching) {
+          this._detectAndPlaySnappedReel();
+        }
+      }, 70);
     };
 
     this.container.addEventListener('scroll', onScroll, { passive: true });
@@ -524,7 +537,7 @@ export class ReelsFeed {
     const containerHeight = this.container.clientHeight || window.innerHeight;
     if (!containerHeight) return;
 
-    // Instant O(1) index calculation without querying DOM offsets during scroll
+    // Instant O(1) index calculation
     const targetIdx = Math.round(this.container.scrollTop / containerHeight);
     const items = this.container.children;
     if (!items || !items.length) return;
@@ -534,15 +547,6 @@ export class ReelsFeed {
 
     if (closestItem && (this.activeItem !== closestItem || !this.activeVideo || this.activeVideo.paused)) {
       this._playReelItem(closestItem);
-
-      // Trigger Interstitial AdMob ad every 3 reels viewed
-      this._reelsCountSinceAd = (this._reelsCountSinceAd || 0) + 1;
-      if (this._reelsCountSinceAd >= 3) {
-        this._reelsCountSinceAd = 0;
-        if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === 'function') {
-          window.AndroidBridge.showInterstitialAd('reels_scroll');
-        }
-      }
     }
   }
 
@@ -560,14 +564,15 @@ export class ReelsFeed {
     const video = targetItem.querySelector('video');
     if (!video) return;
 
-    // High performance O(1) deactivation of previous reel (zero DOM querying or decoder resetting)
+    // High performance O(1) deactivation of previous reel to free hardware decoders
     if (this.activeItem && this.activeItem !== targetItem) {
-      this.activeItem.classList.remove('active-playing');
-      this.activeItem.classList.remove('is-buffering');
+      this.activeItem.classList.remove('active-playing', 'video-ready', 'is-buffering');
       const oldVinyl = this.activeItem.querySelector('.dock-vinyl-disc');
       if (oldVinyl) oldVinyl.classList.add('paused');
       if (this.activeVideo) {
-        this.activeVideo.pause();
+        try {
+          this.activeVideo.pause();
+        } catch(e) {}
       }
     }
 
@@ -581,7 +586,7 @@ export class ReelsFeed {
     if (vinyl) vinyl.classList.remove('paused');
     if (playPulse) playPulse.classList.remove('show');
 
-    // Ensure video has src
+    // Ensure active video has src loaded
     const dataSrc = video.getAttribute('data-src') || video.src;
     if (dataSrc && (!video.src || video.src === '' || video.src === window.location.href)) {
       video.src = dataSrc;
@@ -595,11 +600,25 @@ export class ReelsFeed {
     video.muted = this.isMuted;
     video.volume = this.isMuted ? 0 : 1.0;
 
-    // Instant seamless playback without spinning loaders
     if (!video._bufferEngineBound) {
       video._bufferEngineBound = true;
       video.addEventListener('playing', () => {
         targetItem.classList.remove('is-buffering');
+        targetItem.classList.add('video-ready');
+        // Once active video is playing smoothly, lightly preload next video metadata
+        setTimeout(() => {
+          if (this.activeItem === targetItem) {
+            const nextItem = targetItem.nextElementSibling;
+            if (nextItem) {
+              const nv = nextItem.querySelector('video');
+              if (nv) {
+                const nextSrc = nv.getAttribute('data-src');
+                if (nextSrc && (!nv.src || nv.src === window.location.href)) nv.src = nextSrc;
+                nv.preload = 'metadata';
+              }
+            }
+          }
+        }, 800);
       });
       video.addEventListener('canplay', () => {
         targetItem.classList.remove('is-buffering');
@@ -610,12 +629,7 @@ export class ReelsFeed {
       video.addEventListener('error', () => {
         targetItem.classList.remove('is-buffering');
         const cur = video.src || '';
-        if (cur.includes('nature-moments-app.vercel.app') || cur.startsWith('/uploads/')) {
-          const fn = cur.split('/uploads/')[1];
-          video.src = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${fn}`;
-          video.load();
-          video.play().catch(() => {});
-        } else if (cur.includes('cdn.jsdelivr.net') && cur.includes('/uploads/')) {
+        if (cur.includes('cdn.jsdelivr.net') && cur.includes('/uploads/')) {
           const fn = cur.split('/uploads/')[1];
           const rawFallback = `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${fn}`;
           if (video.src !== rawFallback) {
@@ -630,34 +644,13 @@ export class ReelsFeed {
 
     const p = video.play();
     if (p !== undefined) {
-      p.catch((err) => {
-        // Fallback to muted playback if user gesture required
+      p.catch(() => {
         video.muted = true;
-        video.play().catch(e => console.warn('Autoplay handled:', e));
+        video.play().catch(() => {});
       });
     }
 
-    // Preload next and previous items so video is immediately ready on swipe
-    const nextItem = targetItem.nextElementSibling;
-    if (nextItem) {
-      const nv = nextItem.querySelector('video');
-      if (nv) {
-        const nextSrc = nv.getAttribute('data-src');
-        if (nextSrc && (!nv.src || nv.src === window.location.href)) nv.src = nextSrc;
-        nv.preload = 'auto';
-      }
-    }
-    const prevItem = targetItem.previousElementSibling;
-    if (prevItem) {
-      const pv = prevItem.querySelector('video');
-      if (pv) {
-        const prevSrc = pv.getAttribute('data-src');
-        if (prevSrc && (!pv.src || pv.src === window.location.href)) pv.src = prevSrc;
-        pv.preload = 'auto';
-      }
-    }
-
-    // Batch append
+    // Batch append next cards if reaching end
     const currentIndex = parseInt(targetItem.getAttribute('data-index') || '0', 10);
     if (currentIndex >= this.renderedCount - 2) {
       this.appendBatch();
@@ -669,41 +662,19 @@ export class ReelsFeed {
 
     const options = {
       root: this.container,
-      threshold: [0.1, 0.5, 0.8]
+      threshold: [0.0, 0.1]
     };
 
+    // Observer strictly for memory cleanup when videos scroll off screen
     this.observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         const video = entry.target.querySelector('video');
         if (!video) return;
 
-        const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
-        const reelsView = document.getElementById('view-reels');
-        const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
-
-        if (!isReelsTab || !isReelsVisible) {
-          video.pause();
-          return;
-        }
-
-        // Do not interrupt active touch gesture while user is swiping
-        if (this._isUserTouching) return;
-
-        // When entry dominates viewport (> 60% visible) and user is not dragging
-        if (entry.intersectionRatio >= 0.6) {
+        if (entry.intersectionRatio <= 0.05) {
           if (this.activeItem !== entry.target) {
-            this._playReelItem(entry.target);
-          } else if (video.paused && !entry.target.classList.contains('is-paused')) {
-            video.play().catch(() => {
-              video.muted = true;
-              video.play().catch(() => {});
-            });
-          }
-        } else if (entry.intersectionRatio < 0.2) {
-          if (this.activeItem === entry.target) {
-            // User scrolled away
-            entry.target.classList.remove('active-playing');
-            video.pause();
+            entry.target.classList.remove('active-playing', 'video-ready');
+            try { video.pause(); } catch(e) {}
           }
         }
       });
@@ -780,7 +751,7 @@ export class ReelsFeed {
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="${index < 2 ? 'eager' : 'lazy'}" onerror="if(this.src.includes('cdn.jsdelivr.net')){this.src=this.src.replace('cdn.jsdelivr.net/gh/','raw.githubusercontent.com/').replace('@main/','/main/');}else{this.onerror=null;this.src='https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';}" />
 
       <!-- 9:16 Video Canvas (Preloaded for instant 0ms playback) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 3 ? `src="${reel.video_url}" preload="auto"` : 'preload="metadata"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index === 0 ? `src="${reel.video_url}" preload="auto"` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>

@@ -457,9 +457,6 @@ class NatureMomentsApp {
   // Opens reel directly in full-screen snap-scrolling Reels Feed so user can continuously scroll
   openReelInFeed(reel) {
     if (!reel || !reel.content_id) return;
-    if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === 'function') {
-      window.AndroidBridge.showInterstitialAd('card_click');
-    }
     this.switchView('reels', true);
     if (this.reelsFeed) {
       this.reelsFeed.scrollToReel(reel.content_id, this.currentCategory);
