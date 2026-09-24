@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Nature Status</string>
+    <string name="admob_app_id">ca-app-pub-3199277482182252~1215127240</string>
+    <string name="admob_banner_id">ca-app-pub-3199277482182252/9402582339</string>
+    <string name="admob_interstitial_id">ca-app-pub-3199277482182252/6776418993</string>
 </resources>

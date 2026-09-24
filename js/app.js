@@ -389,6 +389,11 @@ class NatureMomentsApp {
 
     const floatingHeader = document.getElementById('reels-floating-header');
 
+    // Control Native AdMob Banner Ad visibility
+    if (window.AndroidBridge && typeof window.AndroidBridge.setBannerVisibility === 'function') {
+      window.AndroidBridge.setBannerVisibility(viewName === 'home' || viewName === 'save');
+    }
+
     if (viewName === 'home') {
       if (bottomNav) {
         bottomNav.classList.remove('bottom-nav-dark');

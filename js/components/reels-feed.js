@@ -272,6 +272,9 @@ export class ReelsFeed {
       const dlBtn = e.target.closest('.feed-download-btn');
       if (dlBtn) {
         e.stopPropagation();
+        if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === 'function') {
+          window.AndroidBridge.showInterstitialAd('download');
+        }
         trackEngagement(reel.content_id, 'download');
         this.showToast(i18n.t('download_started'), '⬇️');
         downloader.downloadReel(
@@ -531,6 +534,15 @@ export class ReelsFeed {
 
     if (closestItem && (this.activeItem !== closestItem || !this.activeVideo || this.activeVideo.paused)) {
       this._playReelItem(closestItem);
+
+      // Trigger Interstitial AdMob ad every 6 reels viewed
+      this._reelsCountSinceAd = (this._reelsCountSinceAd || 0) + 1;
+      if (this._reelsCountSinceAd >= 6) {
+        this._reelsCountSinceAd = 0;
+        if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === 'function') {
+          window.AndroidBridge.showInterstitialAd('reels_scroll');
+        }
+      }
     }
   }
 

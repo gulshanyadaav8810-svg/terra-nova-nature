@@ -31,13 +31,40 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import android.media.MediaScannerConnection;
+import android.widget.RelativeLayout;
+
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdSize;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.AdError;
 
 public class MainActivity extends Activity {
     private static final String TAG = "NatureMomentsApp";
     public static final String ONLINE_URL = "https://nature-moments-app.vercel.app";
     public static final String OFFLINE_FALLBACK_URL = "https://appassets.androidplatform.net/assets/index.html";
 
+    // Production AdMob IDs (Provided by user)
+    public static final String ADMOB_BANNER_ID = "ca-app-pub-3199277482182252/9402582339";
+    public static final String ADMOB_INTERSTITIAL_ID = "ca-app-pub-3199277482182252/6776418993";
+
+    // Google Official Sample Test Unit IDs (Automatic fallback before Play Store review approval)
+    public static final String TEST_BANNER_ID = "ca-app-pub-3940256099942544/6300978111";
+    public static final String TEST_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/1033173712";
+
+    private RelativeLayout rootLayout;
     private WebView webView;
+    private AdView adView;
+    private InterstitialAd mInterstitialAd;
+    private boolean isInterstitialLoading = false;
+    private long lastInterstitialShownTime = 0;
+    private static final long INTERSTITIAL_MIN_INTERVAL_MS = 30000; // 30 sec cooldown
+    private boolean isBannerUsingTestId = false;
 
     public class WebAppInterface {
         Activity mActivity;
@@ -175,6 +202,20 @@ public class MainActivity extends Activity {
                 }
             }).start();
         }
+
+        @JavascriptInterface
+        public void showInterstitialAd(String triggerReason) {
+            triggerInterstitialAd(triggerReason);
+        }
+
+        @JavascriptInterface
+        public void setBannerVisibility(boolean visible) {
+            runOnUiThread(() -> {
+                if (adView != null) {
+                    adView.setVisibility(visible ? View.VISIBLE : View.GONE);
+                }
+            });
+        }
     }
 
     @Override
@@ -193,8 +234,31 @@ public class MainActivity extends Activity {
             window.setNavigationBarColor(android.graphics.Color.parseColor("#03081a"));
         }
 
+        rootLayout = new RelativeLayout(this);
+        rootLayout.setLayoutParams(new RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.MATCH_PARENT,
+            RelativeLayout.LayoutParams.MATCH_PARENT
+        ));
+        rootLayout.setBackgroundColor(android.graphics.Color.parseColor("#03081a"));
+
         webView = new WebView(this);
-        setContentView(webView);
+        RelativeLayout.LayoutParams webViewParams = new RelativeLayout.LayoutParams(
+            RelativeLayout.LayoutParams.MATCH_PARENT,
+            RelativeLayout.LayoutParams.MATCH_PARENT
+        );
+        webView.setLayoutParams(webViewParams);
+        rootLayout.addView(webView);
+
+        setContentView(rootLayout);
+
+        // Initialize Google Mobile Ads SDK
+        MobileAds.initialize(this, initializationStatus -> {
+            Log.d(TAG, "Google Mobile Ads SDK Initialized");
+            runOnUiThread(() -> {
+                setupBannerAd();
+                loadInterstitialAd(false);
+            });
+        });
 
         // WebSettings configuration
         WebSettings settings = webView.getSettings();
@@ -438,9 +502,144 @@ public class MainActivity extends Activity {
         }
     }
 
+    // =========================================================================
+    // GOOGLE ADMOB INTEGRATION (Automatic Production + Review Test Fallback)
+    // =========================================================================
+
+    private void setupBannerAd() {
+        try {
+            if (adView != null) return;
+            adView = new AdView(this);
+            adView.setId(View.generateViewId());
+            adView.setAdSize(AdSize.BANNER);
+            adView.setAdUnitId(ADMOB_BANNER_ID);
+
+            RelativeLayout.LayoutParams adParams = new RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.WRAP_CONTENT,
+                RelativeLayout.LayoutParams.WRAP_CONTENT
+            );
+            adParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+            adParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
+            adView.setLayoutParams(adParams);
+            adView.setVisibility(View.GONE); // Default hidden until requested on Home
+
+            adView.setAdListener(new AdListener() {
+                @Override
+                public void onAdLoaded() {
+                    Log.d(TAG, "AdMob Banner loaded successfully!");
+                }
+
+                @Override
+                public void onAdFailedToLoad(LoadAdError error) {
+                    Log.w(TAG, "Banner Ad failed with ID: " + adView.getAdUnitId() + " (" + error.getMessage() + ")");
+                    // If real ID fails (account still in review or unlinked to Play Store), fallback to Google Test Banner
+                    if (!isBannerUsingTestId) {
+                        isBannerUsingTestId = true;
+                        Log.d(TAG, "Retrying with official Google Test Banner unit...");
+                        runOnUiThread(() -> {
+                            try {
+                                rootLayout.removeView(adView);
+                                adView.destroy();
+                                adView = new AdView(MainActivity.this);
+                                adView.setId(View.generateViewId());
+                                adView.setAdSize(AdSize.BANNER);
+                                adView.setAdUnitId(TEST_BANNER_ID);
+                                adView.setLayoutParams(adParams);
+                                adView.setVisibility(View.GONE);
+                                rootLayout.addView(adView);
+                                AdRequest testReq = new AdRequest.Builder().build();
+                                adView.loadAd(testReq);
+                            } catch (Exception ex) {
+                                Log.e(TAG, "Error switching to test banner", ex);
+                            }
+                        });
+                    }
+                }
+            });
+
+            rootLayout.addView(adView);
+            AdRequest request = new AdRequest.Builder().build();
+            adView.loadAd(request);
+        } catch (Exception e) {
+            Log.e(TAG, "Error in setupBannerAd", e);
+        }
+    }
+
+    private void loadInterstitialAd(boolean useFallbackTest) {
+        if (isInterstitialLoading) return;
+        isInterstitialLoading = true;
+
+        String unitId = useFallbackTest ? TEST_INTERSTITIAL_ID : ADMOB_INTERSTITIAL_ID;
+        AdRequest adRequest = new AdRequest.Builder().build();
+
+        InterstitialAd.load(this, unitId, adRequest, new InterstitialAdLoadCallback() {
+            @Override
+            public void onAdLoaded(InterstitialAd interstitialAd) {
+                mInterstitialAd = interstitialAd;
+                isInterstitialLoading = false;
+                Log.d(TAG, "AdMob Interstitial Ad loaded successfully (" + unitId + ")");
+
+                mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                    @Override
+                    public void onAdDismissedFullScreenContent() {
+                        mInterstitialAd = null;
+                        lastInterstitialShownTime = System.currentTimeMillis();
+                        if (webView != null) {
+                            webView.evaluateJavascript("if (window.natureAppInstance && window.natureAppInstance.reelsFeed) { window.natureAppInstance.reelsFeed.resumeActive(); }", null);
+                        }
+                        loadInterstitialAd(false); // Preload next ad
+                    }
+
+                    @Override
+                    public void onAdFailedToShowFullScreenContent(AdError adError) {
+                        mInterstitialAd = null;
+                        loadInterstitialAd(false);
+                    }
+
+                    @Override
+                    public void onAdShowedFullScreenContent() {
+                        if (webView != null) {
+                            webView.evaluateJavascript("if (typeof window.pauseAllMedia === 'function') { window.pauseAllMedia(); }", null);
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onAdFailedToLoad(LoadAdError loadAdError) {
+                isInterstitialLoading = false;
+                Log.w(TAG, "Interstitial failed to load (" + unitId + "): " + loadAdError.getMessage());
+                // If real ID fails during testing/review, retry with Google Test Interstitial
+                if (!useFallbackTest) {
+                    Log.d(TAG, "Retrying with official Google Test Interstitial unit...");
+                    runOnUiThread(() -> loadInterstitialAd(true));
+                }
+            }
+        });
+    }
+
+    public void triggerInterstitialAd(String triggerReason) {
+        runOnUiThread(() -> {
+            long now = System.currentTimeMillis();
+            if (now - lastInterstitialShownTime < INTERSTITIAL_MIN_INTERVAL_MS) {
+                Log.d(TAG, "Interstitial skipped: cooldown active (" + triggerReason + ")");
+                return;
+            }
+
+            if (mInterstitialAd != null) {
+                Log.d(TAG, "Showing Interstitial Ad: " + triggerReason);
+                mInterstitialAd.show(MainActivity.this);
+            } else {
+                Log.d(TAG, "Interstitial not ready yet, preloading for next opportunity...");
+                loadInterstitialAd(false);
+            }
+        });
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        if (adView != null) adView.resume();
         if (webView != null) {
             webView.onResume();
             webView.resumeTimers();
@@ -450,6 +649,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        if (adView != null) adView.pause();
         if (webView != null) {
             webView.evaluateJavascript("if (typeof window.pauseAllMedia === 'function') { window.pauseAllMedia(); }", null);
             webView.onPause();
@@ -469,6 +669,9 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (adView != null) {
+            adView.destroy();
+        }
         if (webView != null) {
             webView.destroy();
         }

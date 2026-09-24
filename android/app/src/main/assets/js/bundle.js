@@ -2727,6 +2727,9 @@ ${shareUrl}`);
         const dlBtn = e.target.closest(".feed-download-btn");
         if (dlBtn) {
           e.stopPropagation();
+          if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === "function") {
+            window.AndroidBridge.showInterstitialAd("download");
+          }
           trackEngagement(reel.content_id, "download");
           this.showToast(i18n.t("download_started"), "\u2B07\uFE0F");
           downloader.downloadReel(
@@ -2937,6 +2940,13 @@ ${shareUrl}`);
       const closestItem = items[clampedIdx];
       if (closestItem && (this.activeItem !== closestItem || !this.activeVideo || this.activeVideo.paused)) {
         this._playReelItem(closestItem);
+        this._reelsCountSinceAd = (this._reelsCountSinceAd || 0) + 1;
+        if (this._reelsCountSinceAd >= 6) {
+          this._reelsCountSinceAd = 0;
+          if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === "function") {
+            window.AndroidBridge.showInterstitialAd("reels_scroll");
+          }
+        }
       }
     }
     _playReelItem(targetItem) {
@@ -4442,6 +4452,9 @@ ${shareUrl}`);
         }
       });
       const floatingHeader = document.getElementById("reels-floating-header");
+      if (window.AndroidBridge && typeof window.AndroidBridge.setBannerVisibility === "function") {
+        window.AndroidBridge.setBannerVisibility(viewName === "home" || viewName === "save");
+      }
       if (viewName === "home") {
         if (bottomNav) {
           bottomNav.classList.remove("bottom-nav-dark");

@@ -16,6 +16,12 @@
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true">
+
+        <!-- Google AdMob App ID -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3199277482182252~1215127240" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
