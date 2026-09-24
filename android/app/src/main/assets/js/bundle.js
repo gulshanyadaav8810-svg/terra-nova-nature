@@ -2914,7 +2914,7 @@ ${shareUrl}`);
         if (settleTimer) clearTimeout(settleTimer);
         settleTimer = setTimeout(() => {
           this._detectAndPlaySnappedReel();
-        }, 140);
+        }, 35);
       }, { passive: true });
       const onScroll = () => {
         const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
@@ -2926,14 +2926,12 @@ ${shareUrl}`);
           if (!this._isUserTouching) {
             this._detectAndPlaySnappedReel();
           }
-        }, 140);
+        }, 45);
       };
       this.container.addEventListener("scroll", onScroll, { passive: true });
       this.container.addEventListener("scrollend", () => {
         if (settleTimer) clearTimeout(settleTimer);
-        if (!this._isUserTouching) {
-          this._detectAndPlaySnappedReel();
-        }
+        this._detectAndPlaySnappedReel();
       }, { passive: true });
     }
     _detectAndPlaySnappedReel() {
@@ -2955,21 +2953,40 @@ ${shareUrl}`);
         this._playReelItem(closestItem);
       }
     }
+    // Pre-buffer next 3 reels proactively so user never experiences 2s wait!
+    _prebufferUpcomingReels(activeIndex) {
+      const items = this.container.children;
+      if (!items || !items.length) return;
+      for (let offset = 1; offset <= 3; offset++) {
+        const nextItem = items[activeIndex + offset];
+        if (nextItem) {
+          const nextVid = nextItem.querySelector("video");
+          if (nextVid) {
+            const nextSrc = nextVid.getAttribute("data-src");
+            if (nextSrc && (!nextVid.src || nextVid.src === "" || nextVid.src === window.location.href)) {
+              nextVid.src = nextSrc;
+            }
+            nextVid.preload = "auto";
+          }
+        }
+      }
+      const prevItem = items[activeIndex - 1];
+      if (prevItem) {
+        const prevVid = prevItem.querySelector("video");
+        if (prevVid) {
+          const prevSrc = prevVid.getAttribute("data-src");
+          if (prevSrc && (!prevVid.src || prevVid.src === "" || prevVid.src === window.location.href)) {
+            prevVid.src = prevSrc;
+          }
+          prevVid.preload = "auto";
+        }
+      }
+    }
     // Lightweight 0ms background pause (Zero main thread freeze, zero trembling/lag)
     _pauseInactiveVideos(activeIndex) {
       const items = this.container.children;
       if (!items || !items.length) return;
-      const nextItem = items[activeIndex + 1];
-      if (nextItem) {
-        const nextVid = nextItem.querySelector("video");
-        if (nextVid) {
-          const nextSrc = nextVid.getAttribute("data-src");
-          if (nextSrc && !nextVid.src) {
-            nextVid.src = nextSrc;
-            nextVid.preload = "metadata";
-          }
-        }
-      }
+      this._prebufferUpcomingReels(activeIndex);
       for (let i = 0; i < items.length; i++) {
         if (i !== activeIndex) {
           const item = items[i];
@@ -3150,7 +3167,7 @@ ${shareUrl}`);
       const catIcon = catObj ? catObj.icon : "\u2728";
       item.innerHTML = `
       <!-- 9:16 Video Canvas (Native Poster + 0ms Preload, Zero Jiggle) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 3 ? `src="${reel.video_url}" preload="auto"` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 6 ? `src="${reel.video_url}" preload="auto"` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>

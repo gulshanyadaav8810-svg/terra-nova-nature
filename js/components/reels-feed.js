@@ -501,7 +501,7 @@ export class ReelsFeed {
       if (settleTimer) clearTimeout(settleTimer);
       settleTimer = setTimeout(() => {
         this._detectAndPlaySnappedReel();
-      }, 140);
+      }, 35);
     }, { passive: true });
 
     // Detect snapped reel when scroll movement settles
@@ -516,15 +516,13 @@ export class ReelsFeed {
         if (!this._isUserTouching) {
           this._detectAndPlaySnappedReel();
         }
-      }, 140);
+      }, 45);
     };
 
     this.container.addEventListener('scroll', onScroll, { passive: true });
     this.container.addEventListener('scrollend', () => {
       if (settleTimer) clearTimeout(settleTimer);
-      if (!this._isUserTouching) {
-        this._detectAndPlaySnappedReel();
-      }
+      this._detectAndPlaySnappedReel();
     }, { passive: true });
   }
 
@@ -555,23 +553,45 @@ export class ReelsFeed {
     }
   }
 
+  // Pre-buffer next 3 reels proactively so user never experiences 2s wait!
+  _prebufferUpcomingReels(activeIndex) {
+    const items = this.container.children;
+    if (!items || !items.length) return;
+
+    for (let offset = 1; offset <= 3; offset++) {
+      const nextItem = items[activeIndex + offset];
+      if (nextItem) {
+        const nextVid = nextItem.querySelector('video');
+        if (nextVid) {
+          const nextSrc = nextVid.getAttribute('data-src');
+          if (nextSrc && (!nextVid.src || nextVid.src === '' || nextVid.src === window.location.href)) {
+            nextVid.src = nextSrc;
+          }
+          nextVid.preload = 'auto';
+        }
+      }
+    }
+
+    const prevItem = items[activeIndex - 1];
+    if (prevItem) {
+      const prevVid = prevItem.querySelector('video');
+      if (prevVid) {
+        const prevSrc = prevVid.getAttribute('data-src');
+        if (prevSrc && (!prevVid.src || prevVid.src === '' || prevVid.src === window.location.href)) {
+          prevVid.src = prevSrc;
+        }
+        prevVid.preload = 'auto';
+      }
+    }
+  }
+
   // Lightweight 0ms background pause (Zero main thread freeze, zero trembling/lag)
   _pauseInactiveVideos(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
 
-    // Pre-buffer next reel for 0ms instant playback
-    const nextItem = items[activeIndex + 1];
-    if (nextItem) {
-      const nextVid = nextItem.querySelector('video');
-      if (nextVid) {
-        const nextSrc = nextVid.getAttribute('data-src');
-        if (nextSrc && !nextVid.src) {
-          nextVid.src = nextSrc;
-          nextVid.preload = 'metadata';
-        }
-      }
-    }
+    // Proactively pre-buffer upcoming reels
+    this._prebufferUpcomingReels(activeIndex);
 
     // Only pause other videos that are currently playing (0ms cost, no video.load)
     for (let i = 0; i < items.length; i++) {
@@ -770,7 +790,7 @@ export class ReelsFeed {
 
     item.innerHTML = `
       <!-- 9:16 Video Canvas (Native Poster + 0ms Preload, Zero Jiggle) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 3 ? `src="${reel.video_url}" preload="auto"` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 6 ? `src="${reel.video_url}" preload="auto"` : 'preload="none"'} poster="${reel.thumbnail_url}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
