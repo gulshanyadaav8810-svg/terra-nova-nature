@@ -2903,34 +2903,61 @@ ${shareUrl}`);
       }
     }
     _bindScrollSnapHandler() {
-      let settleTimer = null;
       this._isUserTouching = false;
       this.container.addEventListener("touchstart", () => {
         this._isUserTouching = true;
-        if (settleTimer) clearTimeout(settleTimer);
+        if (this.activeItem) {
+          const nextItem = this.activeItem.nextElementSibling;
+          if (nextItem) {
+            const nv = nextItem.querySelector("video");
+            if (nv) {
+              const nsrc = nv.getAttribute("data-src") || nv.src;
+              if (nsrc && (!nv.src || nv.src === "" || nv.src === window.location.href)) {
+                nv.src = nsrc;
+              }
+              nv.preload = "auto";
+              nv.muted = true;
+              const p = nv.play();
+              if (p !== void 0) p.catch(() => {
+              });
+            }
+          }
+          const prevItem = this.activeItem.previousElementSibling;
+          if (prevItem) {
+            const pv = prevItem.querySelector("video");
+            if (pv) {
+              const psrc = pv.getAttribute("data-src") || pv.src;
+              if (psrc && (!pv.src || pv.src === "" || pv.src === window.location.href)) {
+                pv.src = psrc;
+              }
+              pv.preload = "auto";
+              pv.muted = true;
+              const p = pv.play();
+              if (p !== void 0) p.catch(() => {
+              });
+            }
+          }
+        }
       }, { passive: true });
       this.container.addEventListener("touchend", () => {
         this._isUserTouching = false;
-        if (settleTimer) clearTimeout(settleTimer);
-        settleTimer = setTimeout(() => {
-          this._detectAndPlaySnappedReel();
-        }, 35);
+        this._detectAndPlaySnappedReel();
       }, { passive: true });
       const onScroll = () => {
         const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
         const reelsView = document.getElementById("view-reels");
         const isReelsVisible = reelsView && reelsView.style.display === "block";
         if (!isReelsTab || !isReelsVisible) return;
-        if (settleTimer) clearTimeout(settleTimer);
-        settleTimer = setTimeout(() => {
-          if (!this._isUserTouching) {
-            this._detectAndPlaySnappedReel();
-          }
-        }, 45);
+        const containerHeight = this.container.clientHeight || window.innerHeight;
+        if (!containerHeight) return;
+        const targetIdx = Math.round(this.container.scrollTop / containerHeight);
+        const items = this.container.children;
+        if (items && items[targetIdx] && items[targetIdx] !== this.activeItem) {
+          this._playReelItem(items[targetIdx]);
+        }
       };
       this.container.addEventListener("scroll", onScroll, { passive: true });
       this.container.addEventListener("scrollend", () => {
-        if (settleTimer) clearTimeout(settleTimer);
         this._detectAndPlaySnappedReel();
       }, { passive: true });
     }
@@ -2947,6 +2974,8 @@ ${shareUrl}`);
       const clampedIdx = Math.max(0, Math.min(items.length - 1, targetIdx));
       const closestItem = items[clampedIdx];
       if (closestItem && this.activeItem === closestItem && this.activeVideo && !this.activeVideo.paused) {
+        this.activeVideo.muted = this.isMuted;
+        this.activeVideo.volume = this.isMuted ? 0 : 1;
         return;
       }
       if (closestItem) {
@@ -2992,7 +3021,7 @@ ${shareUrl}`);
           const item = items[i];
           item.classList.remove("active-playing", "video-ready", "is-buffering");
           const v = item.querySelector("video");
-          if (v && !v.paused) {
+          if (v && !v.paused && v !== this.activeVideo) {
             try {
               v.pause();
             } catch (e) {
@@ -3012,11 +3041,16 @@ ${shareUrl}`);
       }
       const video = targetItem.querySelector("video");
       if (!video) return;
+      if (this.activeItem === targetItem && this.activeVideo === video && !video.paused) {
+        video.muted = this.isMuted;
+        video.volume = this.isMuted ? 0 : 1;
+        return;
+      }
       if (this.activeItem && this.activeItem !== targetItem) {
         this.activeItem.classList.remove("active-playing", "video-ready", "is-buffering");
         const oldVinyl = this.activeItem.querySelector(".dock-vinyl-disc");
         if (oldVinyl) oldVinyl.classList.add("paused");
-        if (this.activeVideo && !this.activeVideo.paused) {
+        if (this.activeVideo && this.activeVideo !== video && !this.activeVideo.paused) {
           try {
             this.activeVideo.pause();
           } catch (e) {
@@ -3042,9 +3076,16 @@ ${shareUrl}`);
       video.setAttribute("x5-playsinline", "");
       video.muted = this.isMuted;
       video.volume = this.isMuted ? 0 : 1;
+      if (video.readyState >= 1) {
+        video.removeAttribute("poster");
+      }
       if (!video._bufferEngineBound) {
         video._bufferEngineBound = true;
+        video.addEventListener("loadeddata", () => {
+          video.removeAttribute("poster");
+        });
         video.addEventListener("playing", () => {
+          video.removeAttribute("poster");
           targetItem.classList.remove("is-buffering");
           targetItem.classList.add("video-ready");
         });
@@ -3071,13 +3112,15 @@ ${shareUrl}`);
           }
         });
       }
-      const p = video.play();
-      if (p !== void 0) {
-        p.catch(() => {
-          video.muted = true;
-          video.play().catch(() => {
+      if (video.paused) {
+        const p = video.play();
+        if (p !== void 0) {
+          p.catch(() => {
+            video.muted = true;
+            video.play().catch(() => {
+            });
           });
-        });
+        }
       }
       if (currentIndex >= this.renderedCount - 2) {
         this.appendBatch();
