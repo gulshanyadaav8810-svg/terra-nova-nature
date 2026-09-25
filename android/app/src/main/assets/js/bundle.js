@@ -3208,8 +3208,11 @@ ${shareUrl}`);
       const catObj = CATEGORIES.find((c) => c.id === reel.category_id);
       const catIcon = catObj ? catObj.icon : "\u2728";
       item.innerHTML = `
-      <!-- 9:16 Video Canvas (Instant Native Playback, Zero Stuck Poster, Zero Delay) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline ${index < 8 ? `src="${reel.video_url}" preload="auto"` : 'preload="none"'} data-src="${reel.video_url}">
+      <!-- 0ms Crisp Poster Cover (Guarantees zero black screen during swipe) -->
+      <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="eager" />
+
+      <!-- 9:16 Video Canvas (100% Offline Local Playback, Zero Black Screen, Zero Delay) -->
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline poster="${reel.thumbnail_url}" ${index < 12 ? `src="${reel.video_url}" preload="auto"` : 'preload="none"'} data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>

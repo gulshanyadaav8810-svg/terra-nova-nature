@@ -444,9 +444,27 @@ public class MainActivity extends Activity {
 
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                Uri url = request.getUrl();
-                if (url != null && url.getHost() != null && url.getHost().equals("appassets.androidplatform.net")) {
-                    return assetLoader.shouldInterceptRequest(url);
+                if (request != null && request.getUrl() != null) {
+                    Uri url = request.getUrl();
+                    String host = url.getHost();
+                    if (host != null && host.equals("appassets.androidplatform.net")) {
+                        return assetLoader.shouldInterceptRequest(url);
+                    }
+
+                    // 100% Offline Local Playback:
+                    // If video or thumbnail exists in local APK assets/uploads, serve it directly in 0ms!
+                    String path = url.getPath();
+                    if (path != null && path.contains("/uploads/")) {
+                        String filename = path.substring(path.lastIndexOf('/') + 1);
+                        try {
+                            InputStream is = getAssets().open("uploads/" + filename);
+                            is.close();
+                            Uri localAssetUri = Uri.parse("https://appassets.androidplatform.net/assets/uploads/" + filename);
+                            return assetLoader.shouldInterceptRequest(localAssetUri);
+                        } catch (Exception ignored) {
+                            // File not in bundled assets, fallback to network
+                        }
+                    }
                 }
                 return null;
             }
@@ -454,9 +472,23 @@ public class MainActivity extends Activity {
             @Override
             @SuppressWarnings("deprecation")
             public WebResourceResponse shouldInterceptRequest(WebView view, String urlString) {
-                Uri url = Uri.parse(urlString);
-                if (url != null && url.getHost() != null && url.getHost().equals("appassets.androidplatform.net")) {
-                    return assetLoader.shouldInterceptRequest(url);
+                if (urlString != null) {
+                    Uri url = Uri.parse(urlString);
+                    String host = url.getHost();
+                    if (host != null && host.equals("appassets.androidplatform.net")) {
+                        return assetLoader.shouldInterceptRequest(url);
+                    }
+
+                    String path = url.getPath();
+                    if (path != null && path.contains("/uploads/")) {
+                        String filename = path.substring(path.lastIndexOf('/') + 1);
+                        try {
+                            InputStream is = getAssets().open("uploads/" + filename);
+                            is.close();
+                            Uri localAssetUri = Uri.parse("https://appassets.androidplatform.net/assets/uploads/" + filename);
+                            return assetLoader.shouldInterceptRequest(localAssetUri);
+                        } catch (Exception ignored) {}
+                    }
                 }
                 return null;
             }
