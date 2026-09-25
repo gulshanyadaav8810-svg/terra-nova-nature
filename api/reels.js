@@ -121,13 +121,23 @@ async function extractPinterestMedia(inputUrl) {
       }
     }
 
-    // 1st Priority: Exact video frame thumbnail directly generated from the video by Pinterest!
-    const videoThumbs = html.match(/https:\/\/i\.pinimg\.com\/videos\/thumbnails\/[^"'\s<>\\]+?\.(?:jpg|png|webp|jpeg)/g) || [];
-    if (videoThumbs.length > 0) {
-      thumbUrl = videoThumbs[0].replace(/\\/g, '');
+    // 1st Priority: Exact video frame thumbnail directly derived from the video stream hash!
+    if (videoUrl) {
+      const hashMatch = videoUrl.match(/([a-f0-9]{2}\/[a-f0-9]{2}\/[a-f0-9]{2}\/[a-f0-9]{32})/);
+      if (hashMatch) {
+        thumbUrl = `https://i.pinimg.com/videos/thumbnails/originals/${hashMatch[1]}.0000000.jpg`;
+      }
     }
 
-    // 2nd Priority: Pinterest pin originals / high-res images
+    // 2nd Priority: Pinterest video thumbnail in HTML
+    if (!thumbUrl) {
+      const videoThumbs = html.match(/https:\/\/i\.pinimg\.com\/videos\/thumbnails\/[^"'\s<>\\]+?\.(?:jpg|png|webp|jpeg)/g) || [];
+      if (videoThumbs.length > 0) {
+        thumbUrl = videoThumbs[0].replace(/\\/g, '');
+      }
+    }
+
+    // 3rd Priority: Pinterest pin originals / high-res images
     if (!thumbUrl) {
       const pinImgs = html.match(/https:\/\/i\.pinimg\.com\/(?:originals|736x|564x|474x)\/[^"'\s<>\\]+?\.(?:jpg|png|webp|jpeg)/g) || [];
       if (pinImgs.length > 0) {

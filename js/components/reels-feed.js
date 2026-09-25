@@ -593,67 +593,39 @@ export class ReelsFeed {
     }
   }
 
-  // Pre-buffer next 3 reels and previous 1 reel in background (network + offline cache, primes decoders)
+  // Pre-buffer next 1 reel in background safely without exceeding Android hardware decoder limit
   _prebufferUpcomingReels(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
 
-    for (let offset = 1; offset <= 3; offset++) {
-      const nextItem = items[activeIndex + offset];
-      if (nextItem) {
-        const nextVid = nextItem.querySelector('video');
-        if (nextVid) {
-          const src = nextVid.getAttribute('data-src') || nextVid.src;
-          if (src && (!nextVid.src || nextVid.src === '' || nextVid.src === window.location.href)) {
-            nextVid.src = src;
-          }
-          nextVid.preload = 'auto';
-
-          // Force browser engine / WebView to initiate byte stream download before user scrolls!
-          if (offset <= 2 && nextVid.readyState < 2) {
-            try { nextVid.load(); } catch(e) {}
-          }
-
-          // Check offline video cache for instant local playback
-          videoCache.getPlaybackUrl(src).then(opt => {
-            if (opt && nextVid.src !== opt && nextVid.readyState < 2) {
-              nextVid.src = opt;
-            }
-          }).catch(() => {});
-
-          // Android APK disk precache
-          if (window.AndroidBridge && typeof window.AndroidBridge.precacheVideoUrl === 'function') {
-            window.AndroidBridge.precacheVideoUrl(src);
-          }
-
-          if (nextVid.readyState >= 2) {
+    // Pre-buffer ONLY the immediate next reel (activeIndex + 1)
+    const nextItem = items[activeIndex + 1];
+    if (nextItem) {
+      const nextVid = nextItem.querySelector('video');
+      if (nextVid) {
+        const src = nextVid.getAttribute('data-src') || nextVid.src;
+        if (src && (!nextVid.src || nextVid.src === '' || nextVid.src === window.location.href)) {
+          nextVid.src = src;
+        }
+        nextVid.preload = 'auto';
+        if (nextVid.readyState < 2) {
+          try { nextVid.load(); } catch(e) {}
+        }
+        if (window.AndroidBridge && typeof window.AndroidBridge.precacheVideoUrl === 'function') {
+          window.AndroidBridge.precacheVideoUrl(src);
+        }
+        if (nextVid.readyState >= 2) {
+          nextItem.classList.add('video-ready');
+        } else {
+          nextVid.addEventListener('loadeddata', () => {
             nextItem.classList.add('video-ready');
-          } else {
-            nextVid.addEventListener('loadeddata', () => {
-              nextItem.classList.add('video-ready');
-            }, { once: true });
-          }
-        }
-      }
-    }
-
-    const prevItem = items[activeIndex - 1];
-    if (prevItem) {
-      const prevVid = prevItem.querySelector('video');
-      if (prevVid) {
-        const src = prevVid.getAttribute('data-src') || prevVid.src;
-        if (src && (!prevVid.src || prevVid.src === '' || prevVid.src === window.location.href)) {
-          prevVid.src = src;
-        }
-        prevVid.preload = 'auto';
-        if (prevVid.readyState >= 2) {
-          prevItem.classList.add('video-ready');
+          }, { once: true });
         }
       }
     }
   }
 
-  // Strict single-decoder enforcement: pause all videos except active without hiding already rendered frames
+  // Strict hardware decoder lifecycle: activeIndex plays, activeIndex+1 prebuffers, all others RELEASE MediaCodec!
   _pauseInactiveVideos(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
@@ -669,6 +641,16 @@ export class ReelsFeed {
           try {
             if (!v.paused) v.pause();
           } catch(e) {}
+
+          // Release hardware decoder for non-adjacent videos to prevent Android 4-5 video limit!
+          const distance = Math.abs(i - activeIndex);
+          if (distance > 1 && v.src && v.src !== '') {
+            try {
+              v.removeAttribute('src');
+              v.load(); // Forces WebKit/Chromium to free native MediaCodec immediately!
+              item.classList.remove('video-ready', 'video-playing');
+            } catch(e) {}
+          }
         }
       }
     }
@@ -732,6 +714,7 @@ export class ReelsFeed {
     if (dataSrc) {
       if (!video.src || video.src === '' || video.src === window.location.href) {
         video.src = dataSrc;
+        video.load();
       }
       if (video.readyState < 2 && video.paused) {
         videoCache.getPlaybackUrl(dataSrc).then(optimalUrl => {

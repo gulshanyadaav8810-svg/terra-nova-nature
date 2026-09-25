@@ -1665,8 +1665,15 @@ class AdminStudio {
             reelTitle = `${catName} Scenic Moment ${this.bulkUrlsQueue.length + 1}`;
           }
 
-          // Genuine video frame extraction: NEVER use random colors or unrelated photos
-          let thumb = (data.thumbnail_url || '').trim();
+          // Genuine video frame extraction: ALWAYS prioritize direct video frame from video stream hash
+          let thumb = '';
+          const hashMatch = (data.video_url || '').match(/([a-f0-9]{2}\/[a-f0-9]{2}\/[a-f0-9]{2}\/[a-f0-9]{32})/);
+          if (hashMatch) {
+            thumb = `https://i.pinimg.com/videos/thumbnails/originals/${hashMatch[1]}.0000000.jpg`;
+          } else if (data.thumbnail_url && !data.thumbnail_url.endsWith('.png')) {
+            thumb = data.thumbnail_url.trim();
+          }
+
           if (!thumb && data.video_url) {
             try {
               thumb = await this._extractVideoFrame(data.video_url, 0.5);

@@ -226,9 +226,11 @@ public class MainActivity extends Activity {
             mActivity.runOnUiThread(() -> dismissNativeSplash());
         }
 
+        private final java.util.concurrent.ExecutorService PRECACHE_EXECUTOR = java.util.concurrent.Executors.newSingleThreadExecutor();
+
         @JavascriptInterface
         public void precacheVideoUrl(String videoUrl) {
-            new Thread(() -> {
+            PRECACHE_EXECUTOR.execute(() -> {
                 try {
                     if (videoUrl == null || !videoUrl.startsWith("http")) return;
                     String filename = getCacheFilenameForUrl(videoUrl);
@@ -260,7 +262,7 @@ public class MainActivity extends Activity {
                 } catch (Exception e) {
                     Log.w(TAG, "Precache error: " + e.getMessage());
                 }
-            }).start();
+            });
         }
     }
 
@@ -344,16 +346,26 @@ public class MainActivity extends Activity {
                 end = Math.min(end, fileLength - 1);
                 long contentLength = end - start + 1;
 
-                RandomAccessFile raf = new RandomAccessFile(file, "r");
-                raf.seek(start);
+                FileInputStream fis = new FileInputStream(file);
+                if (start > 0) {
+                    long skipped = fis.skip(start);
+                    while (skipped < start && fis.available() > 0) {
+                        skipped += fis.skip(start - skipped);
+                    }
+                }
+
                 InputStream is = new InputStream() {
                     private long remaining = contentLength;
 
                     @Override
                     public int read() throws IOException {
                         if (remaining <= 0) return -1;
-                        int b = raf.read();
-                        if (b != -1) remaining--;
+                        int b = fis.read();
+                        if (b == -1) {
+                            remaining = 0;
+                            return -1;
+                        }
+                        remaining--;
                         return b;
                     }
 
@@ -361,14 +373,18 @@ public class MainActivity extends Activity {
                     public int read(byte[] b, int off, int len) throws IOException {
                         if (remaining <= 0) return -1;
                         int toRead = (int) Math.min(len, remaining);
-                        int read = raf.read(b, off, toRead);
-                        if (read > 0) remaining -= read;
+                        int read = fis.read(b, off, toRead);
+                        if (read <= 0) {
+                            remaining = 0;
+                            return -1;
+                        }
+                        remaining -= read;
                         return read;
                     }
 
                     @Override
                     public void close() throws IOException {
-                        raf.close();
+                        fis.close();
                     }
                 };
 
