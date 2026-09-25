@@ -1179,6 +1179,7 @@
     if (url.includes("github.com") && url.includes("/blob/")) {
       return url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/");
     }
+    if (url.includes("/api/stream")) return url;
     let filename = "";
     if (url.startsWith("/uploads/")) {
       filename = url.replace(/^\/uploads\//, "");
@@ -1186,6 +1187,9 @@
       filename = url.split("/uploads/")[1];
     }
     if (filename) {
+      if (filename.includes("1790358704975")) {
+        return `https://nature-moments-app.vercel.app/api/stream?file=${filename}`;
+      }
       return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
     }
     return url;
@@ -2504,6 +2508,100 @@ ${shareUrl}`);
   };
   var soundEngine = new NatureSoundEngine();
 
+  // js/services/video-cache.js
+  var CACHE_NAME = "nature_reels_video_cache_v2";
+  var blobUrlRegistry = /* @__PURE__ */ new Map();
+  var VideoCacheService = class {
+    constructor() {
+      this.cacheAvailable = typeof window !== "undefined" && "caches" in window;
+      this.pendingDownloads = /* @__PURE__ */ new Set();
+    }
+    // Get optimal playback URL: returns instant in-memory Blob URL if cached, or network URL
+    async getPlaybackUrl(videoUrl) {
+      if (!videoUrl || typeof videoUrl !== "string") return videoUrl;
+      if (videoUrl.startsWith("blob:") || videoUrl.startsWith("data:")) return videoUrl;
+      if (blobUrlRegistry.has(videoUrl)) {
+        return blobUrlRegistry.get(videoUrl);
+      }
+      if (!this.cacheAvailable) return videoUrl;
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        const match = await cache.match(videoUrl);
+        if (match) {
+          const blob = await match.blob();
+          if (blob && blob.size > 0) {
+            const blobUrl = URL.createObjectURL(blob);
+            blobUrlRegistry.set(videoUrl, blobUrl);
+            return blobUrl;
+          }
+        }
+      } catch (e) {
+      }
+      this.precacheVideo(videoUrl);
+      return videoUrl;
+    }
+    // Save a video File or Blob directly into cache (used immediately on upload)
+    async saveVideoBlob(urlKey, blob) {
+      if (!urlKey || !blob) return "";
+      try {
+        const blobUrl = URL.createObjectURL(blob);
+        blobUrlRegistry.set(urlKey, blobUrl);
+        if (this.cacheAvailable) {
+          const cache = await caches.open(CACHE_NAME);
+          const headers = new Headers({
+            "Content-Type": blob.type || "video/mp4",
+            "Content-Length": String(blob.size),
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "public, max-age=31536000, immutable"
+          });
+          const response = new Response(blob, { headers });
+          await cache.put(urlKey, response);
+        }
+        return blobUrl;
+      } catch (e) {
+        console.warn("[VideoCache] saveVideoBlob error:", e);
+        return "";
+      }
+    }
+    // Pre-cache video in background without blocking main thread
+    async precacheVideo(videoUrl) {
+      if (!videoUrl || typeof videoUrl !== "string") return;
+      if (videoUrl.startsWith("blob:") || videoUrl.startsWith("data:")) return;
+      if (this.pendingDownloads.has(videoUrl) || blobUrlRegistry.has(videoUrl)) return;
+      if (!this.cacheAvailable) return;
+      this.pendingDownloads.add(videoUrl);
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        const exists = await cache.match(videoUrl);
+        if (exists) {
+          this.pendingDownloads.delete(videoUrl);
+          return;
+        }
+        const res = await fetch(videoUrl, {
+          headers: { "Accept": "video/mp4,video/*;q=0.9,*/*;q=0.8" }
+        });
+        if (res.ok || res.status === 206) {
+          const clone = res.clone();
+          await cache.put(videoUrl, clone);
+          const blob = await res.blob();
+          if (blob && blob.size > 0) {
+            const blobUrl = URL.createObjectURL(blob);
+            blobUrlRegistry.set(videoUrl, blobUrl);
+          }
+        }
+      } catch (e) {
+      } finally {
+        this.pendingDownloads.delete(videoUrl);
+      }
+    }
+    // Preload a batch of upcoming video URLs
+    precacheBatch(urls) {
+      if (!Array.isArray(urls)) return;
+      urls.slice(0, 4).forEach((u) => this.precacheVideo(u));
+    }
+  };
+  var videoCache = new VideoCacheService();
+
   // js/components/reels-feed.js
   var ReelsFeed = class {
     constructor(containerElement, showToastCallback) {
@@ -2944,10 +3042,17 @@ ${shareUrl}`);
         const reelsView = document.getElementById("view-reels");
         const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
         if (!isReelsTab || !isReelsVisible) return;
+        const containerHeight = this.container.clientHeight || window.innerHeight;
+        if (!containerHeight) return;
+        const targetIdx = Math.round(this.container.scrollTop / containerHeight);
+        const items = this.container.children;
+        if (items && items[targetIdx] && this.activeItem !== items[targetIdx]) {
+          this._playReelItem(items[targetIdx]);
+        }
         if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
         scrollSettleTimer = setTimeout(() => {
           this._detectAndPlaySnappedReel();
-        }, 70);
+        }, 30);
       };
       this.container.addEventListener("scroll", onScroll, { passive: true });
       this.container.addEventListener("scrollend", () => {
@@ -2976,7 +3081,7 @@ ${shareUrl}`);
         this._playReelItem(closestItem);
       }
     }
-    // Pre-buffer next 2 reels and previous 1 reel in background (network only, NO decoder play)
+    // Pre-buffer next 3 reels and previous 1 reel in background (network + offline cache, primes decoders)
     _prebufferUpcomingReels(activeIndex) {
       const items = this.container.children;
       if (!items || !items.length) return;
@@ -2990,6 +3095,22 @@ ${shareUrl}`);
               nextVid.src = src;
             }
             nextVid.preload = "auto";
+            videoCache.getPlaybackUrl(src).then((opt) => {
+              if (opt && nextVid.src !== opt) {
+                nextVid.src = opt;
+              }
+            }).catch(() => {
+            });
+            if (window.AndroidBridge && typeof window.AndroidBridge.precacheVideoUrl === "function") {
+              window.AndroidBridge.precacheVideoUrl(src);
+            }
+            if (nextVid.readyState >= 2) {
+              nextItem.classList.add("video-ready");
+            } else {
+              nextVid.addEventListener("loadeddata", () => {
+                nextItem.classList.add("video-ready");
+              }, { once: true });
+            }
           }
         }
       }
@@ -3002,10 +3123,13 @@ ${shareUrl}`);
             prevVid.src = src;
           }
           prevVid.preload = "auto";
+          if (prevVid.readyState >= 2) {
+            prevItem.classList.add("video-ready");
+          }
         }
       }
     }
-    // Strict single-decoder enforcement: pause all videos except active
+    // Strict single-decoder enforcement: pause all videos except active without hiding already rendered frames
     _pauseInactiveVideos(activeIndex) {
       const items = this.container.children;
       if (!items || !items.length) return;
@@ -3013,7 +3137,7 @@ ${shareUrl}`);
       for (let i = 0; i < items.length; i++) {
         if (i !== activeIndex) {
           const item = items[i];
-          item.classList.remove("active-playing", "video-ready", "is-buffering");
+          item.classList.remove("active-playing", "is-buffering");
           const v = item.querySelector("video");
           if (v) {
             try {
@@ -3050,7 +3174,7 @@ ${shareUrl}`);
         }
       });
       if (this.activeItem && this.activeItem !== targetItem) {
-        this.activeItem.classList.remove("active-playing", "video-ready", "is-buffering");
+        this.activeItem.classList.remove("active-playing", "is-buffering");
         const oldVinyl = this.activeItem.querySelector(".dock-vinyl-disc");
         if (oldVinyl) oldVinyl.classList.add("paused");
       }
@@ -3058,13 +3182,29 @@ ${shareUrl}`);
       this.activeVideo = video;
       targetItem.classList.add("active-playing");
       targetItem.classList.remove("is-paused");
+      if (video.readyState >= 2) {
+        targetItem.classList.add("video-ready");
+      }
       const vinyl = targetItem.querySelector(".dock-vinyl-disc");
       if (vinyl) vinyl.classList.remove("paused");
       const currentIndex = parseInt(targetItem.getAttribute("data-index") || "0", 10);
       this._pauseInactiveVideos(currentIndex);
       const dataSrc = video.getAttribute("data-src") || video.src;
-      if (dataSrc && (!video.src || video.src === "" || video.src === window.location.href)) {
-        video.src = dataSrc;
+      if (dataSrc) {
+        if (!video.src || video.src === "" || video.src === window.location.href) {
+          video.src = dataSrc;
+        }
+        videoCache.getPlaybackUrl(dataSrc).then((optimalUrl) => {
+          if (optimalUrl && video.src !== optimalUrl) {
+            const wasPlaying = !video.paused;
+            video.src = optimalUrl;
+            if (wasPlaying || this.activeItem === targetItem) {
+              video.play().catch(() => {
+              });
+            }
+          }
+        }).catch(() => {
+        });
       }
       video.preload = "auto";
       video.playsInline = true;
@@ -3075,12 +3215,17 @@ ${shareUrl}`);
       video.volume = this.isMuted ? 0 : 1;
       if (!video._bufferEngineBound) {
         video._bufferEngineBound = true;
+        video.addEventListener("loadeddata", () => {
+          targetItem.classList.remove("is-buffering");
+          targetItem.classList.add("video-ready");
+        });
         video.addEventListener("playing", () => {
           targetItem.classList.remove("is-buffering");
           targetItem.classList.add("video-ready");
         });
         video.addEventListener("canplay", () => {
           targetItem.classList.remove("is-buffering");
+          targetItem.classList.add("video-ready");
           if (this.activeItem === targetItem && video.paused && !targetItem.classList.contains("is-paused")) {
             video.play().catch(() => {
             });
@@ -3098,12 +3243,12 @@ ${shareUrl}`);
         video.addEventListener("error", () => {
           targetItem.classList.remove("is-buffering");
           const cur = video.src || "";
-          if (cur.includes("cdn.jsdelivr.net") && cur.includes("/uploads/")) {
+          if (cur.includes("/uploads/")) {
             const fn = cur.split("/uploads/")[1];
-            const rawFallback = `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${fn}`;
-            if (video.src !== rawFallback) {
-              console.log("[ReelsFeed] Switching to raw GitHub fallback:", rawFallback);
-              video.src = rawFallback;
+            const streamFallback = `https://nature-moments-app.vercel.app/api/stream?file=${fn}`;
+            if (video.src !== streamFallback) {
+              console.log("[ReelsFeed] Switching to streaming fallback:", streamFallback);
+              video.src = streamFallback;
               video.load();
               video.play().catch(() => {
               });

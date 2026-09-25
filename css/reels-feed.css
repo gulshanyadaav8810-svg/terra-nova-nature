@@ -69,11 +69,12 @@
   image-rendering: -webkit-optimize-contrast;
   transform: translate3d(0, 0, 0);
   -webkit-transform: translate3d(0, 0, 0);
-  transition: opacity 0.25s ease;
+  transition: opacity 0.12s ease-out;
 }
 
 .feed-reel-item.video-ready .feed-reel-poster {
   opacity: 0;
+  pointer-events: none;
 }
 
 /* 9:16 Video Canvas - Pure Hardware Overlay (Zero Jiggle, Instant Seamless Playback) */

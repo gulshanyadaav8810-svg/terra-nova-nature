@@ -146,7 +146,46 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const { action, url } = req.query || {};
+      const { action, url, file } = req.query || {};
+      if (action === 'stream' || file) {
+        const streamFile = (file || '').replace(/[^a-zA-Z0-9._-]/g, '_');
+        if (!streamFile) return res.status(400).json({ error: 'file parameter required' });
+        const rawUrl = `https://raw.githubusercontent.com/${REPO}/main/uploads/${streamFile}`;
+        const forwardHeaders = {
+          'User-Agent': 'NatureMomentsStream/2.0',
+          'Authorization': `Bearer ${GITHUB_TOKEN}`
+        };
+        if (req.headers.range) forwardHeaders['Range'] = req.headers.range;
+
+        try {
+          const ghRes = await fetch(rawUrl, {
+            method: req.method === 'HEAD' ? 'HEAD' : 'GET',
+            headers: forwardHeaders
+          });
+
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+          res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type, Authorization');
+          res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
+          res.setHeader('Content-Type', 'video/mp4');
+          res.setHeader('Accept-Ranges', 'bytes');
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+
+          if (ghRes.headers.get('content-range')) {
+            res.setHeader('Content-Range', ghRes.headers.get('content-range'));
+          }
+          if (ghRes.headers.get('content-length')) {
+            res.setHeader('Content-Length', ghRes.headers.get('content-length'));
+          }
+
+          res.status(ghRes.status);
+          const buf = await ghRes.arrayBuffer();
+          return res.send(Buffer.from(buf));
+        } catch (err) {
+          return res.status(500).json({ error: err.message });
+        }
+      }
+
       if (action === 'resolve_media' || action === 'resolve_pinterest') {
         const result = await extractPinterestMedia(url);
         return res.status(200).json(result);

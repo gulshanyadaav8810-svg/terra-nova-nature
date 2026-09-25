@@ -222,6 +222,48 @@ public class MainActivity extends Activity {
         public void hideNativeSplash() {
             mActivity.runOnUiThread(() -> dismissNativeSplash());
         }
+
+        @JavascriptInterface
+        public void precacheVideoUrl(String videoUrl) {
+            new Thread(() -> {
+                try {
+                    if (videoUrl == null || !videoUrl.startsWith("http")) return;
+                    String filename = null;
+                    if (videoUrl.contains("/uploads/")) {
+                        filename = videoUrl.substring(videoUrl.lastIndexOf('/') + 1);
+                    } else if (videoUrl.contains("/api/stream") && videoUrl.contains("file=")) {
+                        Uri uri = Uri.parse(videoUrl);
+                        filename = uri.getQueryParameter("file");
+                    }
+                    if (filename == null || filename.isEmpty()) return;
+                    File cacheDir = new File(mActivity.getCacheDir(), "video_cache");
+                    if (!cacheDir.exists()) cacheDir.mkdirs();
+                    File cachedFile = new File(cacheDir, filename);
+                    if (cachedFile.exists() && cachedFile.length() > 0) return;
+
+                    File tempFile = new File(cacheDir, filename + ".tmp");
+                    java.net.URL u = new java.net.URL(videoUrl);
+                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) u.openConnection();
+                    conn.setConnectTimeout(8000);
+                    conn.setReadTimeout(15000);
+                    int code = conn.getResponseCode();
+                    if (code == 200 || code == 206) {
+                        try (InputStream in = conn.getInputStream(); FileOutputStream fos = new FileOutputStream(tempFile)) {
+                            byte[] buf = new byte[16384];
+                            int len;
+                            while ((len = in.read(buf)) != -1) {
+                                fos.write(buf, 0, len);
+                            }
+                            fos.flush();
+                        }
+                        tempFile.renameTo(cachedFile);
+                        Log.d(TAG, "Cached video for offline: " + filename);
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "Precache error: " + e.getMessage());
+                }
+            }).start();
+        }
     }
 
     private boolean splashDismissed = false;
@@ -451,18 +493,40 @@ public class MainActivity extends Activity {
                         return assetLoader.shouldInterceptRequest(url);
                     }
 
-                    // 100% Offline Local Playback:
-                    // If video or thumbnail exists in local APK assets/uploads, serve it directly in 0ms!
+                    // 100% Offline Local Playback & Persistent Disk Cache:
                     String path = url.getPath();
+                    String query = url.getQuery();
+                    String filename = null;
                     if (path != null && path.contains("/uploads/")) {
-                        String filename = path.substring(path.lastIndexOf('/') + 1);
+                        filename = path.substring(path.lastIndexOf('/') + 1);
+                    } else if (path != null && path.contains("/api/stream") && query != null && query.contains("file=")) {
+                        filename = url.getQueryParameter("file");
+                    }
+
+                    if (filename != null && !filename.isEmpty()) {
+                        // 1. Check bundled APK assets (0ms instant)
                         try {
                             InputStream is = getAssets().open("uploads/" + filename);
                             is.close();
                             Uri localAssetUri = Uri.parse("https://appassets.androidplatform.net/assets/uploads/" + filename);
                             return assetLoader.shouldInterceptRequest(localAssetUri);
-                        } catch (Exception ignored) {
-                            // File not in bundled assets, fallback to network
+                        } catch (Exception ignored) {}
+
+                        // 2. Check local disk cache (100% offline playback with 0ms latency)
+                        try {
+                            File cacheDir = new File(getCacheDir(), "video_cache");
+                            File cachedFile = new File(cacheDir, filename);
+                            if (cachedFile.exists() && cachedFile.length() > 0) {
+                                FileInputStream fis = new FileInputStream(cachedFile);
+                                Map<String, String> headers = new HashMap<>();
+                                headers.put("Access-Control-Allow-Origin", "*");
+                                headers.put("Accept-Ranges", "bytes");
+                                headers.put("Cache-Control", "public, max-age=31536000, immutable");
+                                String mime = (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) ? "image/jpeg" : "video/mp4";
+                                return new WebResourceResponse(mime, "UTF-8", 200, "OK", headers, fis);
+                            }
+                        } catch (Exception e) {
+                            Log.w(TAG, "Disk cache read error: " + e.getMessage());
                         }
                     }
                 }
@@ -480,13 +544,34 @@ public class MainActivity extends Activity {
                     }
 
                     String path = url.getPath();
+                    String query = url.getQuery();
+                    String filename = null;
                     if (path != null && path.contains("/uploads/")) {
-                        String filename = path.substring(path.lastIndexOf('/') + 1);
+                        filename = path.substring(path.lastIndexOf('/') + 1);
+                    } else if (path != null && path.contains("/api/stream") && query != null && query.contains("file=")) {
+                        filename = url.getQueryParameter("file");
+                    }
+
+                    if (filename != null && !filename.isEmpty()) {
                         try {
                             InputStream is = getAssets().open("uploads/" + filename);
                             is.close();
                             Uri localAssetUri = Uri.parse("https://appassets.androidplatform.net/assets/uploads/" + filename);
                             return assetLoader.shouldInterceptRequest(localAssetUri);
+                        } catch (Exception ignored) {}
+
+                        try {
+                            File cacheDir = new File(getCacheDir(), "video_cache");
+                            File cachedFile = new File(cacheDir, filename);
+                            if (cachedFile.exists() && cachedFile.length() > 0) {
+                                FileInputStream fis = new FileInputStream(cachedFile);
+                                Map<String, String> headers = new HashMap<>();
+                                headers.put("Access-Control-Allow-Origin", "*");
+                                headers.put("Accept-Ranges", "bytes");
+                                headers.put("Cache-Control", "public, max-age=31536000, immutable");
+                                String mime = (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) ? "image/jpeg" : "video/mp4";
+                                return new WebResourceResponse(mime, "UTF-8", 200, "OK", headers, fis);
+                            }
                         } catch (Exception ignored) {}
                     }
                 }

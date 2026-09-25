@@ -11,6 +11,7 @@ import { shareService } from '../services/share.js';
 import { downloader } from '../services/downloader.js';
 import { soundEngine } from '../services/sound-engine.js';
 import { i18n } from '../services/i18n.js';
+import { videoCache } from '../services/video-cache.js';
 
 export class ReelsFeed {
   constructor(containerElement, showToastCallback) {
@@ -528,17 +529,27 @@ export class ReelsFeed {
       }, 50);
     }, { passive: true });
 
-    // 2. Debounced snap detection: only trigger playback when scroll settles, preventing rapid start/stop churn
+    // 2. Real-time snap detection: instant playback on 50% midpoint crossing without 1-second delay
     const onScroll = () => {
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
       const reelsView = document.getElementById('view-reels');
       const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
       if (!isReelsTab || !isReelsVisible) return;
 
+      const containerHeight = this.container.clientHeight || window.innerHeight;
+      if (!containerHeight) return;
+
+      // Real-time instant midpoint crossing (0ms snap play like Instagram/TikTok)
+      const targetIdx = Math.round(this.container.scrollTop / containerHeight);
+      const items = this.container.children;
+      if (items && items[targetIdx] && this.activeItem !== items[targetIdx]) {
+        this._playReelItem(items[targetIdx]);
+      }
+
       if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
       scrollSettleTimer = setTimeout(() => {
         this._detectAndPlaySnappedReel();
-      }, 70);
+      }, 30);
     };
 
     this.container.addEventListener('scroll', onScroll, { passive: true });
@@ -576,7 +587,7 @@ export class ReelsFeed {
     }
   }
 
-  // Pre-buffer next 2 reels and previous 1 reel in background (network only, NO decoder play)
+  // Pre-buffer next 3 reels and previous 1 reel in background (network + offline cache, primes decoders)
   _prebufferUpcomingReels(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
@@ -591,6 +602,26 @@ export class ReelsFeed {
             nextVid.src = src;
           }
           nextVid.preload = 'auto';
+
+          // Check offline video cache for instant local playback
+          videoCache.getPlaybackUrl(src).then(opt => {
+            if (opt && nextVid.src !== opt) {
+              nextVid.src = opt;
+            }
+          }).catch(() => {});
+
+          // Android APK disk precache
+          if (window.AndroidBridge && typeof window.AndroidBridge.precacheVideoUrl === 'function') {
+            window.AndroidBridge.precacheVideoUrl(src);
+          }
+
+          if (nextVid.readyState >= 2) {
+            nextItem.classList.add('video-ready');
+          } else {
+            nextVid.addEventListener('loadeddata', () => {
+              nextItem.classList.add('video-ready');
+            }, { once: true });
+          }
         }
       }
     }
@@ -604,11 +635,14 @@ export class ReelsFeed {
           prevVid.src = src;
         }
         prevVid.preload = 'auto';
+        if (prevVid.readyState >= 2) {
+          prevItem.classList.add('video-ready');
+        }
       }
     }
   }
 
-  // Strict single-decoder enforcement: pause all videos except active
+  // Strict single-decoder enforcement: pause all videos except active without hiding already rendered frames
   _pauseInactiveVideos(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
@@ -618,7 +652,7 @@ export class ReelsFeed {
     for (let i = 0; i < items.length; i++) {
       if (i !== activeIndex) {
         const item = items[i];
-        item.classList.remove('active-playing', 'video-ready', 'is-buffering');
+        item.classList.remove('active-playing', 'is-buffering');
         const v = item.querySelector('video');
         if (v) {
           try {
@@ -662,7 +696,7 @@ export class ReelsFeed {
 
     // Deactivate previous reel UI
     if (this.activeItem && this.activeItem !== targetItem) {
-      this.activeItem.classList.remove('active-playing', 'video-ready', 'is-buffering');
+      this.activeItem.classList.remove('active-playing', 'is-buffering');
       const oldVinyl = this.activeItem.querySelector('.dock-vinyl-disc');
       if (oldVinyl) oldVinyl.classList.add('paused');
     }
@@ -672,16 +706,31 @@ export class ReelsFeed {
     targetItem.classList.add('active-playing');
     targetItem.classList.remove('is-paused');
 
+    if (video.readyState >= 2) {
+      targetItem.classList.add('video-ready');
+    }
+
     const vinyl = targetItem.querySelector('.dock-vinyl-disc');
     if (vinyl) vinyl.classList.remove('paused');
 
     const currentIndex = parseInt(targetItem.getAttribute('data-index') || '0', 10);
     this._pauseInactiveVideos(currentIndex);
 
-    // Ensure active video has src loaded
+    // Ensure active video has src loaded, checking offline video cache for 0ms local playback
     const dataSrc = video.getAttribute('data-src') || video.src;
-    if (dataSrc && (!video.src || video.src === '' || video.src === window.location.href)) {
-      video.src = dataSrc;
+    if (dataSrc) {
+      if (!video.src || video.src === '' || video.src === window.location.href) {
+        video.src = dataSrc;
+      }
+      videoCache.getPlaybackUrl(dataSrc).then(optimalUrl => {
+        if (optimalUrl && video.src !== optimalUrl) {
+          const wasPlaying = !video.paused;
+          video.src = optimalUrl;
+          if (wasPlaying || this.activeItem === targetItem) {
+            video.play().catch(() => {});
+          }
+        }
+      }).catch(() => {});
     }
 
     video.preload = 'auto';
@@ -694,12 +743,17 @@ export class ReelsFeed {
 
     if (!video._bufferEngineBound) {
       video._bufferEngineBound = true;
+      video.addEventListener('loadeddata', () => {
+        targetItem.classList.remove('is-buffering');
+        targetItem.classList.add('video-ready');
+      });
       video.addEventListener('playing', () => {
         targetItem.classList.remove('is-buffering');
         targetItem.classList.add('video-ready');
       });
       video.addEventListener('canplay', () => {
         targetItem.classList.remove('is-buffering');
+        targetItem.classList.add('video-ready');
         if (this.activeItem === targetItem && video.paused && !targetItem.classList.contains('is-paused')) {
           video.play().catch(() => {});
         }
@@ -715,12 +769,12 @@ export class ReelsFeed {
       video.addEventListener('error', () => {
         targetItem.classList.remove('is-buffering');
         const cur = video.src || '';
-        if (cur.includes('cdn.jsdelivr.net') && cur.includes('/uploads/')) {
+        if (cur.includes('/uploads/')) {
           const fn = cur.split('/uploads/')[1];
-          const rawFallback = `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${fn}`;
-          if (video.src !== rawFallback) {
-            console.log('[ReelsFeed] Switching to raw GitHub fallback:', rawFallback);
-            video.src = rawFallback;
+          const streamFallback = `https://nature-moments-app.vercel.app/api/stream?file=${fn}`;
+          if (video.src !== streamFallback) {
+            console.log('[ReelsFeed] Switching to streaming fallback:', streamFallback);
+            video.src = streamFallback;
             video.load();
             video.play().catch(() => {});
           }

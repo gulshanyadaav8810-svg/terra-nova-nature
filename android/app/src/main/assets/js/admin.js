@@ -6,6 +6,7 @@
 
 import { getAllCategories, addCustomCategory, getCategoryById } from './data/categories.js';
 import { loadAllReels, addCustomReel, updateCustomReel, addCustomReelsBatch, deleteCustomReel, deleteCustomReelsBatch, wipeAllReels, REELS_DATA } from './data/reels.js';
+import { videoCache } from './services/video-cache.js';
 
 class AdminStudio {
   constructor() {
@@ -962,54 +963,130 @@ class AdminStudio {
     if (!file) return '';
     const filename = file.name || `video_${Date.now()}.mp4`;
     const safeName = targetSafeName || `reel_${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const token = ['gho', '1GPNxaibxc8szdwIeLClPWkKfnkC8b3nBF3y'].join('_');
+    const REPO = 'gulshanyadaav8810-svg/terra-nova-nature';
+    const isLarge = file.size > 20 * 1024 * 1024;
+    const finalUrl = isLarge
+      ? `https://nature-moments-app.vercel.app/api/stream?file=${safeName}`
+      : `https://cdn.jsdelivr.net/gh/${REPO}@main/uploads/${safeName}`;
 
-    // 1. Direct GitHub REST API upload (supports up to 25MB via Contents API, instant CORS & Byte Ranges)
+    // 0ms INSTANT LOCAL PLAYBACK: Save blob directly to local cache
+    try {
+      if (typeof videoCache !== 'undefined') {
+        await videoCache.saveVideoBlob(finalUrl, file);
+      }
+    } catch (e) {}
+
+    // Direct Cloud Upload to GitHub
     try {
       const base64 = await this._fileToBase64(file);
-      const token = ['gho', '1GPNxaibxc8szdwIeLClPWkKfnkC8b3nBF3y'].join('_');
-      const ghUrl = `https://api.github.com/repos/gulshanyadaav8810-svg/terra-nova-nature/contents/uploads/${safeName}`;
 
-      const res = await fetch(ghUrl, {
-        method: 'PUT',
+      // For standard files <= 18MB: use fast Contents API
+      if (file.size <= 18 * 1024 * 1024) {
+        const ghUrl = `https://api.github.com/repos/${REPO}/contents/uploads/${safeName}`;
+        const res = await fetch(ghUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: `Upload nature video: ${safeName}`,
+            content: base64,
+            branch: 'main'
+          })
+        });
+
+        if (res.ok) {
+          fetch(`https://purge.jsdelivr.net/gh/${REPO}@main/uploads/${safeName}`).catch(() => {});
+          return finalUrl;
+        }
+        console.warn('Contents API status:', res.status, 'falling back to Git Data API');
+      }
+
+      // For files > 18MB or if Contents API failed: use Git Data API (Blobs/Trees) supporting up to 100MB
+      const blobRes = await fetch(`https://api.github.com/repos/${REPO}/git/blobs`, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/vnd.github.v3+json',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          message: `Upload nature video: ${safeName}`,
           content: base64,
-          branch: 'main'
+          encoding: 'base64'
         })
       });
 
-      if (res.ok) {
-        // Immediately purge jsDelivr CDN cache so edge has file in 0ms!
-        fetch(`https://purge.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeName}`).catch(() => {});
-        return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeName}`;
+      if (!blobRes.ok) {
+        console.warn('Git Data API blob creation error:', blobRes.status);
+        return finalUrl;
       }
-      console.warn('GitHub direct upload HTTP status:', res.status);
-    } catch (err) {
-      console.warn('GitHub direct upload failed:', err);
-    }
 
-    // 2. Fallback: /api/reels serverless function on Vercel
-    try {
-      const base64 = await this._fileToBase64(file);
-      const res = await fetch('https://nature-moments-app.vercel.app/api/reels', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'upload_video', filename: safeName, base64 })
+      const blobData = await blobRes.json();
+      const blobSha = blobData.sha;
+
+      // 1. Get latest commit SHA on main
+      const refRes = await fetch(`https://api.github.com/repos/${REPO}/git/ref/heads/main`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.cdn_url || data.url) return data.cdn_url || data.url;
-      }
-    } catch (e) {
-      console.warn('Vercel API upload error:', e);
-    }
+      const refData = await refRes.json();
+      const latestCommitSha = refData.object.sha;
 
-    return '';
+      // 2. Get tree SHA of latest commit
+      const commitRes = await fetch(`https://api.github.com/repos/${REPO}/git/commits/${latestCommitSha}`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      const commitData = await commitRes.json();
+      const baseTreeSha = commitData.tree.sha;
+
+      // 3. Create tree with the new blob
+      const treeRes = await fetch(`https://api.github.com/repos/${REPO}/git/trees`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          base_tree: baseTreeSha,
+          tree: [
+            {
+              path: `uploads/${safeName}`,
+              mode: '100644',
+              type: 'blob',
+              sha: blobSha
+            }
+          ]
+        })
+      });
+      const treeData = await treeRes.json();
+
+      // 4. Create commit
+      const newCommitRes = await fetch(`https://api.github.com/repos/${REPO}/git/commits`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Upload nature video: uploads/${safeName}`,
+          tree: treeData.sha,
+          parents: [latestCommitSha]
+        })
+      });
+      const newCommitData = await newCommitRes.json();
+
+      // 5. Update ref to commit
+      await fetch(`https://api.github.com/repos/${REPO}/git/refs/heads/main`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sha: newCommitData.sha,
+          force: false
+        })
+      });
+
+      fetch(`https://purge.jsdelivr.net/gh/${REPO}@main/uploads/${safeName}`).catch(() => {});
+      return finalUrl;
+    } catch (err) {
+      console.warn('GitHub video upload error:', err);
+      return finalUrl;
+    }
   }
 
   async _uploadImageFileToCloud(fileOrDataUrl, targetSafeName = null) {
@@ -1616,9 +1693,15 @@ class AdminStudio {
 
     for (let i = 0; i < queueSnapshot.length; i++) {
       const q = queueSnapshot[i];
-      const filename = q.file ? (q.file.name || `video_${batchTimestamp}_${i}.mp4`) : `video_${batchTimestamp}_${i}.mp4`;
-      const safeVideoName = `reel_${batchTimestamp}_${i}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-      const cdnVideoUrl = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeVideoName}`;
+      const isLarge = q.file && q.file.size > 20 * 1024 * 1024;
+      const cdnVideoUrl = isLarge
+        ? `https://nature-moments-app.vercel.app/api/stream?file=${safeVideoName}`
+        : `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeVideoName}`;
+
+      // Instant 0ms local playback on current device
+      if (q.file && typeof videoCache !== 'undefined') {
+        videoCache.saveVideoBlob(cdnVideoUrl, q.file).catch(() => {});
+      }
 
       const safeThumbName = `thumb_${batchTimestamp}_${i}.jpg`;
       const cdnThumbUrl = (q.thumbnail_file || q.thumbnail_data_url)

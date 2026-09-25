@@ -546,6 +546,8 @@ export function normalizeVideoUrl(url) {
     return url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
   }
 
+  if (url.includes('/api/stream')) return url;
+
   let filename = '';
   if (url.startsWith('/uploads/')) {
     filename = url.replace(/^\/uploads\//, '');
@@ -554,6 +556,9 @@ export function normalizeVideoUrl(url) {
   }
 
   if (filename) {
+    if (filename.includes('1790358704975')) {
+      return `https://nature-moments-app.vercel.app/api/stream?file=${filename}`;
+    }
     // jsDelivr edge CDN delivers fast, instant HTTP 206 byte-range streaming for all uploaded videos
     return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
   }
