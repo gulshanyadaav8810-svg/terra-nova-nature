@@ -217,14 +217,14 @@
 
                 <div id="video-url-input-container">
                   <div style="display: flex; gap: 8px;">
-                    <input type="text" id="input-video-url" class="form-input" placeholder="Paste Pinterest link (pin.it/... or pinterest.com/pin/...) or direct MP4 URL" value="" style="flex: 1;" />
-                    <button type="button" class="btn btn-primary" id="btn-fetch-pinterest" style="white-space: nowrap; padding: 0 16px; font-size: 0.82rem; background: linear-gradient(135deg, #e60023 0%, #ad081b 100%); border-color: #ad081b;">
-                      <span>📌 Auto-Fetch Pin</span>
+                    <input type="text" id="input-video-url" class="form-input" placeholder="Paste Pinterest link (pin.it/...), Instagram Reel (instagram.com/reel/...), or MP4 URL" value="" style="flex: 1;" />
+                    <button type="button" class="btn btn-primary" id="btn-fetch-pinterest" style="white-space: nowrap; padding: 0 16px; font-size: 0.82rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: #059669;">
+                      <span>⚡ Auto-Fetch Link</span>
                     </button>
                   </div>
                   <div id="pinterest-fetch-status" style="display: none; font-size: 0.8rem; margin-top: 6px; padding: 6px 10px; border-radius: 8px;"></div>
                   <div style="font-size: 0.75rem; color: var(--admin-text-dim); margin-top: 5px;">
-                    💡 <strong>Pinterest Supported:</strong> Paste any Pinterest link (e.g. <code>pin.it/...</code> or <code>pinterest.com/pin/...</code>). It will automatically extract the HD video, title, and cover photo in 1 second! Direct MP4 URLs are also supported.
+                    💡 <strong>Multi-Platform Support:</strong> Paste any Pinterest link (<code>pin.it/...</code> or <code>pinterest.com/pin/...</code>), Instagram Reel (<code>instagram.com/reel/...</code>), or direct MP4 URL. Automatically extracts HD streaming MP4, cover thumbnail, and title in seconds!
                   </div>
                 </div>
 
@@ -486,11 +486,14 @@
       <!-- TAB: BULK UPLOAD -->
       <section class="tab-panel" id="tab-bulk-upload">
         <div class="admin-card" style="margin-bottom: 24px;">
-          <h2 class="card-title">⚡ Bulk Reels Upload & Batch Importer</h2>
-          <p class="card-desc">Quickly upload multiple nature videos at once or batch import via JSON/CSV</p>
+          <h2 class="card-title">⚡ Bulk Video Reels & Multi-Link Importer</h2>
+          <p class="card-desc">Batch import 20 to 200+ links from Pinterest, Instagram Reels, and direct MP4s, or upload multiple video files</p>
 
-          <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-            <button type="button" class="btn btn-primary" id="btn-bulk-tab-files" style="flex: 1;">
+          <div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-primary" id="btn-bulk-tab-urls" style="flex: 1.2;">
+              <span>🔗 Bulk Links Auto-Fetcher (20–200+ Links)</span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-bulk-tab-files" style="flex: 1;">
               <span>📁 Batch Video Files Upload</span>
             </button>
             <button type="button" class="btn btn-secondary" id="btn-bulk-tab-json" style="flex: 1;">
@@ -498,8 +501,130 @@
             </button>
           </div>
 
+          <!-- Mode 0: Multi-Platform Bulk URLs Auto-Fetcher -->
+          <div id="bulk-section-urls">
+            <div class="form-grid-two-col">
+              <div>
+                <div class="form-group">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label class="form-label" style="margin-bottom: 0;">Paste 20 to 200+ Video Links (Pinterest / Instagram / MP4)</label>
+                    <span id="bulk-urls-detected-count" style="font-size: 0.76rem; background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 2px 8px; border-radius: 999px; font-weight: 700;">0 links detected</span>
+                  </div>
+                  <textarea id="bulk-urls-input" class="form-textarea" style="min-height: 190px; font-family: monospace; font-size: 0.82rem; line-height: 1.5;" placeholder="Paste 20 to 200+ links here (one per line, space, or comma separated):
+https://www.pinterest.com/pin/104779128829730392/
+https://pin.it/7wJz8j1gW
+https://www.instagram.com/natgeo/reel/DdG4RIxIPyf/
+https://www.instagram.com/natgeo/reel/DbIdlf0j6uA/
+https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"></textarea>
+                  <div style="font-size: 0.74rem; color: var(--admin-text-dim); margin-top: 4px;">
+                    ✨ Paste any mixture of Pinterest Pins (including pin.it), Instagram Reels, and direct MP4 URLs.
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                  <div class="form-group">
+                    <label class="form-label" for="bulk-urls-category">Default Category</label>
+                    <select id="bulk-urls-category" class="form-select">
+                      <!-- Populated dynamically with categories -->
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Trending Status</label>
+                    <div style="padding-top: 10px;">
+                      <label style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; cursor: pointer;">
+                        <input type="checkbox" id="bulk-urls-trending" class="admin-checkbox" checked />
+                        <span>Mark all as Trending 🔥</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 12px;">
+                  <button type="button" class="btn btn-primary" id="btn-fetch-bulk-urls" style="flex: 2; padding: 12px; font-size: 0.92rem; background: linear-gradient(135deg, #10b981 0%, #047857 100%);">
+                    <span>⚡ Fetch & Extract All Links</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="btn-clear-bulk-urls" style="flex: 0.8; padding: 12px;">
+                    <span>🗑️ Clear</span>
+                  </button>
+                </div>
+
+                <!-- Real-time Progress Bar -->
+                <div id="bulk-urls-progress-wrap" style="display: none; margin-top: 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--admin-border); border-radius: 12px; padding: 14px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 8px;">
+                    <span id="bulk-urls-progress-status" style="color: #60a5fa; font-weight: 600;">Resolving links...</span>
+                    <span id="bulk-urls-progress-percent" style="font-weight: 700; color: #34d399;">0%</span>
+                  </div>
+                  <div style="background: rgba(255,255,255,0.1); border-radius: 999px; height: 8px; overflow: hidden;">
+                    <div id="bulk-urls-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #00FFE0); border-radius: 999px; transition: width 0.3s ease;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Batch Summary Box -->
+              <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--admin-border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                  <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 6px;">Staged Queue Summary</h3>
+                  <p style="font-size: 0.82rem; color: var(--admin-text-muted); margin-bottom: 16px;">
+                    Review extracted covers, edit titles freely, select categories, and publish all in 1 click.
+                  </p>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div style="background: rgba(255,255,255,0.04); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                      <div style="font-size: 0.72rem; color: var(--admin-text-muted); text-transform: uppercase;">Extracted Ready</div>
+                      <div id="bulk-urls-ready-count" style="font-size: 1.5rem; font-weight: 800; color: #34d399;">0</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.04); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                      <div style="font-size: 0.72rem; color: var(--admin-text-muted); text-transform: uppercase;">Failed / Skipped</div>
+                      <div id="bulk-urls-failed-count" style="font-size: 1.5rem; font-weight: 800; color: #f87171;">0</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <button type="button" class="btn btn-primary" id="btn-publish-bulk-urls" style="width: 100%; padding: 14px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #00FFE0 0%, #009988 100%); color: #000; border: none;" disabled>
+                    <span>🚀 Publish All Extracted Reels to App</span>
+                  </button>
+                  <div style="font-size: 0.74rem; text-align: center; color: var(--admin-text-muted); margin-top: 8px;">
+                    Instantly syncs with Android App, Web App feed, and GitHub.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Staged Queue Review Table with Inline Editable Titles -->
+            <div id="bulk-urls-queue-wrap" style="margin-top: 24px; display: none;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="font-size: 0.95rem; font-weight: 700;">
+                  Staged Reels (<span id="bulk-urls-table-count">0</span> items) — Edit Titles & Review
+                </h4>
+                <button type="button" class="btn btn-secondary" id="btn-bulk-urls-clear-queue" style="font-size: 0.75rem; padding: 4px 10px;">
+                  Clear Staged Queue
+                </button>
+              </div>
+
+              <div style="max-height: 480px; overflow-y: auto; border: 1px solid var(--admin-border); border-radius: 12px;">
+                <table class="bulk-queue-table" style="width: 100%; border-collapse: collapse;">
+                  <thead style="position: sticky; top: 0; background: #0f172a; z-index: 2;">
+                    <tr>
+                      <th style="width: 36px; padding: 10px 8px;">#</th>
+                      <th style="width: 64px; padding: 10px 8px;">Cover</th>
+                      <th style="padding: 10px 8px;">Reel Title (Click to Edit)</th>
+                      <th style="width: 120px; padding: 10px 8px;">Platform</th>
+                      <th style="width: 150px; padding: 10px 8px;">Category</th>
+                      <th style="width: 70px; padding: 10px 8px; text-align: center;">Preview</th>
+                      <th style="width: 50px; padding: 10px 8px; text-align: center;">Delete</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bulk-urls-queue-tbody">
+                    <!-- Populated via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           <!-- Mode 1: Multi-File Batch Uploader -->
-          <div id="bulk-section-files">
+          <div id="bulk-section-files" style="display: none;">
             <div class="form-grid-two-col">
               <div>
                 <div class="form-group">

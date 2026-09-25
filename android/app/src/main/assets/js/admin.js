@@ -15,7 +15,8 @@ class AdminStudio {
     this.categories = [];
     this.selectedReelIds = new Set();
     this.bulkFilesQueue = [];
-    this.bulkMode = 'files'; // 'files' | 'json'
+    this.bulkUrlsQueue = [];
+    this.bulkMode = 'urls'; // 'urls' | 'files' | 'json'
     this.videoMode = 'url'; // 'url' | 'file'
     this.thumbMode = 'url'; // 'url' | 'file'
     this.uploadedVideoBlobUrl = null;
@@ -257,7 +258,7 @@ class AdminStudio {
       });
     }
 
-    // Also update bulk batch category
+    // Also update bulk batch categories
     const bulkCatSelect = document.getElementById('bulk-batch-category');
     if (bulkCatSelect) {
       bulkCatSelect.innerHTML = '';
@@ -266,6 +267,17 @@ class AdminStudio {
         opt.value = cat.id;
         opt.textContent = `${cat.icon} ${cat.name}`;
         bulkCatSelect.appendChild(opt);
+      });
+    }
+
+    const bulkUrlsCatSelect = document.getElementById('bulk-urls-category');
+    if (bulkUrlsCatSelect) {
+      bulkUrlsCatSelect.innerHTML = '';
+      this.categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.id;
+        opt.textContent = `${cat.icon} ${cat.name}`;
+        bulkUrlsCatSelect.appendChild(opt);
       });
     }
   }
@@ -645,29 +657,31 @@ class AdminStudio {
     thumbDropzone?.addEventListener('click', () => this.inputThumbFile?.click());
     this.inputThumbFile?.addEventListener('change', (e) => this._handleThumbFileUpload(e.target.files[0]));
 
-    // Pinterest Auto-Fetch Button & Paste Detection
-    const btnFetchPin = document.getElementById('btn-fetch-pinterest');
-    btnFetchPin?.addEventListener('click', () => {
+    // Multi-Platform (Pinterest / Instagram / MP4) Auto-Fetch Button & Paste Detection
+    const btnFetchMedia = document.getElementById('btn-fetch-pinterest');
+    btnFetchMedia?.addEventListener('click', () => {
       const url = this.inputVideoUrl?.value.trim();
-      this._resolvePinterestUrl(url);
+      this._resolveMediaUrl(url);
     });
 
-    let pinDebounceTimer = null;
+    let mediaDebounceTimer = null;
+    const isSupportedMediaUrl = (val) => val && (val.includes('pinterest.com') || val.includes('pin.it') || val.includes('instagram.com') || val.includes('.mp4'));
+
     this.inputVideoUrl?.addEventListener('paste', () => {
       setTimeout(() => {
         const val = this.inputVideoUrl?.value.trim() || '';
-        if (val.includes('pinterest.com') || val.includes('pin.it')) {
-          this._resolvePinterestUrl(val);
+        if (isSupportedMediaUrl(val)) {
+          this._resolveMediaUrl(val);
         }
       }, 100);
     });
 
     this.inputVideoUrl?.addEventListener('input', () => {
       const val = this.inputVideoUrl?.value.trim() || '';
-      if (val.includes('pinterest.com') || val.includes('pin.it')) {
-        clearTimeout(pinDebounceTimer);
-        pinDebounceTimer = setTimeout(() => {
-          this._resolvePinterestUrl(val);
+      if (isSupportedMediaUrl(val)) {
+        clearTimeout(mediaDebounceTimer);
+        mediaDebounceTimer = setTimeout(() => {
+          this._resolveMediaUrl(val);
         }, 800);
       }
     });
@@ -678,7 +692,7 @@ class AdminStudio {
         el.addEventListener('input', () => {
           if (el === this.inputVideoUrl) {
             const val = this.inputVideoUrl.value.trim();
-            if (val && !val.includes('pinterest.com') && !val.includes('pin.it') && (val.startsWith('http://') || val.startsWith('https://'))) {
+            if (val && !val.includes('pinterest.com') && !val.includes('pin.it') && !val.includes('instagram.com') && (val.startsWith('http://') || val.startsWith('https://'))) {
               this._loadVideoToScrubber(val);
             }
           }
@@ -873,40 +887,57 @@ class AdminStudio {
     }
   }
 
-  async _resolvePinterestUrl(rawUrl) {
+  async _resolveMediaUrl(rawUrl) {
     const statusEl = document.getElementById('pinterest-fetch-status');
     const fetchBtn = document.getElementById('btn-fetch-pinterest');
-    if (!rawUrl || (!rawUrl.includes('pinterest.com') && !rawUrl.includes('pin.it'))) {
+    const trimmed = (rawUrl || '').trim();
+    if (!trimmed) {
       if (statusEl) {
         statusEl.style.display = 'block';
         statusEl.style.background = 'rgba(239, 68, 68, 0.15)';
         statusEl.style.color = '#ef4444';
-        statusEl.innerHTML = '⚠️ Please enter a valid Pinterest link (e.g. pin.it/... or pinterest.com/pin/...)';
+        statusEl.innerHTML = '⚠️ Please enter a valid video link (Pinterest, Instagram Reel, or MP4 URL)';
+      }
+      return;
+    }
+
+    const isPin = trimmed.includes('pinterest.com') || trimmed.includes('pin.it');
+    const isInsta = trimmed.includes('instagram.com');
+    const isMp4 = trimmed.includes('.mp4');
+
+    if (!isPin && !isInsta && !isMp4) {
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.background = 'rgba(239, 68, 68, 0.15)';
+        statusEl.style.color = '#ef4444';
+        statusEl.innerHTML = '⚠️ Unrecognized link. Supported: Pinterest (pin.it/...), Instagram Reels (instagram.com/reel/...), or direct .mp4 URLs';
       }
       return;
     }
 
     if (fetchBtn) {
       fetchBtn.disabled = true;
-      fetchBtn.innerHTML = '<span>⏳ Resolving Pin...</span>';
+      fetchBtn.innerHTML = '<span>⏳ Resolving Media...</span>';
     }
     if (statusEl) {
       statusEl.style.display = 'block';
       statusEl.style.background = 'rgba(59, 130, 246, 0.15)';
       statusEl.style.color = '#60a5fa';
-      statusEl.innerHTML = '⚡ Extracting HD Video & Cover from Pinterest Cloud CDN...';
+      statusEl.innerHTML = isPin ? '⚡ Extracting HD Video & Cover from Pinterest...' :
+                           isInsta ? '⚡ Extracting Video & Cover from Instagram...' :
+                           '⚡ Loading Direct MP4 Video Stream...';
     }
-    this.showToast('Extracting HD Video & Cover from Pinterest...', '📌');
+    this.showToast('Extracting HD Video & Cover...', isPin ? '📌' : isInsta ? '📸' : '🎬');
 
     try {
       const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
       const apiEndpoint = isLocal ? '/api/reels' : 'https://nature-moments-app.vercel.app/api/reels';
 
-      const res = await fetch(`${apiEndpoint}?action=resolve_media&url=${encodeURIComponent(rawUrl)}`);
+      const res = await fetch(`${apiEndpoint}?action=resolve_media&url=${encodeURIComponent(trimmed)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.video_url) {
-          // 1. Set direct CloudFront MP4 URL
+          // 1. Set direct MP4 URL
           if (this.inputVideoUrl) this.inputVideoUrl.value = data.video_url;
 
           // 2. Set extracted Title if title is empty or default
@@ -918,7 +949,7 @@ class AdminStudio {
           if (data.thumbnail_url) {
             if (this.inputThumbUrl) this.inputThumbUrl.value = data.thumbnail_url;
             if (this.activeThumbPreviewImg) this.activeThumbPreviewImg.src = data.thumbnail_url;
-            if (this.activeThumbStatusText) this.activeThumbStatusText.textContent = 'Pinterest HD Cover Photo Selected';
+            if (this.activeThumbStatusText) this.activeThumbStatusText.textContent = `${isPin ? 'Pinterest' : isInsta ? 'Instagram' : 'HD'} Cover Photo Selected`;
             this.capturedThumbDataUrl = null;
             this.uploadedThumbFile = null;
             this.thumbMode = 'url';
@@ -928,35 +959,39 @@ class AdminStudio {
             statusEl.style.display = 'block';
             statusEl.style.background = 'rgba(16, 185, 129, 0.15)';
             statusEl.style.color = '#34d399';
-            statusEl.innerHTML = '✅ <strong>Extracted:</strong> Direct HD MP4 from Pinterest Global CDN! Ready to Publish.';
+            statusEl.innerHTML = `✅ <strong>Extracted:</strong> Direct HD MP4 from ${isPin ? 'Pinterest CDN' : isInsta ? 'Instagram' : 'Media Server'}! Ready to Publish.`;
           }
-          this.showToast('✅ Pinterest HD Video & Cover Extracted!', '📌');
+          this.showToast(`✅ ${isPin ? 'Pinterest' : isInsta ? 'Instagram' : 'Media'} HD Video & Cover Extracted!`, '🌿');
 
           // Load video into scrubber & live simulator
           this._loadVideoToScrubber(data.video_url);
           this._updateLivePreview();
           return;
         } else {
-          throw new Error(data.error || 'Could not find video in this Pin');
+          throw new Error(data.error || 'Could not find video in this link');
         }
       } else {
         throw new Error('Server connection error');
       }
     } catch (err) {
-      console.warn('Pinterest resolution error:', err);
+      console.warn('Media resolution error:', err);
       if (statusEl) {
         statusEl.style.display = 'block';
         statusEl.style.background = 'rgba(239, 68, 68, 0.15)';
         statusEl.style.color = '#ef4444';
-        statusEl.innerHTML = `⚠️ ${err.message || 'Could not extract video from this link'}. Make sure it is a public video Pin.`;
+        statusEl.innerHTML = `⚠️ ${err.message || 'Could not extract video from this link'}. Make sure it is a public video pin/reel.`;
       }
-      this.showToast('⚠️ Pinterest extraction: ' + err.message, '⚠️');
+      this.showToast('⚠️ Extraction notice: ' + err.message, '⚠️');
     } finally {
       if (fetchBtn) {
         fetchBtn.disabled = false;
-        fetchBtn.innerHTML = '<span>📌 Auto-Fetch Pin</span>';
+        fetchBtn.innerHTML = '<span>⚡ Auto-Fetch Link</span>';
       }
     }
+  }
+
+  _resolvePinterestUrl(rawUrl) {
+    return this._resolveMediaUrl(rawUrl);
   }
 
   async _uploadVideoFileToCloud(file, targetSafeName = null) {
@@ -1311,29 +1346,79 @@ class AdminStudio {
   }
 
   _bindBulkUploadEvents() {
+    const btnTabUrls = document.getElementById('btn-bulk-tab-urls');
     const btnTabFiles = document.getElementById('btn-bulk-tab-files');
     const btnTabJson = document.getElementById('btn-bulk-tab-json');
+    const secUrls = document.getElementById('bulk-section-urls');
     const secFiles = document.getElementById('bulk-section-files');
     const secJson = document.getElementById('bulk-section-json');
 
-    btnTabFiles?.addEventListener('click', () => {
-      this.bulkMode = 'files';
-      btnTabFiles.classList.add('btn-primary');
-      btnTabFiles.classList.remove('btn-secondary');
-      btnTabJson.classList.remove('btn-primary');
-      btnTabJson.classList.add('btn-secondary');
-      if (secFiles) secFiles.style.display = 'block';
+    const switchBulkTab = (mode) => {
+      this.bulkMode = mode;
+      [btnTabUrls, btnTabFiles, btnTabJson].forEach(b => {
+        if (b) {
+          b.classList.remove('btn-primary');
+          b.classList.add('btn-secondary');
+        }
+      });
+      if (secUrls) secUrls.style.display = 'none';
+      if (secFiles) secFiles.style.display = 'none';
       if (secJson) secJson.style.display = 'none';
+
+      if (mode === 'urls') {
+        btnTabUrls?.classList.add('btn-primary');
+        btnTabUrls?.classList.remove('btn-secondary');
+        if (secUrls) secUrls.style.display = 'block';
+      } else if (mode === 'files') {
+        btnTabFiles?.classList.add('btn-primary');
+        btnTabFiles?.classList.remove('btn-secondary');
+        if (secFiles) secFiles.style.display = 'block';
+      } else if (mode === 'json') {
+        btnTabJson?.classList.add('btn-primary');
+        btnTabJson?.classList.remove('btn-secondary');
+        if (secJson) secJson.style.display = 'block';
+      }
+    };
+
+    btnTabUrls?.addEventListener('click', () => switchBulkTab('urls'));
+    btnTabFiles?.addEventListener('click', () => switchBulkTab('files'));
+    btnTabJson?.addEventListener('click', () => switchBulkTab('json'));
+
+    // Bulk URLs Input Counter
+    const urlsInput = document.getElementById('bulk-urls-input');
+    const countPill = document.getElementById('bulk-urls-detected-count');
+    const updateUrlCount = () => {
+      const text = (urlsInput?.value || '').trim();
+      const urls = this._parseUrlsFromText(text);
+      if (countPill) {
+        countPill.textContent = `${urls.length} link${urls.length === 1 ? '' : 's'} detected`;
+        countPill.style.color = urls.length > 0 ? '#10b981' : 'var(--admin-text-muted)';
+      }
+    };
+
+    urlsInput?.addEventListener('input', updateUrlCount);
+    urlsInput?.addEventListener('paste', () => setTimeout(updateUrlCount, 50));
+
+    // Clear textarea
+    document.getElementById('btn-clear-bulk-urls')?.addEventListener('click', () => {
+      if (urlsInput) urlsInput.value = '';
+      updateUrlCount();
     });
 
-    btnTabJson?.addEventListener('click', () => {
-      this.bulkMode = 'json';
-      btnTabJson.classList.add('btn-primary');
-      btnTabJson.classList.remove('btn-secondary');
-      btnTabFiles.classList.remove('btn-primary');
-      btnTabFiles.classList.add('btn-secondary');
-      if (secFiles) secFiles.style.display = 'none';
-      if (secJson) secJson.style.display = 'block';
+    // Clear Queue
+    document.getElementById('btn-bulk-urls-clear-queue')?.addEventListener('click', () => {
+      this.bulkUrlsQueue = [];
+      this._renderBulkUrlsQueue();
+    });
+
+    // Fetch All Links Button
+    document.getElementById('btn-fetch-bulk-urls')?.addEventListener('click', () => {
+      this._fetchBulkUrls();
+    });
+
+    // Publish All Fetched Reels Button
+    document.getElementById('btn-publish-bulk-urls')?.addEventListener('click', () => {
+      this._publishBulkUrlsQueue();
     });
 
     // Thumbnail Generation Mode for Bulk Upload
@@ -1465,6 +1550,304 @@ class AdminStudio {
         alert('Invalid JSON: ' + err.message);
       }
     });
+  }
+
+  _parseUrlsFromText(text) {
+    if (!text) return [];
+    // Split by newlines, commas, semicolons, or whitespace
+    const tokens = text.split(/[\r\n,; \t]+/);
+    const seen = new Set();
+    const result = [];
+    tokens.forEach(tok => {
+      let t = tok.trim();
+      if (!t) return;
+      if (!t.startsWith('http://') && !t.startsWith('https://')) {
+        if (t.includes('pinterest.com') || t.includes('pin.it') || t.includes('instagram.com')) {
+          t = 'https://' + t;
+        } else {
+          return;
+        }
+      }
+      if (!seen.has(t)) {
+        seen.add(t);
+        result.push(t);
+      }
+    });
+    return result;
+  }
+
+  async _fetchBulkUrls() {
+    const urlsInput = document.getElementById('bulk-urls-input');
+    const urls = this._parseUrlsFromText(urlsInput?.value || '');
+    if (urls.length === 0) {
+      this.showToast('⚠️ Please paste at least one valid video link (Pinterest, Instagram, or MP4)', '⚠️');
+      return;
+    }
+
+    const progressWrap = document.getElementById('bulk-urls-progress-wrap');
+    const progressStatus = document.getElementById('bulk-urls-progress-status');
+    const progressPercent = document.getElementById('bulk-urls-progress-percent');
+    const progressBar = document.getElementById('bulk-urls-progress-bar');
+    const fetchBtn = document.getElementById('btn-fetch-bulk-urls');
+    const defaultCat = document.getElementById('bulk-urls-category')?.value || 'forest';
+    const isTrending = document.getElementById('bulk-urls-trending')?.checked ?? true;
+
+    if (fetchBtn) {
+      fetchBtn.disabled = true;
+      fetchBtn.innerHTML = '<span>⏳ Extracting Links...</span>';
+    }
+    if (progressWrap) progressWrap.style.display = 'block';
+
+    const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    const apiEndpoint = isLocal ? '/api/reels' : 'https://nature-moments-app.vercel.app/api/reels';
+
+    let successCount = 0;
+    let failedCount = 0;
+    const catObj = getCategoryById(defaultCat);
+    const catFallbackImage = catObj ? catObj.image_url : 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80';
+
+    this.showToast(`⚡ Extracting ${urls.length} links in high-speed batches...`, '🚀');
+
+    // Process in parallel batches of 3
+    const CHUNK_SIZE = 3;
+    for (let i = 0; i < urls.length; i += CHUNK_SIZE) {
+      const chunk = urls.slice(i, i + CHUNK_SIZE);
+      const chunkPromises = chunk.map(async (url) => {
+        try {
+          const res = await fetch(`${apiEndpoint}?action=resolve_media&url=${encodeURIComponent(url)}`);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const data = await res.json();
+          if (data.success && data.video_url) {
+            const cid = `reel-${defaultCat}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
+            return {
+              content_id: cid,
+              id: cid,
+              title: data.title || 'Nature Status Reel',
+              description: `Trending Nature Status: ${data.title || 'Nature Moments Reel'}`,
+              video_url: data.video_url,
+              thumbnail_url: data.thumbnail_url || catFallbackImage,
+              source: data.source || (url.includes('pinterest') || url.includes('pin.it') ? 'pinterest' : url.includes('instagram') ? 'instagram' : 'direct'),
+              category_id: defaultCat,
+              duration: '0:25',
+              is_trending: isTrending,
+              is_downloadable: true,
+              views_count: Math.floor(Math.random() * 8000) + 1500,
+              likes_count: Math.floor(Math.random() * 2500) + 300,
+              shares_count: Math.floor(Math.random() * 800) + 80,
+              created_at: new Date().toISOString()
+            };
+          }
+          throw new Error(data.error || 'No video found');
+        } catch (err) {
+          console.warn('Failed to resolve URL:', url, err.message);
+          return null;
+        }
+      });
+
+      const chunkResults = await Promise.all(chunkPromises);
+      chunkResults.forEach(item => {
+        if (item) {
+          successCount++;
+          this.bulkUrlsQueue.push(item);
+        } else {
+          failedCount++;
+        }
+      });
+
+      // Update progress
+      const processed = Math.min(i + CHUNK_SIZE, urls.length);
+      const pct = Math.round((processed / urls.length) * 100);
+      if (progressStatus) progressStatus.textContent = `Resolving ${processed} of ${urls.length} links (${successCount} extracted)...`;
+      if (progressPercent) progressPercent.textContent = `${pct}%`;
+      if (progressBar) progressBar.style.width = `${pct}%`;
+
+      this._renderBulkUrlsQueue();
+    }
+
+    if (fetchBtn) {
+      fetchBtn.disabled = false;
+      fetchBtn.innerHTML = '<span>⚡ Fetch & Extract All Links</span>';
+    }
+    if (progressStatus) {
+      progressStatus.textContent = `✅ Complete! ${successCount} link${successCount === 1 ? '' : 's'} extracted successfully (${failedCount} failed/skipped).`;
+    }
+    if (progressPercent) progressPercent.textContent = '100%';
+    if (progressBar) progressBar.style.width = '100%';
+
+    this.showToast(`🎉 ${successCount} video reels extracted & ready to publish!`, '🌿');
+  }
+
+  _renderBulkUrlsQueue() {
+    const queueWrap = document.getElementById('bulk-urls-queue-wrap');
+    const tbody = document.getElementById('bulk-urls-queue-tbody');
+    const tableCount = document.getElementById('bulk-urls-table-count');
+    const readyCount = document.getElementById('bulk-urls-ready-count');
+    const failedCount = document.getElementById('bulk-urls-failed-count');
+    const btnPublish = document.getElementById('btn-publish-bulk-urls');
+
+    const total = this.bulkUrlsQueue.length;
+    if (readyCount) readyCount.textContent = total;
+    if (tableCount) tableCount.textContent = total;
+    if (btnPublish) btnPublish.disabled = total === 0;
+
+    if (!tbody) return;
+
+    if (total === 0) {
+      if (queueWrap) queueWrap.style.display = 'none';
+      tbody.innerHTML = '';
+      return;
+    }
+
+    if (queueWrap) queueWrap.style.display = 'block';
+    tbody.innerHTML = '';
+
+    this.bulkUrlsQueue.forEach((item, index) => {
+      const tr = document.createElement('tr');
+      const platformIcon = item.source === 'instagram' ? '📸 Instagram' :
+                           item.source === 'pinterest' ? '📌 Pinterest' : '🎬 Direct MP4';
+      const platformColor = item.source === 'instagram' ? '#e1306c' :
+                            item.source === 'pinterest' ? '#e60023' : '#60a5fa';
+
+      tr.innerHTML = `
+        <td style="font-weight: 700; color: var(--admin-text-dim); text-align: center; padding: 8px;">${index + 1}</td>
+        <td style="padding: 8px;">
+          <div style="width: 48px; height: 68px; border-radius: 6px; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.2); background: #111;">
+            <img src="${item.thumbnail_url}" style="width: 100%; height: 100%; object-fit: cover;" alt="Cover" />
+          </div>
+        </td>
+        <td style="padding: 8px;">
+          <input type="text" class="form-input bulk-url-title-input" data-index="${index}" value="${item.title.replace(/"/g, '&quot;')}" style="width: 100%; padding: 6px 10px; font-size: 0.85rem;" />
+        </td>
+        <td style="padding: 8px;">
+          <span style="display: inline-block; font-size: 0.74rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: ${platformColor}20; color: ${platformColor}; border: 1px solid ${platformColor}40;">
+            ${platformIcon}
+          </span>
+        </td>
+        <td style="padding: 8px;">
+          <select class="form-select bulk-url-cat-select" data-index="${index}" style="padding: 6px 10px; font-size: 0.82rem;">
+            ${this.categories.map(c => `
+              <option value="${c.id}" ${c.id === item.category_id ? 'selected' : ''}>${c.icon} ${c.name}</option>
+            `).join('')}
+          </select>
+        </td>
+        <td style="text-align: center; padding: 8px;">
+          <button type="button" class="btn btn-secondary bulk-url-preview-btn" data-index="${index}" style="padding: 4px 8px; font-size: 0.8rem;" title="Preview Video">
+            ▶️
+          </button>
+        </td>
+        <td style="text-align: center; padding: 8px;">
+          <button type="button" class="btn btn-danger bulk-url-delete-btn" data-index="${index}" style="padding: 4px 8px; font-size: 0.8rem;" title="Remove">
+            ✖
+          </button>
+        </td>
+      `;
+
+      // Inline Title Edit
+      const titleInput = tr.querySelector('.bulk-url-title-input');
+      titleInput?.addEventListener('input', (e) => {
+        this.bulkUrlsQueue[index].title = e.target.value.trim() || 'Nature Status Reel';
+      });
+
+      // Inline Category Select
+      const catSelect = tr.querySelector('.bulk-url-cat-select');
+      catSelect?.addEventListener('change', (e) => {
+        this.bulkUrlsQueue[index].category_id = e.target.value;
+      });
+
+      // Preview Video
+      const prevBtn = tr.querySelector('.bulk-url-preview-btn');
+      prevBtn?.addEventListener('click', () => {
+        this._openPlayerModal({ video_url: item.video_url, title: item.title });
+      });
+
+      // Delete Row
+      const delBtn = tr.querySelector('.bulk-url-delete-btn');
+      delBtn?.addEventListener('click', () => {
+        this.bulkUrlsQueue.splice(index, 1);
+        this._renderBulkUrlsQueue();
+      });
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  async _publishBulkUrlsQueue() {
+    if (this.bulkUrlsQueue.length === 0) {
+      this.showToast('⚠️ No reels in queue to publish', '⚠️');
+      return;
+    }
+
+    const btnPublish = document.getElementById('btn-publish-bulk-urls');
+    if (btnPublish) {
+      btnPublish.disabled = true;
+      btnPublish.innerHTML = '<span>⏳ Publishing to App & Cloud...</span>';
+    }
+
+    this.showToast(`Publishing ${this.bulkUrlsQueue.length} reels to Nature Moments App...`, '🚀');
+
+    try {
+      const reelsToSave = this.bulkUrlsQueue.map((item, idx) => {
+        const cid = item.content_id || item.id || `reel-${item.category_id || 'forest'}-${Date.now().toString(36)}-${idx}`;
+        return {
+          content_id: cid,
+          id: cid,
+          title: item.title || 'Nature Status Reel',
+          description: item.description || `Trending Nature Status: ${item.title || 'Nature Moments'}`,
+          video_url: item.video_url,
+          thumbnail_url: item.thumbnail_url,
+          source: item.source || 'direct',
+          category_id: item.category_id || 'forest',
+          duration: item.duration || '0:25',
+          is_trending: Boolean(item.is_trending),
+          is_downloadable: true,
+          views_count: item.views_count || Math.floor(Math.random() * 8000) + 1200,
+          likes_count: item.likes_count || Math.floor(Math.random() * 2500) + 200,
+          shares_count: item.shares_count || Math.floor(Math.random() * 500) + 50,
+          created_at: item.created_at || new Date().toISOString()
+        };
+      });
+
+      // 1. Add batch to local dataset & broadcast
+      addCustomReelsBatch(reelsToSave);
+
+      // 2. Commit batch to GitHub API if token or backend is active
+      const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      const apiEndpoint = isLocal ? '/api/reels' : 'https://nature-moments-app.vercel.app/api/reels';
+
+      try {
+        await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'batch_add',
+            reels: reelsToSave
+          })
+        });
+      } catch (err) {
+        console.warn('API cloud sync notice:', err.message);
+      }
+
+      this.showToast(`🎉 Successfully published ${reelsToSave.length} reels to live app!`, '🌿');
+
+      // Clear queue and input
+      this.bulkUrlsQueue = [];
+      const urlsInput = document.getElementById('bulk-urls-input');
+      if (urlsInput) urlsInput.value = '';
+      const countPill = document.getElementById('bulk-urls-detected-count');
+      if (countPill) countPill.textContent = '0 links detected';
+      this._renderBulkUrlsQueue();
+
+      // Reload dataset and transition to library view
+      this._loadData();
+      this.switchTab('tab-library');
+    } catch (err) {
+      alert('Error publishing reels: ' + err.message);
+    } finally {
+      if (btnPublish) {
+        btnPublish.disabled = false;
+        btnPublish.innerHTML = '<span>🚀 Publish All Extracted Reels to App</span>';
+      }
+    }
   }
 
   _extractVideoFrame(blobUrl, seekSec = 1.0) {

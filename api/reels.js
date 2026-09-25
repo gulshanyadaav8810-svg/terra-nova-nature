@@ -1,4 +1,7 @@
 import crypto from 'crypto';
+import fs from 'fs';
+
+const CHROME_PATH = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
 function computeGitBlobSha(buffer) {
   const header = Buffer.from(`blob ${buffer.length}\0`);
@@ -6,19 +9,50 @@ function computeGitBlobSha(buffer) {
   return crypto.createHash('sha1').update(store).digest('hex');
 }
 
+async function resolveRedirects(initialUrl) {
+  let cur = (initialUrl || '').trim();
+  if (!cur.startsWith('http')) cur = 'https://' + cur;
+
+  for (let i = 0; i < 5; i++) {
+    try {
+      const res = await fetch(cur, {
+        method: 'GET',
+        redirect: 'manual',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
+      const loc = res.headers.get('location');
+      if (loc) {
+        cur = loc.startsWith('http') ? loc : new URL(loc, cur).href;
+        if (cur.includes('/pin/')) break;
+      } else {
+        break;
+      }
+    } catch (e) {
+      break;
+    }
+  }
+  return cur;
+}
+
 async function extractPinterestMedia(inputUrl) {
   let targetUrl = (inputUrl || '').trim();
-  if (!targetUrl.startsWith('http')) {
-    targetUrl = 'https://' + targetUrl;
+  if (!targetUrl.startsWith('http')) targetUrl = 'https://' + targetUrl;
+
+  // Resolve pin.it shortlinks
+  if (targetUrl.includes('pin.it')) {
+    targetUrl = await resolveRedirects(targetUrl);
   }
 
-  // If already a direct MP4, return as is
+  // Direct MP4
   if (targetUrl.includes('.mp4')) {
     return {
       success: true,
       video_url: targetUrl,
       thumbnail_url: '',
-      title: ''
+      title: 'Nature Video Reel',
+      source: 'direct'
     };
   }
 
@@ -126,6 +160,151 @@ async function extractPinterestMedia(inputUrl) {
   }
 }
 
+async function extractInstagramMedia(inputUrl) {
+  let targetUrl = (inputUrl || '').trim();
+  if (!targetUrl.startsWith('http')) targetUrl = 'https://' + targetUrl;
+
+  const match = targetUrl.match(/(?:reel|reels|p)\/([A-Za-z0-9_-]+)/);
+  const shortcode = match ? match[1] : '';
+  const cleanUrl = shortcode ? `https://www.instagram.com/reel/${shortcode}/` : targetUrl;
+
+  let title = 'Instagram Reel';
+  let thumbUrl = '';
+  let videoUrl = '';
+
+  // 1. Try Headless Chrome if available
+  if (fs.existsSync(CHROME_PATH)) {
+    try {
+      const puppeteer = (await import('puppeteer-core')).default;
+      const browser = await puppeteer.launch({
+        executablePath: CHROME_PATH,
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+
+      const page = await browser.newPage();
+      page.on('response', (response) => {
+        const u = response.url();
+        const ct = response.headers()['content-type'] || '';
+        if ((ct.includes('video/mp4') || u.includes('.mp4')) && !videoUrl) {
+          videoUrl = u;
+        }
+      });
+
+      await page.goto(cleanUrl, { waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
+
+      const meta = await page.evaluate(() => {
+        const v = document.querySelector('video');
+        const ogImg = document.querySelector('meta[property="og:image"]')?.content ||
+                      document.querySelector('meta[name="twitter:image"]')?.content;
+        const ogTitle = document.querySelector('meta[property="og:title"]')?.content || document.title;
+        return {
+          vSrc: v ? (v.src || v.querySelector('source')?.src) : '',
+          ogImg: ogImg || '',
+          ogTitle: ogTitle || ''
+        };
+      });
+
+      if (!videoUrl && meta.vSrc && !meta.vSrc.startsWith('blob:')) {
+        videoUrl = meta.vSrc;
+      }
+      if (meta.ogImg) thumbUrl = meta.ogImg;
+      if (meta.ogTitle) {
+        title = meta.ogTitle.replace(/\s*\|\s*Instagram.*$/i, '').replace(/^Instagram video by [^:]*:\s*/i, '').trim();
+      }
+
+      await browser.close();
+
+      if (videoUrl) {
+        return {
+          success: true,
+          video_url: videoUrl,
+          thumbnail_url: thumbUrl,
+          title: title || 'Instagram Reel',
+          source: 'instagram'
+        };
+      }
+    } catch (err) {
+      console.warn('Puppeteer Instagram error:', err.message);
+    }
+  }
+
+  // 2. Fallback: oEmbed or embed extraction
+  try {
+    const oembedRes = await fetch(`https://api.instagram.com/oembed/?url=${encodeURIComponent(cleanUrl)}`);
+    if (oembedRes.ok) {
+      const oembed = await oembedRes.json();
+      if (oembed.title) title = oembed.title;
+      if (oembed.thumbnail_url) thumbUrl = oembed.thumbnail_url;
+    }
+  } catch (e) {}
+
+  if (videoUrl) {
+    return {
+      success: true,
+      video_url: videoUrl,
+      thumbnail_url: thumbUrl,
+      title: title || 'Instagram Reel',
+      source: 'instagram'
+    };
+  }
+
+  return {
+    success: false,
+    error: 'Could not extract direct video from Instagram. Please ensure the reel is public.'
+  };
+}
+
+async function resolveSingleMedia(inputUrl) {
+  const url = (inputUrl || '').trim();
+  if (!url) return { success: false, error: 'Empty URL provided' };
+
+  if (url.includes('.mp4')) {
+    const filename = url.split('/').pop().split('?')[0].replace(/\.mp4$/i, '').replace(/[-_]/g, ' ');
+    const title = filename.charAt(0).toUpperCase() + filename.slice(1);
+    return {
+      success: true,
+      original_url: url,
+      video_url: url,
+      thumbnail_url: '',
+      title: title || 'Nature Video Reel',
+      source: 'direct'
+    };
+  }
+
+  if (url.includes('pinterest.com') || url.includes('pin.it')) {
+    const res = await extractPinterestMedia(url);
+    return { ...res, original_url: url };
+  }
+
+  if (url.includes('instagram.com')) {
+    const res = await extractInstagramMedia(url);
+    return { ...res, original_url: url };
+  }
+
+  // Generic fallback
+  const res = await extractPinterestMedia(url);
+  return { ...res, original_url: url };
+}
+
+async function resolveBulkMedia(urls) {
+  if (!Array.isArray(urls)) return [];
+  const results = [];
+  const CONCURRENCY = 4;
+  for (let i = 0; i < urls.length; i += CONCURRENCY) {
+    const batch = urls.slice(i, i + CONCURRENCY);
+    const batchResults = await Promise.all(
+      batch.map(u => resolveSingleMedia(u).catch(err => ({
+        success: false,
+        original_url: u,
+        error: err.message
+      })))
+    );
+    results.push(...batchResults);
+  }
+  return results;
+}
+
 export default async function handler(req, res) {
   // Enable CORS for APK and web
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -186,9 +365,22 @@ export default async function handler(req, res) {
         }
       }
 
-      if (action === 'resolve_media' || action === 'resolve_pinterest') {
-        const result = await extractPinterestMedia(url);
+      if (action === 'resolve_media' || action === 'resolve_pinterest' || action === 'resolve_url') {
+        const result = await resolveSingleMedia(url);
         return res.status(200).json(result);
+      }
+
+      if (action === 'bulk_resolve') {
+        let urlList = [];
+        if (req.query?.urls) {
+          try {
+            urlList = Array.isArray(req.query.urls) ? req.query.urls : JSON.parse(req.query.urls);
+          } catch (e) {
+            urlList = [req.query.urls];
+          }
+        }
+        const results = await resolveBulkMedia(urlList);
+        return res.status(200).json({ success: true, count: results.length, results });
       }
       // Primary: Fetch authoritative current reels from GitHub Contents API
       try {
@@ -235,9 +427,15 @@ export default async function handler(req, res) {
 
       const { action, reel, reels, id, ids, fullList } = payload || {};
 
-      if (action === 'resolve_media' || action === 'resolve_pinterest') {
-        const result = await extractPinterestMedia(payload.url);
+      if (action === 'resolve_media' || action === 'resolve_pinterest' || action === 'resolve_url') {
+        const result = await resolveSingleMedia(payload.url);
         return res.status(200).json(result);
+      }
+
+      if (action === 'bulk_resolve') {
+        const urlList = Array.isArray(payload.urls) ? payload.urls : [];
+        const results = await resolveBulkMedia(urlList);
+        return res.status(200).json({ success: true, count: results.length, results });
       }
 
       // Handle video or thumbnail binary uploads
