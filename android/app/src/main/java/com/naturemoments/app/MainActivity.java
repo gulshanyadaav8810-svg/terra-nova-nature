@@ -518,12 +518,18 @@ public class MainActivity extends Activity {
             }
         });
 
-        // WebChromeClient for capturing console logs
+        // WebChromeClient for capturing console logs & permanently eliminating default play icon
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onConsoleMessage(ConsoleMessage cm) {
                 Log.d("NatureMomentsJS", cm.message() + " -- Line " + cm.lineNumber() + " of " + cm.sourceId());
                 return true;
+            }
+
+            @Override
+            public Bitmap getDefaultVideoPoster() {
+                // Permanently suppress Android's default huge circle play button icon on HTML5 videos!
+                return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
             }
         });
 
