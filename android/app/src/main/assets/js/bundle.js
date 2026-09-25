@@ -2980,7 +2980,7 @@ ${shareUrl}`);
     _prebufferUpcomingReels(activeIndex) {
       const items = this.container.children;
       if (!items || !items.length) return;
-      for (let offset = 1; offset <= 2; offset++) {
+      for (let offset = 1; offset <= 3; offset++) {
         const nextItem = items[activeIndex + offset];
         if (nextItem) {
           const nextVid = nextItem.querySelector("video");
@@ -3211,8 +3211,8 @@ ${shareUrl}`);
       <!-- 0ms Crisp Poster Cover (Guarantees zero black screen during swipe) -->
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="eager" />
 
-      <!-- 9:16 Video Canvas (100% Offline Local Playback, Zero Black Screen, Zero Delay) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline poster="${reel.thumbnail_url}" ${index < 12 ? `src="${reel.video_url}" preload="auto"` : 'preload="none"'} data-src="${reel.video_url}">
+      <!-- 9:16 Video Canvas (100% Seamless Fast Playback, Zero Black Screen, Zero Delay) -->
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline poster="${reel.thumbnail_url}" src="${reel.video_url}" preload="${index < 4 ? "auto" : "metadata"}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
