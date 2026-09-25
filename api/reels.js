@@ -180,6 +180,16 @@ async function extractPinterestMedia(inputUrl) {
       }
     }
 
+    if (title) {
+      title = title
+        .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
+        .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>');
+    }
+
     if (title && (title.toLowerCase() === 'pinterest' || title.toLowerCase() === 'pinterest video')) {
       title = '';
     }
