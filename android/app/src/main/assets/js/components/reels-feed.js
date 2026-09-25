@@ -488,8 +488,9 @@ export class ReelsFeed {
 
   _bindScrollSnapHandler() {
     this._isUserTouching = false;
+    let scrollSettleTimer = null;
 
-    // 1. On Touchstart: User is about to swipe! Pre-play next & prev videos in background so user never sees a static stuck image!
+    // 1. On Touchstart: Pre-assign src & preload on adjacent videos for fast network buffer, NEVER call .play()
     this.container.addEventListener('touchstart', () => {
       this._isUserTouching = true;
 
@@ -503,9 +504,6 @@ export class ReelsFeed {
               nv.src = nsrc;
             }
             nv.preload = 'auto';
-            nv.muted = true;
-            const p = nv.play();
-            if (p !== undefined) p.catch(() => {});
           }
         }
         const prevItem = this.activeItem.previousElementSibling;
@@ -517,9 +515,6 @@ export class ReelsFeed {
               pv.src = psrc;
             }
             pv.preload = 'auto';
-            pv.muted = true;
-            const p = pv.play();
-            if (p !== undefined) p.catch(() => {});
           }
         }
       }
@@ -527,28 +522,28 @@ export class ReelsFeed {
 
     this.container.addEventListener('touchend', () => {
       this._isUserTouching = false;
-      this._detectAndPlaySnappedReel();
+      if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
+      scrollSettleTimer = setTimeout(() => {
+        this._detectAndPlaySnappedReel();
+      }, 50);
     }, { passive: true });
 
-    // 2. Real-time snap detection: switch when > 50% scrolled!
+    // 2. Debounced snap detection: only trigger playback when scroll settles, preventing rapid start/stop churn
     const onScroll = () => {
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
       const reelsView = document.getElementById('view-reels');
-      const isReelsVisible = reelsView && reelsView.style.display === 'block';
+      const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
       if (!isReelsTab || !isReelsVisible) return;
 
-      const containerHeight = this.container.clientHeight || window.innerHeight;
-      if (!containerHeight) return;
-
-      const targetIdx = Math.round(this.container.scrollTop / containerHeight);
-      const items = this.container.children;
-      if (items && items[targetIdx] && items[targetIdx] !== this.activeItem) {
-        this._playReelItem(items[targetIdx]);
-      }
+      if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
+      scrollSettleTimer = setTimeout(() => {
+        this._detectAndPlaySnappedReel();
+      }, 70);
     };
 
     this.container.addEventListener('scroll', onScroll, { passive: true });
     this.container.addEventListener('scrollend', () => {
+      if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
       this._detectAndPlaySnappedReel();
     }, { passive: true });
   }
@@ -556,7 +551,7 @@ export class ReelsFeed {
   _detectAndPlaySnappedReel() {
     const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
     const reelsView = document.getElementById('view-reels');
-    const isReelsVisible = reelsView && reelsView.style.display === 'block';
+    const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
     if (!isReelsTab || !isReelsVisible) return;
 
     const containerHeight = this.container.clientHeight || window.innerHeight;
@@ -581,33 +576,7 @@ export class ReelsFeed {
     }
   }
 
-  // Hardware-level decoder priming: decodes frame 0 in background so video is ALREADY in memory on swipe!
-  _primeReelVideo(vid, item) {
-    if (!vid || vid._isPrimed) return;
-    const src = vid.getAttribute('data-src') || vid.src;
-    if (src && (!vid.src || vid.src === '' || vid.src === window.location.href)) {
-      vid.src = src;
-    }
-    vid.preload = 'auto';
-    vid.muted = true;
-    vid.playsInline = true;
-    vid.setAttribute('playsinline', '');
-    vid.setAttribute('webkit-playsinline', '');
-
-    vid._isPrimed = true;
-    const p = vid.play();
-    if (p !== undefined) {
-      p.then(() => {
-        // Once hardware decoder primes frame 0, if user is not on this reel, pause at frame 0 ready for instant resume
-        if (this.activeItem !== item) {
-          vid.pause();
-          try { vid.currentTime = 0.001; } catch(e) {}
-        }
-      }).catch(() => {});
-    }
-  }
-
-  // Pre-buffer next 2 reels and previous 1 reel in background so user never experiences wait or freeze!
+  // Pre-buffer next 2 reels and previous 1 reel in background (network only, NO decoder play)
   _prebufferUpcomingReels(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
@@ -617,7 +586,11 @@ export class ReelsFeed {
       if (nextItem) {
         const nextVid = nextItem.querySelector('video');
         if (nextVid) {
-          this._primeReelVideo(nextVid, nextItem);
+          const src = nextVid.getAttribute('data-src') || nextVid.src;
+          if (src && (!nextVid.src || nextVid.src === '' || nextVid.src === window.location.href)) {
+            nextVid.src = src;
+          }
+          nextVid.preload = 'auto';
         }
       }
     }
@@ -626,27 +599,31 @@ export class ReelsFeed {
     if (prevItem) {
       const prevVid = prevItem.querySelector('video');
       if (prevVid) {
-        this._primeReelVideo(prevVid, prevItem);
+        const src = prevVid.getAttribute('data-src') || prevVid.src;
+        if (src && (!prevVid.src || prevVid.src === '' || prevVid.src === window.location.href)) {
+          prevVid.src = src;
+        }
+        prevVid.preload = 'auto';
       }
     }
   }
 
-  // Lightweight 0ms background pause (Zero main thread freeze, zero trembling/lag)
+  // Strict single-decoder enforcement: pause all videos except active
   _pauseInactiveVideos(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
 
-    // Proactively pre-buffer upcoming reels
     this._prebufferUpcomingReels(activeIndex);
 
-    // Only pause other videos that are currently playing (0ms cost, no video.load)
     for (let i = 0; i < items.length; i++) {
       if (i !== activeIndex) {
         const item = items[i];
         item.classList.remove('active-playing', 'video-ready', 'is-buffering');
         const v = item.querySelector('video');
-        if (v && !v.paused && v !== this.activeVideo) {
-          try { v.pause(); } catch(e) {}
+        if (v) {
+          try {
+            if (!v.paused) v.pause();
+          } catch(e) {}
         }
       }
     }
@@ -657,7 +634,7 @@ export class ReelsFeed {
 
     const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
     const reelsView = document.getElementById('view-reels');
-    const isReelsVisible = reelsView && reelsView.style.display === 'block';
+    const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
     if (!isReelsTab || !isReelsVisible) {
       this.pauseAll();
       return;
@@ -673,16 +650,21 @@ export class ReelsFeed {
       return;
     }
 
-    // Deactivate previous reel
+    // STRICT: Pause ALL other videos first to prevent Android decoder contention
+    const allVideos = this.container.querySelectorAll('video');
+    allVideos.forEach(v => {
+      if (v !== video) {
+        try {
+          if (!v.paused) v.pause();
+        } catch(e) {}
+      }
+    });
+
+    // Deactivate previous reel UI
     if (this.activeItem && this.activeItem !== targetItem) {
       this.activeItem.classList.remove('active-playing', 'video-ready', 'is-buffering');
       const oldVinyl = this.activeItem.querySelector('.dock-vinyl-disc');
       if (oldVinyl) oldVinyl.classList.add('paused');
-      if (this.activeVideo && this.activeVideo !== video && !this.activeVideo.paused) {
-        try {
-          this.activeVideo.pause();
-        } catch(e) {}
-      }
     }
 
     this.activeItem = targetItem;
@@ -718,6 +700,14 @@ export class ReelsFeed {
       });
       video.addEventListener('canplay', () => {
         targetItem.classList.remove('is-buffering');
+        if (this.activeItem === targetItem && video.paused && !targetItem.classList.contains('is-paused')) {
+          video.play().catch(() => {});
+        }
+      });
+      video.addEventListener('waiting', () => {
+        targetItem.classList.add('is-buffering');
+      });
+      video.addEventListener('stalled', () => {
         if (this.activeItem === targetItem && video.paused && !targetItem.classList.contains('is-paused')) {
           video.play().catch(() => {});
         }

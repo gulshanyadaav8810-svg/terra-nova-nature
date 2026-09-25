@@ -2904,6 +2904,7 @@ ${shareUrl}`);
     }
     _bindScrollSnapHandler() {
       this._isUserTouching = false;
+      let scrollSettleTimer = null;
       this.container.addEventListener("touchstart", () => {
         this._isUserTouching = true;
         if (this.activeItem) {
@@ -2916,10 +2917,6 @@ ${shareUrl}`);
                 nv.src = nsrc;
               }
               nv.preload = "auto";
-              nv.muted = true;
-              const p = nv.play();
-              if (p !== void 0) p.catch(() => {
-              });
             }
           }
           const prevItem = this.activeItem.previousElementSibling;
@@ -2931,40 +2928,37 @@ ${shareUrl}`);
                 pv.src = psrc;
               }
               pv.preload = "auto";
-              pv.muted = true;
-              const p = pv.play();
-              if (p !== void 0) p.catch(() => {
-              });
             }
           }
         }
       }, { passive: true });
       this.container.addEventListener("touchend", () => {
         this._isUserTouching = false;
-        this._detectAndPlaySnappedReel();
+        if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
+        scrollSettleTimer = setTimeout(() => {
+          this._detectAndPlaySnappedReel();
+        }, 50);
       }, { passive: true });
       const onScroll = () => {
         const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
         const reelsView = document.getElementById("view-reels");
-        const isReelsVisible = reelsView && reelsView.style.display === "block";
+        const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
         if (!isReelsTab || !isReelsVisible) return;
-        const containerHeight = this.container.clientHeight || window.innerHeight;
-        if (!containerHeight) return;
-        const targetIdx = Math.round(this.container.scrollTop / containerHeight);
-        const items = this.container.children;
-        if (items && items[targetIdx] && items[targetIdx] !== this.activeItem) {
-          this._playReelItem(items[targetIdx]);
-        }
+        if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
+        scrollSettleTimer = setTimeout(() => {
+          this._detectAndPlaySnappedReel();
+        }, 70);
       };
       this.container.addEventListener("scroll", onScroll, { passive: true });
       this.container.addEventListener("scrollend", () => {
+        if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
         this._detectAndPlaySnappedReel();
       }, { passive: true });
     }
     _detectAndPlaySnappedReel() {
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
       const reelsView = document.getElementById("view-reels");
-      const isReelsVisible = reelsView && reelsView.style.display === "block";
+      const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
       if (!isReelsTab || !isReelsVisible) return;
       const containerHeight = this.container.clientHeight || window.innerHeight;
       if (!containerHeight) return;
@@ -2982,34 +2976,7 @@ ${shareUrl}`);
         this._playReelItem(closestItem);
       }
     }
-    // Hardware-level decoder priming: decodes frame 0 in background so video is ALREADY in memory on swipe!
-    _primeReelVideo(vid, item) {
-      if (!vid || vid._isPrimed) return;
-      const src = vid.getAttribute("data-src") || vid.src;
-      if (src && (!vid.src || vid.src === "" || vid.src === window.location.href)) {
-        vid.src = src;
-      }
-      vid.preload = "auto";
-      vid.muted = true;
-      vid.playsInline = true;
-      vid.setAttribute("playsinline", "");
-      vid.setAttribute("webkit-playsinline", "");
-      vid._isPrimed = true;
-      const p = vid.play();
-      if (p !== void 0) {
-        p.then(() => {
-          if (this.activeItem !== item) {
-            vid.pause();
-            try {
-              vid.currentTime = 1e-3;
-            } catch (e) {
-            }
-          }
-        }).catch(() => {
-        });
-      }
-    }
-    // Pre-buffer next 2 reels and previous 1 reel in background so user never experiences wait or freeze!
+    // Pre-buffer next 2 reels and previous 1 reel in background (network only, NO decoder play)
     _prebufferUpcomingReels(activeIndex) {
       const items = this.container.children;
       if (!items || !items.length) return;
@@ -3018,7 +2985,11 @@ ${shareUrl}`);
         if (nextItem) {
           const nextVid = nextItem.querySelector("video");
           if (nextVid) {
-            this._primeReelVideo(nextVid, nextItem);
+            const src = nextVid.getAttribute("data-src") || nextVid.src;
+            if (src && (!nextVid.src || nextVid.src === "" || nextVid.src === window.location.href)) {
+              nextVid.src = src;
+            }
+            nextVid.preload = "auto";
           }
         }
       }
@@ -3026,11 +2997,15 @@ ${shareUrl}`);
       if (prevItem) {
         const prevVid = prevItem.querySelector("video");
         if (prevVid) {
-          this._primeReelVideo(prevVid, prevItem);
+          const src = prevVid.getAttribute("data-src") || prevVid.src;
+          if (src && (!prevVid.src || prevVid.src === "" || prevVid.src === window.location.href)) {
+            prevVid.src = src;
+          }
+          prevVid.preload = "auto";
         }
       }
     }
-    // Lightweight 0ms background pause (Zero main thread freeze, zero trembling/lag)
+    // Strict single-decoder enforcement: pause all videos except active
     _pauseInactiveVideos(activeIndex) {
       const items = this.container.children;
       if (!items || !items.length) return;
@@ -3040,9 +3015,9 @@ ${shareUrl}`);
           const item = items[i];
           item.classList.remove("active-playing", "video-ready", "is-buffering");
           const v = item.querySelector("video");
-          if (v && !v.paused && v !== this.activeVideo) {
+          if (v) {
             try {
-              v.pause();
+              if (!v.paused) v.pause();
             } catch (e) {
             }
           }
@@ -3053,7 +3028,7 @@ ${shareUrl}`);
       if (!targetItem) return;
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === "reels";
       const reelsView = document.getElementById("view-reels");
-      const isReelsVisible = reelsView && reelsView.style.display === "block";
+      const isReelsVisible = reelsView && (reelsView.style.display === "block" || reelsView.offsetParent !== null);
       if (!isReelsTab || !isReelsVisible) {
         this.pauseAll();
         return;
@@ -3065,16 +3040,19 @@ ${shareUrl}`);
         video.volume = this.isMuted ? 0 : 1;
         return;
       }
+      const allVideos = this.container.querySelectorAll("video");
+      allVideos.forEach((v) => {
+        if (v !== video) {
+          try {
+            if (!v.paused) v.pause();
+          } catch (e) {
+          }
+        }
+      });
       if (this.activeItem && this.activeItem !== targetItem) {
         this.activeItem.classList.remove("active-playing", "video-ready", "is-buffering");
         const oldVinyl = this.activeItem.querySelector(".dock-vinyl-disc");
         if (oldVinyl) oldVinyl.classList.add("paused");
-        if (this.activeVideo && this.activeVideo !== video && !this.activeVideo.paused) {
-          try {
-            this.activeVideo.pause();
-          } catch (e) {
-          }
-        }
       }
       this.activeItem = targetItem;
       this.activeVideo = video;
@@ -3103,6 +3081,15 @@ ${shareUrl}`);
         });
         video.addEventListener("canplay", () => {
           targetItem.classList.remove("is-buffering");
+          if (this.activeItem === targetItem && video.paused && !targetItem.classList.contains("is-paused")) {
+            video.play().catch(() => {
+            });
+          }
+        });
+        video.addEventListener("waiting", () => {
+          targetItem.classList.add("is-buffering");
+        });
+        video.addEventListener("stalled", () => {
           if (this.activeItem === targetItem && video.paused && !targetItem.classList.contains("is-paused")) {
             video.play().catch(() => {
             });
@@ -4271,17 +4258,12 @@ ${shareUrl}`);
     }
     _initSplashScreen() {
       const splash = document.getElementById("app-splash-screen");
-      const isNativeAndroid = window.AndroidBridge && typeof window.AndroidBridge.hideNativeSplash === "function";
-      if (isNativeAndroid) {
-        if (splash) splash.style.display = "none";
-        setTimeout(() => {
-          if (window.AndroidBridge && typeof window.AndroidBridge.hideNativeSplash === "function") {
-            window.AndroidBridge.hideNativeSplash();
-          }
-        }, 1800);
+      if (!splash) return;
+      if (window.AndroidBridge) {
+        splash.style.display = "none";
+        if (typeof splash.remove === "function") splash.remove();
         return;
       }
-      if (!splash) return;
       let dismissed = false;
       const dismissSplash = () => {
         if (dismissed) return;

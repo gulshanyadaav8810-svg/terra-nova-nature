@@ -1,0 +1,41 @@
+====================================================================
+GOOGLE PLAY CONSOLE — CATEGORY, TAGS & APP DETAILS
+====================================================================
+
+Application Name: Nature Moments: Peaceful Reels
+Package Name: com.naturemoments.app
+Version Code: 1
+Version Name: 1.0.0
+
+App Category:
+- Primary Category: Entertainment (or Video Players & Editors)
+- Secondary Category: Lifestyle / Health & Fitness (Meditation & Relaxation)
+
+App Tags (Select up to 5 on Play Console):
+1. Nature
+2. Relaxation
+3. Video Player
+4. Short Videos
+5. Meditation
+
+Content Rating:
+- Rating: Everyone (3+) / PEGI 3
+- No Violence, No Blood, No Sexual Content, No Gambling, No Bad Language
+
+Target Audience:
+- Age: 18 and over, 13-17 (All ages suitable)
+- Neutral appeal: Yes
+
+App Access:
+- All functionality is available without special access restrictions or login credentials.
+
+Ads Declaration:
+- "No, my app does not contain ads" (Or declare if you add AdMob later).
+
+Permissions:
+- INTERNET (for streaming reels and downloading offline media)
+- ACCESS_NETWORK_STATE (for detecting offline/online connectivity)
+
+Privacy Policy URL:
+- Point to your hosted Privacy_Policy.html (or GitHub Pages / Firebase / custom domain).
+====================================================================

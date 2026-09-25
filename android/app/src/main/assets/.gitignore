@@ -23,6 +23,7 @@ build/
 scratch/
 verification_screenshots/
 *.log
+*.apk
 screenshot_*.png
 emulator_*.png
 test_*.mjs
@@ -32,3 +33,4 @@ verify_app.mjs
 .user_uploaded/
 .vscode/
 .vercel
+.env*
