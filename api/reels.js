@@ -100,7 +100,20 @@ async function extractPinterestMedia(inputUrl) {
       }
     }
 
-    // 3. Fallback regex for ANY mp4 in the page
+    // 3. Check __PWS_DATA__ or initial-data script blocks
+    if (!videoUrl) {
+      const pwsMatch = html.match(/<script (?:id="__PWS_DATA__"|data-test-id="initial-data")[^>]*>([\s\S]*?)<\/script>/i);
+      if (pwsMatch) {
+        const unescaped = pwsMatch[1].replace(/\\u002F/g, '/').replace(/\\u0026/g, '&').replace(/\\/g, '');
+        const pwsMp4s = unescaped.match(/https:\/\/(?:v1|v|v2|v3)\.pinimg\.com\/videos\/[^"'\s<>]+\.mp4[^"'\s<>]*/g) ||
+                        unescaped.match(/https:\/\/[^"'\s<>]+\.mp4[^"'\s<>]*/g) || [];
+        if (pwsMp4s.length > 0) {
+          videoUrl = pwsMp4s.find(u => u.includes('720') || u.includes('1080') || u.includes('expMp4')) || pwsMp4s[0];
+        }
+      }
+    }
+
+    // 4. Fallback regex for ANY mp4 in the page
     if (!videoUrl) {
       const anyMp4 = html.match(/https:\/\/[^"'\s<>\\]+?\.mp4[^"'\s<>\\]*/g) || [];
       if (anyMp4.length > 0) {
@@ -136,6 +149,10 @@ async function extractPinterestMedia(inputUrl) {
       if (titleTag && titleTag[1]) {
         title = titleTag[1].replace(/\s*\|\s*Pinterest.*$/i, '').trim();
       }
+    }
+
+    if (title && (title.toLowerCase() === 'pinterest' || title.toLowerCase() === 'pinterest video')) {
+      title = '';
     }
 
     if (videoUrl) {

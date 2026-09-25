@@ -1,7 +1,6 @@
 {
   "type": "module",
   "dependencies": {
-    "puppeteer-core": "^25.12.0",
-    "snapsave-media-downloader": "^2.5.1"
+    "puppeteer-core": "^25.12.0"
   }
 }

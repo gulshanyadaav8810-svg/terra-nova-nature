@@ -814,7 +814,7 @@ export class ReelsFeed {
 
         if (entry.intersectionRatio <= 0.05) {
           if (this.activeItem !== entry.target) {
-            entry.target.classList.remove('active-playing', 'video-ready');
+            entry.target.classList.remove('active-playing', 'video-ready', 'video-playing');
             try { video.pause(); } catch(e) {}
           }
         }
@@ -987,8 +987,16 @@ export class ReelsFeed {
     const video = item.querySelector('video');
     const progressBar = item.querySelector('.feed-scrubber-filled');
 
-    // Immediate error fallback to raw.githubusercontent.com for 0ms newly uploaded videos!
+    // Seamless 0ms Poster Handoff: Poster only fades out once video frames are actively rendering!
     if (video) {
+      const markPlaying = () => {
+        if (video.currentTime > 0.05 || !video.paused) {
+          item.classList.add('video-playing');
+        }
+      };
+      video.addEventListener('playing', markPlaying);
+      video.addEventListener('timeupdate', markPlaying);
+
       video.addEventListener('error', () => {
         const cur = video.src || video.getAttribute('data-src') || '';
         if (cur.includes('cdn.jsdelivr.net')) {
