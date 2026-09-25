@@ -1179,7 +1179,11 @@
     if (url.includes("github.com") && url.includes("/blob/")) {
       return url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/");
     }
-    if (url.includes("/api/stream")) return url;
+    if (url.includes("/api/stream") && url.includes("file=")) {
+      const fn = url.split("file=")[1].split("&")[0];
+      return `https://gulshanyadaav8810-svg.github.io/terra-nova-nature/uploads/${fn}`;
+    }
+    if (url.includes("github.io")) return url;
     let filename = "";
     if (url.startsWith("/uploads/")) {
       filename = url.replace(/^\/uploads\//, "");
@@ -1188,7 +1192,7 @@
     }
     if (filename) {
       if (filename.includes("1790358704975")) {
-        return `https://nature-moments-app.vercel.app/api/stream?file=${filename}`;
+        return `https://gulshanyadaav8810-svg.github.io/terra-nova-nature/uploads/${filename}`;
       }
       return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
     }
@@ -3245,10 +3249,10 @@ ${shareUrl}`);
           const cur = video.src || "";
           if (cur.includes("/uploads/")) {
             const fn = cur.split("/uploads/")[1];
-            const streamFallback = `https://nature-moments-app.vercel.app/api/stream?file=${fn}`;
-            if (video.src !== streamFallback) {
-              console.log("[ReelsFeed] Switching to streaming fallback:", streamFallback);
-              video.src = streamFallback;
+            const ghPagesFallback = `https://gulshanyadaav8810-svg.github.io/terra-nova-nature/uploads/${fn}`;
+            if (video.src !== ghPagesFallback) {
+              console.log("[ReelsFeed] Switching to GitHub Pages fallback:", ghPagesFallback);
+              video.src = ghPagesFallback;
               video.load();
               video.play().catch(() => {
               });

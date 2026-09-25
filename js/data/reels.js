@@ -546,7 +546,11 @@ export function normalizeVideoUrl(url) {
     return url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
   }
 
-  if (url.includes('/api/stream')) return url;
+  if (url.includes('/api/stream') && url.includes('file=')) {
+    const fn = url.split('file=')[1].split('&')[0];
+    return `https://gulshanyadaav8810-svg.github.io/terra-nova-nature/uploads/${fn}`;
+  }
+  if (url.includes('github.io')) return url;
 
   let filename = '';
   if (url.startsWith('/uploads/')) {
@@ -557,9 +561,9 @@ export function normalizeVideoUrl(url) {
 
   if (filename) {
     if (filename.includes('1790358704975')) {
-      return `https://nature-moments-app.vercel.app/api/stream?file=${filename}`;
+      return `https://gulshanyadaav8810-svg.github.io/terra-nova-nature/uploads/${filename}`;
     }
-    // jsDelivr edge CDN delivers fast, instant HTTP 206 byte-range streaming for all uploaded videos
+    // jsDelivr edge CDN delivers fast, instant HTTP 206 byte-range streaming for all uploaded videos <= 20MB
     return `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${filename}`;
   }
   return url;

@@ -967,7 +967,7 @@ class AdminStudio {
     const REPO = 'gulshanyadaav8810-svg/terra-nova-nature';
     const isLarge = file.size > 20 * 1024 * 1024;
     const finalUrl = isLarge
-      ? `https://nature-moments-app.vercel.app/api/stream?file=${safeName}`
+      ? `https://gulshanyadaav8810-svg.github.io/terra-nova-nature/uploads/${safeName}`
       : `https://cdn.jsdelivr.net/gh/${REPO}@main/uploads/${safeName}`;
 
     // 0ms INSTANT LOCAL PLAYBACK: Save blob directly to local cache
@@ -1695,7 +1695,7 @@ class AdminStudio {
       const q = queueSnapshot[i];
       const isLarge = q.file && q.file.size > 20 * 1024 * 1024;
       const cdnVideoUrl = isLarge
-        ? `https://nature-moments-app.vercel.app/api/stream?file=${safeVideoName}`
+        ? `https://gulshanyadaav8810-svg.github.io/terra-nova-nature/uploads/${safeVideoName}`
         : `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${safeVideoName}`;
 
       // Instant 0ms local playback on current device

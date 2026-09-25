@@ -771,10 +771,10 @@ export class ReelsFeed {
         const cur = video.src || '';
         if (cur.includes('/uploads/')) {
           const fn = cur.split('/uploads/')[1];
-          const streamFallback = `https://nature-moments-app.vercel.app/api/stream?file=${fn}`;
-          if (video.src !== streamFallback) {
-            console.log('[ReelsFeed] Switching to streaming fallback:', streamFallback);
-            video.src = streamFallback;
+          const ghPagesFallback = `https://gulshanyadaav8810-svg.github.io/terra-nova-nature/uploads/${fn}`;
+          if (video.src !== ghPagesFallback) {
+            console.log('[ReelsFeed] Switching to GitHub Pages fallback:', ghPagesFallback);
+            video.src = ghPagesFallback;
             video.load();
             video.play().catch(() => {});
           }
