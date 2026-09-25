@@ -121,7 +121,13 @@ async function extractPinterestMedia(inputUrl) {
       }
     }
 
-    // Thumbnail
+    // 1st Priority: Exact video frame thumbnail directly generated from the video by Pinterest!
+    const videoThumbs = html.match(/https:\/\/i\.pinimg\.com\/videos\/thumbnails\/[^"'\s<>\\]+?\.(?:jpg|png|webp|jpeg)/g) || [];
+    if (videoThumbs.length > 0) {
+      thumbUrl = videoThumbs[0].replace(/\\/g, '');
+    }
+
+    // 2nd Priority: Pinterest pin originals / high-res images
     if (!thumbUrl) {
       const pinImgs = html.match(/https:\/\/i\.pinimg\.com\/(?:originals|736x|564x|474x)\/[^"'\s<>\\]+?\.(?:jpg|png|webp|jpeg)/g) || [];
       if (pinImgs.length > 0) {
@@ -129,11 +135,34 @@ async function extractPinterestMedia(inputUrl) {
       }
     }
 
+    // 3rd Priority: OpenGraph image
     if (!thumbUrl) {
       const ogImg = html.match(/<meta\s+(?:property|name)=["']og:image["']\s+content=["']([^"']+)["']/i);
       if (ogImg && ogImg[1]) {
         thumbUrl = ogImg[1];
       }
+    }
+
+    // 3rd Priority: Widgets public API fallback for genuine pin cover
+    const pinIdMatch = targetUrl.match(/\/pin\/(\d+)/);
+    const pinId = pinIdMatch ? pinIdMatch[1] : '';
+    if ((!thumbUrl || !title) && pinId) {
+      try {
+        const wRes = await fetch(`https://widgets.pinterest.com/v3/pidgets/pins/info/?pin_ids=${pinId}`, {
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(3500)
+        });
+        if (wRes.ok) {
+          const wData = await wRes.json();
+          const p = wData?.data?.pins?.[0] || wData?.data?.[0];
+          if (p && p.images && !thumbUrl) {
+            thumbUrl = p.images['564x']?.url || p.images['236x']?.url || '';
+          }
+          if (!title && p && p.description) {
+            title = p.description.slice(0, 80).trim();
+          }
+        }
+      } catch (e) {}
     }
 
     // Title

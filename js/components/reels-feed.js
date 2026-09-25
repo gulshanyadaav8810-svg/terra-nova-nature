@@ -491,7 +491,7 @@ export class ReelsFeed {
     this._isUserTouching = false;
     let scrollSettleTimer = null;
 
-    // 1. On Touchstart: Pre-assign src & preload on adjacent videos for fast network buffer, NEVER call .play()
+    // 1. On Touchstart: Pre-assign src, preload & trigger network buffer on adjacent videos so swipe is 100% instant
     this.container.addEventListener('touchstart', () => {
       this._isUserTouching = true;
 
@@ -505,6 +505,12 @@ export class ReelsFeed {
               nv.src = nsrc;
             }
             nv.preload = 'auto';
+            if (nv.readyState < 2) {
+              try { nv.load(); } catch(e) {}
+            }
+            if (window.AndroidBridge && typeof window.AndroidBridge.precacheVideoUrl === 'function') {
+              window.AndroidBridge.precacheVideoUrl(nsrc);
+            }
           }
         }
         const prevItem = this.activeItem.previousElementSibling;
@@ -603,9 +609,14 @@ export class ReelsFeed {
           }
           nextVid.preload = 'auto';
 
+          // Force browser engine / WebView to initiate byte stream download before user scrolls!
+          if (offset <= 2 && nextVid.readyState < 2) {
+            try { nextVid.load(); } catch(e) {}
+          }
+
           // Check offline video cache for instant local playback
           videoCache.getPlaybackUrl(src).then(opt => {
-            if (opt && nextVid.src !== opt) {
+            if (opt && nextVid.src !== opt && nextVid.readyState < 2) {
               nextVid.src = opt;
             }
           }).catch(() => {});
@@ -722,15 +733,16 @@ export class ReelsFeed {
       if (!video.src || video.src === '' || video.src === window.location.href) {
         video.src = dataSrc;
       }
-      videoCache.getPlaybackUrl(dataSrc).then(optimalUrl => {
-        if (optimalUrl && video.src !== optimalUrl) {
-          const wasPlaying = !video.paused;
-          video.src = optimalUrl;
-          if (wasPlaying || this.activeItem === targetItem) {
-            video.play().catch(() => {});
+      if (video.readyState < 2 && video.paused) {
+        videoCache.getPlaybackUrl(dataSrc).then(optimalUrl => {
+          if (optimalUrl && video.src !== optimalUrl && video.readyState < 2) {
+            video.src = optimalUrl;
+            if (this.activeItem === targetItem && !targetItem.classList.contains('is-paused')) {
+              video.play().catch(() => {});
+            }
           }
-        }
-      }).catch(() => {});
+        }).catch(() => {});
+      }
     }
 
     video.preload = 'auto';

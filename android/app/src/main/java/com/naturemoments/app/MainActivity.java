@@ -39,6 +39,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import android.media.MediaScannerConnection;
@@ -229,13 +231,7 @@ public class MainActivity extends Activity {
             new Thread(() -> {
                 try {
                     if (videoUrl == null || !videoUrl.startsWith("http")) return;
-                    String filename = null;
-                    if (videoUrl.contains("/uploads/")) {
-                        filename = videoUrl.substring(videoUrl.lastIndexOf('/') + 1);
-                    } else if (videoUrl.contains("/api/stream") && videoUrl.contains("file=")) {
-                        Uri uri = Uri.parse(videoUrl);
-                        filename = uri.getQueryParameter("file");
-                    }
+                    String filename = getCacheFilenameForUrl(videoUrl);
                     if (filename == null || filename.isEmpty()) return;
                     File cacheDir = new File(mActivity.getCacheDir(), "video_cache");
                     if (!cacheDir.exists()) cacheDir.mkdirs();
@@ -245,6 +241,7 @@ public class MainActivity extends Activity {
                     File tempFile = new File(cacheDir, filename + ".tmp");
                     java.net.URL u = new java.net.URL(videoUrl);
                     java.net.HttpURLConnection conn = (java.net.HttpURLConnection) u.openConnection();
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
                     conn.setConnectTimeout(8000);
                     conn.setReadTimeout(15000);
                     int code = conn.getResponseCode();
@@ -258,7 +255,7 @@ public class MainActivity extends Activity {
                             fos.flush();
                         }
                         tempFile.renameTo(cachedFile);
-                        Log.d(TAG, "Cached video for offline: " + filename);
+                        Log.d(TAG, "Precached video for 0ms instant playback: " + filename + " (" + cachedFile.length() + " bytes)");
                     }
                 } catch (Exception e) {
                     Log.w(TAG, "Precache error: " + e.getMessage());
@@ -285,6 +282,116 @@ public class MainActivity extends Activity {
                     }
                 })
                 .start();
+        }
+    }
+
+    public static String getCacheFilenameForUrl(String videoUrl) {
+        if (videoUrl == null || videoUrl.isEmpty()) return null;
+        if (videoUrl.contains("/uploads/")) {
+            String sub = videoUrl.substring(videoUrl.lastIndexOf('/') + 1);
+            if (sub.contains("?")) sub = sub.substring(0, sub.indexOf('?'));
+            return sub;
+        } else if (videoUrl.contains("/api/stream") && videoUrl.contains("file=")) {
+            Uri uri = Uri.parse(videoUrl);
+            return uri.getQueryParameter("file");
+        } else if (videoUrl.startsWith("http://") || videoUrl.startsWith("https://")) {
+            if (videoUrl.contains(".mp4") || videoUrl.contains("pinimg.com") || videoUrl.contains("instagram.com") || videoUrl.contains("fbcdn.net")) {
+                try {
+                    java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
+                    byte[] digest = md.digest(videoUrl.getBytes("UTF-8"));
+                    StringBuilder sb = new StringBuilder("ext_");
+                    for (byte b : digest) {
+                        sb.append(String.format("%02x", b));
+                    }
+                    sb.append(".mp4");
+                    return sb.toString();
+                } catch (Exception e) {
+                    return "ext_" + Math.abs(videoUrl.hashCode()) + ".mp4";
+                }
+            }
+        }
+        return null;
+    }
+
+    public static WebResourceResponse createRangeResponse(File file, String mime, String rangeHeader) {
+        try {
+            long fileLength = file.length();
+            if (fileLength == 0) return null;
+
+            if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+                String rangeVal = rangeHeader.substring(6).trim();
+                long start = 0;
+                long end = fileLength - 1;
+
+                int dashPos = rangeVal.indexOf('-');
+                if (dashPos != -1) {
+                    String startStr = rangeVal.substring(0, dashPos).trim();
+                    String endStr = rangeVal.substring(dashPos + 1).trim();
+                    if (!startStr.isEmpty()) {
+                        start = Long.parseLong(startStr);
+                    }
+                    if (!endStr.isEmpty()) {
+                        end = Long.parseLong(endStr);
+                    }
+                }
+
+                if (start >= fileLength) {
+                    Map<String, String> headers = new HashMap<>();
+                    headers.put("Content-Range", "bytes */" + fileLength);
+                    return new WebResourceResponse(mime, "UTF-8", 416, "Requested Range Not Satisfiable", headers, null);
+                }
+
+                end = Math.min(end, fileLength - 1);
+                long contentLength = end - start + 1;
+
+                RandomAccessFile raf = new RandomAccessFile(file, "r");
+                raf.seek(start);
+                InputStream is = new InputStream() {
+                    private long remaining = contentLength;
+
+                    @Override
+                    public int read() throws IOException {
+                        if (remaining <= 0) return -1;
+                        int b = raf.read();
+                        if (b != -1) remaining--;
+                        return b;
+                    }
+
+                    @Override
+                    public int read(byte[] b, int off, int len) throws IOException {
+                        if (remaining <= 0) return -1;
+                        int toRead = (int) Math.min(len, remaining);
+                        int read = raf.read(b, off, toRead);
+                        if (read > 0) remaining -= read;
+                        return read;
+                    }
+
+                    @Override
+                    public void close() throws IOException {
+                        raf.close();
+                    }
+                };
+
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Access-Control-Allow-Origin", "*");
+                headers.put("Accept-Ranges", "bytes");
+                headers.put("Content-Range", "bytes " + start + "-" + end + "/" + fileLength);
+                headers.put("Content-Length", String.valueOf(contentLength));
+                headers.put("Cache-Control", "public, max-age=31536000, immutable");
+
+                return new WebResourceResponse(mime, "UTF-8", 206, "Partial Content", headers, is);
+            } else {
+                FileInputStream fis = new FileInputStream(file);
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Access-Control-Allow-Origin", "*");
+                headers.put("Accept-Ranges", "bytes");
+                headers.put("Content-Length", String.valueOf(fileLength));
+                headers.put("Cache-Control", "public, max-age=31536000, immutable");
+                return new WebResourceResponse(mime, "UTF-8", 200, "OK", headers, fis);
+            }
+        } catch (Exception e) {
+            Log.w("NatureMomentsApp", "createRangeResponse error: " + e.getMessage());
+            return null;
         }
     }
 
@@ -494,15 +601,8 @@ public class MainActivity extends Activity {
                         return assetLoader.shouldInterceptRequest(url);
                     }
 
-                    // 100% Offline Local Playback & Persistent Disk Cache:
-                    String path = url.getPath();
-                    String query = url.getQuery();
-                    String filename = null;
-                    if (path != null && path.contains("/uploads/")) {
-                        filename = path.substring(path.lastIndexOf('/') + 1);
-                    } else if (path != null && path.contains("/api/stream") && query != null && query.contains("file=")) {
-                        filename = url.getQueryParameter("file");
-                    }
+                    // 100% 0ms Instant Playback & Persistent Disk Cache:
+                    String filename = getCacheFilenameForUrl(url.toString());
 
                     if (filename != null && !filename.isEmpty()) {
                         // 1. Check bundled APK assets (0ms instant)
@@ -513,18 +613,14 @@ public class MainActivity extends Activity {
                             return assetLoader.shouldInterceptRequest(localAssetUri);
                         } catch (Exception ignored) {}
 
-                        // 2. Check local disk cache (100% offline playback with 0ms latency)
+                        // 2. Check local disk cache (100% instant local playback with seekable 206 Partial Content)
                         try {
                             File cacheDir = new File(getCacheDir(), "video_cache");
                             File cachedFile = new File(cacheDir, filename);
                             if (cachedFile.exists() && cachedFile.length() > 0) {
-                                FileInputStream fis = new FileInputStream(cachedFile);
-                                Map<String, String> headers = new HashMap<>();
-                                headers.put("Access-Control-Allow-Origin", "*");
-                                headers.put("Accept-Ranges", "bytes");
-                                headers.put("Cache-Control", "public, max-age=31536000, immutable");
                                 String mime = (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) ? "image/jpeg" : "video/mp4";
-                                return new WebResourceResponse(mime, "UTF-8", 200, "OK", headers, fis);
+                                String rangeHeader = (request.getRequestHeaders() != null) ? request.getRequestHeaders().get("Range") : null;
+                                return createRangeResponse(cachedFile, mime, rangeHeader);
                             }
                         } catch (Exception e) {
                             Log.w(TAG, "Disk cache read error: " + e.getMessage());
@@ -544,14 +640,7 @@ public class MainActivity extends Activity {
                         return assetLoader.shouldInterceptRequest(url);
                     }
 
-                    String path = url.getPath();
-                    String query = url.getQuery();
-                    String filename = null;
-                    if (path != null && path.contains("/uploads/")) {
-                        filename = path.substring(path.lastIndexOf('/') + 1);
-                    } else if (path != null && path.contains("/api/stream") && query != null && query.contains("file=")) {
-                        filename = url.getQueryParameter("file");
-                    }
+                    String filename = getCacheFilenameForUrl(urlString);
 
                     if (filename != null && !filename.isEmpty()) {
                         try {
@@ -565,13 +654,8 @@ public class MainActivity extends Activity {
                             File cacheDir = new File(getCacheDir(), "video_cache");
                             File cachedFile = new File(cacheDir, filename);
                             if (cachedFile.exists() && cachedFile.length() > 0) {
-                                FileInputStream fis = new FileInputStream(cachedFile);
-                                Map<String, String> headers = new HashMap<>();
-                                headers.put("Access-Control-Allow-Origin", "*");
-                                headers.put("Accept-Ranges", "bytes");
-                                headers.put("Cache-Control", "public, max-age=31536000, immutable");
                                 String mime = (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) ? "image/jpeg" : "video/mp4";
-                                return new WebResourceResponse(mime, "UTF-8", 200, "OK", headers, fis);
+                                return createRangeResponse(cachedFile, mime, null);
                             }
                         } catch (Exception ignored) {}
                     }
