@@ -226,43 +226,9 @@ public class MainActivity extends Activity {
             mActivity.runOnUiThread(() -> dismissNativeSplash());
         }
 
-        private final java.util.concurrent.ExecutorService PRECACHE_EXECUTOR = java.util.concurrent.Executors.newSingleThreadExecutor();
-
         @JavascriptInterface
         public void precacheVideoUrl(String videoUrl) {
-            PRECACHE_EXECUTOR.execute(() -> {
-                try {
-                    if (videoUrl == null || !videoUrl.startsWith("http")) return;
-                    String filename = getCacheFilenameForUrl(videoUrl);
-                    if (filename == null || filename.isEmpty()) return;
-                    File cacheDir = new File(mActivity.getCacheDir(), "video_cache");
-                    if (!cacheDir.exists()) cacheDir.mkdirs();
-                    File cachedFile = new File(cacheDir, filename);
-                    if (cachedFile.exists() && cachedFile.length() > 0) return;
-
-                    File tempFile = new File(cacheDir, filename + ".tmp");
-                    java.net.URL u = new java.net.URL(videoUrl);
-                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) u.openConnection();
-                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
-                    conn.setConnectTimeout(8000);
-                    conn.setReadTimeout(15000);
-                    int code = conn.getResponseCode();
-                    if (code == 200 || code == 206) {
-                        try (InputStream in = conn.getInputStream(); FileOutputStream fos = new FileOutputStream(tempFile)) {
-                            byte[] buf = new byte[16384];
-                            int len;
-                            while ((len = in.read(buf)) != -1) {
-                                fos.write(buf, 0, len);
-                            }
-                            fos.flush();
-                        }
-                        tempFile.renameTo(cachedFile);
-                        Log.d(TAG, "Precached video for 0ms instant playback: " + filename + " (" + cachedFile.length() + " bytes)");
-                    }
-                } catch (Exception e) {
-                    Log.w(TAG, "Precache error: " + e.getMessage());
-                }
-            });
+            // Native Chromium C++ network stack handles media buffering automatically with zero bandwidth choking
         }
     }
 
@@ -296,21 +262,6 @@ public class MainActivity extends Activity {
         } else if (videoUrl.contains("/api/stream") && videoUrl.contains("file=")) {
             Uri uri = Uri.parse(videoUrl);
             return uri.getQueryParameter("file");
-        } else if (videoUrl.startsWith("http://") || videoUrl.startsWith("https://")) {
-            if (videoUrl.contains(".mp4") || videoUrl.contains("pinimg.com") || videoUrl.contains("instagram.com") || videoUrl.contains("fbcdn.net")) {
-                try {
-                    java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
-                    byte[] digest = md.digest(videoUrl.getBytes("UTF-8"));
-                    StringBuilder sb = new StringBuilder("ext_");
-                    for (byte b : digest) {
-                        sb.append(String.format("%02x", b));
-                    }
-                    sb.append(".mp4");
-                    return sb.toString();
-                } catch (Exception e) {
-                    return "ext_" + Math.abs(videoUrl.hashCode()) + ".mp4";
-                }
-            }
         }
         return null;
     }
@@ -556,6 +507,19 @@ public class MainActivity extends Activity {
             Log.d(TAG, "Google Mobile Ads SDK Initialized");
             runOnUiThread(() -> setupBannerAd());
         });
+
+        // Clean up any stale partial video cache files to ensure pure clean direct playback
+        try {
+            File cacheDir = new File(getCacheDir(), "video_cache");
+            if (cacheDir.exists()) {
+                File[] files = cacheDir.listFiles();
+                if (files != null) {
+                    for (File f : files) {
+                        f.delete();
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
 
         // WebSettings configuration for 60/120 FPS high performance
         WebSettings settings = webView.getSettings();

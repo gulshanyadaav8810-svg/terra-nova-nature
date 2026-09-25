@@ -491,75 +491,33 @@ export class ReelsFeed {
     this._isUserTouching = false;
     let scrollSettleTimer = null;
 
-    // 1. On Touchstart: Pre-assign src, preload & trigger network buffer on adjacent videos so swipe is 100% instant
+    // 1. On Touchstart: Mark touching and cancel any pending settle plays
     this.container.addEventListener('touchstart', () => {
       this._isUserTouching = true;
-
-      if (this.activeItem) {
-        const nextItem = this.activeItem.nextElementSibling;
-        if (nextItem) {
-          const nv = nextItem.querySelector('video');
-          if (nv) {
-            const nsrc = nv.getAttribute('data-src') || nv.src;
-            if (nsrc && (!nv.src || nv.src === '' || nv.src === window.location.href)) {
-              nv.src = nsrc;
-            }
-            nv.preload = 'auto';
-            if (nv.readyState < 2) {
-              try { nv.load(); } catch(e) {}
-            }
-            if (window.AndroidBridge && typeof window.AndroidBridge.precacheVideoUrl === 'function') {
-              window.AndroidBridge.precacheVideoUrl(nsrc);
-            }
-          }
-        }
-        const prevItem = this.activeItem.previousElementSibling;
-        if (prevItem) {
-          const pv = prevItem.querySelector('video');
-          if (pv) {
-            const psrc = pv.getAttribute('data-src') || pv.src;
-            if (psrc && (!pv.src || pv.src === '' || pv.src === window.location.href)) {
-              pv.src = psrc;
-            }
-            pv.preload = 'auto';
-          }
-        }
-      }
+      if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
     }, { passive: true });
 
+    // 2. On Touchend: User released swipe, schedule snapped reel detection after snap finishes
     this.container.addEventListener('touchend', () => {
       this._isUserTouching = false;
+      if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
+      scrollSettleTimer = setTimeout(() => {
+        this._detectAndPlaySnappedReel();
+      }, 60);
+    }, { passive: true });
+
+    // 3. Scroll event: Only schedule snap check if user is not actively dragging
+    this.container.addEventListener('scroll', () => {
+      if (this._isUserTouching) return; // Do NOT switch active video while finger is actively touching/swiping!
       if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
       scrollSettleTimer = setTimeout(() => {
         this._detectAndPlaySnappedReel();
       }, 50);
     }, { passive: true });
 
-    // 2. Real-time snap detection: instant playback on 50% midpoint crossing without 1-second delay
-    const onScroll = () => {
-      const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
-      const reelsView = document.getElementById('view-reels');
-      const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
-      if (!isReelsTab || !isReelsVisible) return;
-
-      const containerHeight = this.container.clientHeight || window.innerHeight;
-      if (!containerHeight) return;
-
-      // Real-time instant midpoint crossing (0ms snap play like Instagram/TikTok)
-      const targetIdx = Math.round(this.container.scrollTop / containerHeight);
-      const items = this.container.children;
-      if (items && items[targetIdx] && this.activeItem !== items[targetIdx]) {
-        this._playReelItem(items[targetIdx]);
-      }
-
-      if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
-      scrollSettleTimer = setTimeout(() => {
-        this._detectAndPlaySnappedReel();
-      }, 30);
-    };
-
-    this.container.addEventListener('scroll', onScroll, { passive: true });
+    // 4. Native CSS scrollend event (fires cleanly when browser snap settles)
     this.container.addEventListener('scrollend', () => {
+      this._isUserTouching = false;
       if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
       this._detectAndPlaySnappedReel();
     }, { passive: true });
@@ -608,12 +566,6 @@ export class ReelsFeed {
           nextVid.src = src;
         }
         nextVid.preload = 'auto';
-        if (nextVid.readyState < 2) {
-          try { nextVid.load(); } catch(e) {}
-        }
-        if (window.AndroidBridge && typeof window.AndroidBridge.precacheVideoUrl === 'function') {
-          window.AndroidBridge.precacheVideoUrl(src);
-        }
         if (nextVid.readyState >= 2) {
           nextItem.classList.add('video-ready');
         } else {
@@ -670,14 +622,14 @@ export class ReelsFeed {
     const video = targetItem.querySelector('video');
     if (!video) return;
 
-    // If targetItem is already playing, simply adopt it and unmute audio smoothly
+    // If targetItem is already playing, simply maintain volume and return immediately
     if (this.activeItem === targetItem && this.activeVideo === video && !video.paused) {
       video.muted = this.isMuted;
       video.volume = this.isMuted ? 0 : 1.0;
       return;
     }
 
-    // STRICT: Pause ALL other videos first to prevent Android decoder contention
+    // STRICT: Pause ALL other videos first
     const allVideos = this.container.querySelectorAll('video');
     allVideos.forEach(v => {
       if (v !== video) {
@@ -709,22 +661,11 @@ export class ReelsFeed {
     const currentIndex = parseInt(targetItem.getAttribute('data-index') || '0', 10);
     this._pauseInactiveVideos(currentIndex);
 
-    // Ensure active video has src loaded, checking offline video cache for 0ms local playback
+    // Ensure active video has src loaded
     const dataSrc = video.getAttribute('data-src') || video.src;
     if (dataSrc) {
       if (!video.src || video.src === '' || video.src === window.location.href) {
         video.src = dataSrc;
-        video.load();
-      }
-      if (video.readyState < 2 && video.paused) {
-        videoCache.getPlaybackUrl(dataSrc).then(optimalUrl => {
-          if (optimalUrl && video.src !== optimalUrl && video.readyState < 2) {
-            video.src = optimalUrl;
-            if (this.activeItem === targetItem && !targetItem.classList.contains('is-paused')) {
-              video.play().catch(() => {});
-            }
-          }
-        }).catch(() => {});
       }
     }
 
@@ -744,7 +685,7 @@ export class ReelsFeed {
       });
       video.addEventListener('playing', () => {
         targetItem.classList.remove('is-buffering');
-        targetItem.classList.add('video-ready');
+        targetItem.classList.add('video-ready', 'video-playing');
       });
       video.addEventListener('canplay', () => {
         targetItem.classList.remove('is-buffering');
@@ -766,7 +707,7 @@ export class ReelsFeed {
         const cur = video.src || '';
         if (cur.includes('/uploads/')) {
           const fn = cur.split('/uploads/')[1];
-          const ghPagesFallback = `https://gulshanyadaav8810-svg.github.io/terra-nova-nature/uploads/${fn}`;
+          const ghPagesFallback = `https://gulshanyadav8810-svg.github.io/terra-nova-nature/uploads/${fn}`;
           if (video.src !== ghPagesFallback) {
             console.log('[ReelsFeed] Switching to GitHub Pages fallback:', ghPagesFallback);
             video.src = ghPagesFallback;
@@ -777,10 +718,11 @@ export class ReelsFeed {
       });
     }
 
-    if (video.paused) {
+    if (video.paused && !targetItem.classList.contains('is-paused')) {
       const p = video.play();
       if (p !== undefined) {
-        p.catch(() => {
+        p.catch(err => {
+          if (err && err.name === 'AbortError') return;
           video.muted = true;
           video.play().catch(() => {});
         });
@@ -887,7 +829,7 @@ export class ReelsFeed {
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="eager" />
 
       <!-- 9:16 Video Canvas (100% Seamless Fast Playback, Zero Black Screen, Zero Delay) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline poster="${reel.thumbnail_url}" src="${reel.video_url}" preload="${index < 4 ? 'auto' : 'metadata'}" data-src="${reel.video_url}">
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline poster="${reel.thumbnail_url}" ${index < 2 ? `src="${reel.video_url}"` : ''} preload="${index === 0 ? 'auto' : (index === 1 ? 'metadata' : 'none')}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>

@@ -11,6 +11,7 @@ import { shareService } from '../services/share.js';
 import { downloader } from '../services/downloader.js';
 import { soundEngine } from '../services/sound-engine.js';
 import { i18n } from '../services/i18n.js';
+import { videoCache } from '../services/video-cache.js';
 
 export class ReelsFeed {
   constructor(containerElement, showToastCallback) {
@@ -490,59 +491,33 @@ export class ReelsFeed {
     this._isUserTouching = false;
     let scrollSettleTimer = null;
 
-    // 1. On Touchstart: Pre-assign src & preload on adjacent videos for fast network buffer, NEVER call .play()
+    // 1. On Touchstart: Mark touching and cancel any pending settle plays
     this.container.addEventListener('touchstart', () => {
       this._isUserTouching = true;
-
-      if (this.activeItem) {
-        const nextItem = this.activeItem.nextElementSibling;
-        if (nextItem) {
-          const nv = nextItem.querySelector('video');
-          if (nv) {
-            const nsrc = nv.getAttribute('data-src') || nv.src;
-            if (nsrc && (!nv.src || nv.src === '' || nv.src === window.location.href)) {
-              nv.src = nsrc;
-            }
-            nv.preload = 'auto';
-          }
-        }
-        const prevItem = this.activeItem.previousElementSibling;
-        if (prevItem) {
-          const pv = prevItem.querySelector('video');
-          if (pv) {
-            const psrc = pv.getAttribute('data-src') || pv.src;
-            if (psrc && (!pv.src || pv.src === '' || pv.src === window.location.href)) {
-              pv.src = psrc;
-            }
-            pv.preload = 'auto';
-          }
-        }
-      }
+      if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
     }, { passive: true });
 
+    // 2. On Touchend: User released swipe, schedule snapped reel detection after snap finishes
     this.container.addEventListener('touchend', () => {
       this._isUserTouching = false;
+      if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
+      scrollSettleTimer = setTimeout(() => {
+        this._detectAndPlaySnappedReel();
+      }, 60);
+    }, { passive: true });
+
+    // 3. Scroll event: Only schedule snap check if user is not actively dragging
+    this.container.addEventListener('scroll', () => {
+      if (this._isUserTouching) return; // Do NOT switch active video while finger is actively touching/swiping!
       if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
       scrollSettleTimer = setTimeout(() => {
         this._detectAndPlaySnappedReel();
       }, 50);
     }, { passive: true });
 
-    // 2. Debounced snap detection: only trigger playback when scroll settles, preventing rapid start/stop churn
-    const onScroll = () => {
-      const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
-      const reelsView = document.getElementById('view-reels');
-      const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
-      if (!isReelsTab || !isReelsVisible) return;
-
-      if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
-      scrollSettleTimer = setTimeout(() => {
-        this._detectAndPlaySnappedReel();
-      }, 70);
-    };
-
-    this.container.addEventListener('scroll', onScroll, { passive: true });
+    // 4. Native CSS scrollend event (fires cleanly when browser snap settles)
     this.container.addEventListener('scrollend', () => {
+      this._isUserTouching = false;
       if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
       this._detectAndPlaySnappedReel();
     }, { passive: true });
@@ -576,39 +551,33 @@ export class ReelsFeed {
     }
   }
 
-  // Pre-buffer next 2 reels and previous 1 reel in background (network only, NO decoder play)
+  // Pre-buffer next 1 reel in background safely without exceeding Android hardware decoder limit
   _prebufferUpcomingReels(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
 
-    for (let offset = 1; offset <= 3; offset++) {
-      const nextItem = items[activeIndex + offset];
-      if (nextItem) {
-        const nextVid = nextItem.querySelector('video');
-        if (nextVid) {
-          const src = nextVid.getAttribute('data-src') || nextVid.src;
-          if (src && (!nextVid.src || nextVid.src === '' || nextVid.src === window.location.href)) {
-            nextVid.src = src;
-          }
-          nextVid.preload = 'auto';
+    // Pre-buffer ONLY the immediate next reel (activeIndex + 1)
+    const nextItem = items[activeIndex + 1];
+    if (nextItem) {
+      const nextVid = nextItem.querySelector('video');
+      if (nextVid) {
+        const src = nextVid.getAttribute('data-src') || nextVid.src;
+        if (src && (!nextVid.src || nextVid.src === '' || nextVid.src === window.location.href)) {
+          nextVid.src = src;
         }
-      }
-    }
-
-    const prevItem = items[activeIndex - 1];
-    if (prevItem) {
-      const prevVid = prevItem.querySelector('video');
-      if (prevVid) {
-        const src = prevVid.getAttribute('data-src') || prevVid.src;
-        if (src && (!prevVid.src || prevVid.src === '' || prevVid.src === window.location.href)) {
-          prevVid.src = src;
+        nextVid.preload = 'auto';
+        if (nextVid.readyState >= 2) {
+          nextItem.classList.add('video-ready');
+        } else {
+          nextVid.addEventListener('loadeddata', () => {
+            nextItem.classList.add('video-ready');
+          }, { once: true });
         }
-        prevVid.preload = 'auto';
       }
     }
   }
 
-  // Strict single-decoder enforcement: pause all videos except active
+  // Strict hardware decoder lifecycle: activeIndex plays, activeIndex+1 prebuffers, all others RELEASE MediaCodec!
   _pauseInactiveVideos(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
@@ -618,12 +587,22 @@ export class ReelsFeed {
     for (let i = 0; i < items.length; i++) {
       if (i !== activeIndex) {
         const item = items[i];
-        item.classList.remove('active-playing', 'video-ready', 'is-buffering');
+        item.classList.remove('active-playing', 'is-buffering');
         const v = item.querySelector('video');
         if (v) {
           try {
             if (!v.paused) v.pause();
           } catch(e) {}
+
+          // Release hardware decoder for non-adjacent videos to prevent Android 4-5 video limit!
+          const distance = Math.abs(i - activeIndex);
+          if (distance > 1 && v.src && v.src !== '') {
+            try {
+              v.removeAttribute('src');
+              v.load(); // Forces WebKit/Chromium to free native MediaCodec immediately!
+              item.classList.remove('video-ready', 'video-playing');
+            } catch(e) {}
+          }
         }
       }
     }
@@ -643,14 +622,14 @@ export class ReelsFeed {
     const video = targetItem.querySelector('video');
     if (!video) return;
 
-    // If targetItem is already playing, simply adopt it and unmute audio smoothly
+    // If targetItem is already playing, simply maintain volume and return immediately
     if (this.activeItem === targetItem && this.activeVideo === video && !video.paused) {
       video.muted = this.isMuted;
       video.volume = this.isMuted ? 0 : 1.0;
       return;
     }
 
-    // STRICT: Pause ALL other videos first to prevent Android decoder contention
+    // STRICT: Pause ALL other videos first
     const allVideos = this.container.querySelectorAll('video');
     allVideos.forEach(v => {
       if (v !== video) {
@@ -662,7 +641,7 @@ export class ReelsFeed {
 
     // Deactivate previous reel UI
     if (this.activeItem && this.activeItem !== targetItem) {
-      this.activeItem.classList.remove('active-playing', 'video-ready', 'is-buffering');
+      this.activeItem.classList.remove('active-playing', 'is-buffering');
       const oldVinyl = this.activeItem.querySelector('.dock-vinyl-disc');
       if (oldVinyl) oldVinyl.classList.add('paused');
     }
@@ -672,6 +651,10 @@ export class ReelsFeed {
     targetItem.classList.add('active-playing');
     targetItem.classList.remove('is-paused');
 
+    if (video.readyState >= 2) {
+      targetItem.classList.add('video-ready');
+    }
+
     const vinyl = targetItem.querySelector('.dock-vinyl-disc');
     if (vinyl) vinyl.classList.remove('paused');
 
@@ -680,8 +663,10 @@ export class ReelsFeed {
 
     // Ensure active video has src loaded
     const dataSrc = video.getAttribute('data-src') || video.src;
-    if (dataSrc && (!video.src || video.src === '' || video.src === window.location.href)) {
-      video.src = dataSrc;
+    if (dataSrc) {
+      if (!video.src || video.src === '' || video.src === window.location.href) {
+        video.src = dataSrc;
+      }
     }
 
     video.preload = 'auto';
@@ -694,12 +679,17 @@ export class ReelsFeed {
 
     if (!video._bufferEngineBound) {
       video._bufferEngineBound = true;
-      video.addEventListener('playing', () => {
+      video.addEventListener('loadeddata', () => {
         targetItem.classList.remove('is-buffering');
         targetItem.classList.add('video-ready');
       });
+      video.addEventListener('playing', () => {
+        targetItem.classList.remove('is-buffering');
+        targetItem.classList.add('video-ready', 'video-playing');
+      });
       video.addEventListener('canplay', () => {
         targetItem.classList.remove('is-buffering');
+        targetItem.classList.add('video-ready');
         if (this.activeItem === targetItem && video.paused && !targetItem.classList.contains('is-paused')) {
           video.play().catch(() => {});
         }
@@ -715,12 +705,12 @@ export class ReelsFeed {
       video.addEventListener('error', () => {
         targetItem.classList.remove('is-buffering');
         const cur = video.src || '';
-        if (cur.includes('cdn.jsdelivr.net') && cur.includes('/uploads/')) {
+        if (cur.includes('/uploads/')) {
           const fn = cur.split('/uploads/')[1];
-          const rawFallback = `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/uploads/${fn}`;
-          if (video.src !== rawFallback) {
-            console.log('[ReelsFeed] Switching to raw GitHub fallback:', rawFallback);
-            video.src = rawFallback;
+          const ghPagesFallback = `https://gulshanyadav8810-svg.github.io/terra-nova-nature/uploads/${fn}`;
+          if (video.src !== ghPagesFallback) {
+            console.log('[ReelsFeed] Switching to GitHub Pages fallback:', ghPagesFallback);
+            video.src = ghPagesFallback;
             video.load();
             video.play().catch(() => {});
           }
@@ -728,10 +718,11 @@ export class ReelsFeed {
       });
     }
 
-    if (video.paused) {
+    if (video.paused && !targetItem.classList.contains('is-paused')) {
       const p = video.play();
       if (p !== undefined) {
-        p.catch(() => {
+        p.catch(err => {
+          if (err && err.name === 'AbortError') return;
           video.muted = true;
           video.play().catch(() => {});
         });
@@ -760,7 +751,7 @@ export class ReelsFeed {
 
         if (entry.intersectionRatio <= 0.05) {
           if (this.activeItem !== entry.target) {
-            entry.target.classList.remove('active-playing', 'video-ready');
+            entry.target.classList.remove('active-playing', 'video-ready', 'video-playing');
             try { video.pause(); } catch(e) {}
           }
         }
@@ -838,7 +829,7 @@ export class ReelsFeed {
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="eager" />
 
       <!-- 9:16 Video Canvas (100% Seamless Fast Playback, Zero Black Screen, Zero Delay) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline poster="${reel.thumbnail_url}" src="${reel.video_url}" preload="${index < 4 ? 'auto' : 'metadata'}" data-src="${reel.video_url}">
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline poster="${reel.thumbnail_url}" ${index < 2 ? `src="${reel.video_url}"` : ''} preload="${index === 0 ? 'auto' : (index === 1 ? 'metadata' : 'none')}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
@@ -933,8 +924,16 @@ export class ReelsFeed {
     const video = item.querySelector('video');
     const progressBar = item.querySelector('.feed-scrubber-filled');
 
-    // Immediate error fallback to raw.githubusercontent.com for 0ms newly uploaded videos!
+    // Seamless 0ms Poster Handoff: Poster only fades out once video frames are actively rendering!
     if (video) {
+      const markPlaying = () => {
+        if (video.currentTime > 0.05 || !video.paused) {
+          item.classList.add('video-playing');
+        }
+      };
+      video.addEventListener('playing', markPlaying);
+      video.addEventListener('timeupdate', markPlaying);
+
       video.addEventListener('error', () => {
         const cur = video.src || video.getAttribute('data-src') || '';
         if (cur.includes('cdn.jsdelivr.net')) {
