@@ -579,29 +579,119 @@
 
   <!-- Modal 4: Privacy Policy -->
   <div id="modal-privacy" class="modal-overlay">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3 class="modal-title" data-i18n="privacy_title">Privacy Policy</h3>
-        <button id="privacy-btn-close" class="btn-circle" style="width: 36px; height: 36px;">
+    <div class="modal-card" style="max-width: 540px; max-height: 85vh;">
+      <div class="modal-header" style="background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(56, 189, 248, 0.2);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 32px; height: 32px; border-radius: 10px; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; color: #38BDF8;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <polyline points="9 12 11 14 15 10"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h3 class="modal-title" style="color: #F8FAFC; font-size: 1.15rem; margin: 0;" data-i18n="privacy_title">Privacy Policy</h3>
+            <span style="font-size: 0.75rem; color: #38BDF8; font-weight: 600;">Effective: September 26, 2026</span>
+          </div>
+        </div>
+        <button id="privacy-btn-close" class="btn-circle" style="width: 36px; height: 36px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
         </button>
       </div>
-      <div class="modal-body" style="font-size: 0.88rem; line-height: 1.6; color: var(--color-text-dark);">
-        <p style="margin-bottom: 12px;">
-          <strong>Zero Personal Data Collection:</strong> Nature Status does not require or collect phone numbers, email addresses, names, contacts, or location data.
-        </p>
-        <p style="margin-bottom: 12px;">
-          <strong>Client-Side Storage:</strong> All likes, saved bookmarks, and downloaded video files are stored locally on your device using your browser's private localStorage and IndexedDB storage.
-        </p>
-        <p style="margin-bottom: 12px;">
-          <strong>No Account Needed:</strong> You are free to discover, watch, and enjoy peaceful nature moments without creating an account.
-        </p>
+      <div class="modal-body" style="font-size: 0.88rem; line-height: 1.65; color: #CBD5E1; background: #0B1120; padding: 20px; overflow-y: auto;">
+        
+        <!-- Verified Badge -->
+        <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #34D399; font-size: 0.78rem; font-weight: 700; padding: 5px 12px; border-radius: 9999px; margin-bottom: 14px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+          <span>100% Client-Side Privacy • Zero Data Collection</span>
+        </div>
+
+        <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid #38BDF8; padding: 12px 14px; border-radius: 8px; margin-bottom: 18px; color: #E2E8F0; font-size: 0.84rem;">
+          <strong>Welcome to Nature Status.</strong><br>
+          This Privacy Policy explains how Nature Status ("we", "our", "us", or "the App") handles user information. Nature Status is a simple status video downloading application. We respect your privacy and do not collect, store, use, sell, or share any personal information from our users.
+        </div>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">1. About Nature Status</h4>
+        <p style="margin-bottom: 10px;">Nature Status is an application that allows users to download and save status videos to their device. The App is designed to provide a simple and easy way for users to download status videos for personal use.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">2. Personal Data Collection</h4>
+        <p style="margin-bottom: 6px;">We do not collect any personal information from users. Nature Status does not collect or request:</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; font-size: 0.8rem; color: #94A3B8; margin-bottom: 10px; background: rgba(255,255,255,0.02); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+          <div>✕ Name</div>
+          <div>✕ Email address</div>
+          <div>✕ Phone number</div>
+          <div>✕ Passwords / Accounts</div>
+          <div>✕ Home address</div>
+          <div>✕ Date of birth</div>
+          <div>✕ Contacts / Phonebook</div>
+          <div>✕ Device GPS location</div>
+          <div>✕ Personal photos & files</div>
+          <div>✕ Messages / Call logs</div>
+        </div>
+        <p style="margin-bottom: 10px;"><strong>No user account or registration is required to use Nature Status.</strong></p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">3. No Data Storage</h4>
+        <p style="margin-bottom: 10px;">We do not store any personal user data on our servers. Nature Status does not maintain a database containing personal information about its users. Any video downloaded through the App is saved directly on the user's device. We do not upload or store users' downloaded videos on our servers.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">4. No Data Sharing</h4>
+        <p style="margin-bottom: 10px;">We do not sell, rent, trade, or share users' personal information with any third party. Since Nature Status does not collect personal information, there is no personal user information maintained by us for sharing with third parties.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">5. Device Storage / Media Access</h4>
+        <p style="margin-bottom: 10px;">The App may need access to the device's storage or media functionality to save downloaded status videos. This access is used only to provide the App's main functionality. We do not use your personal files, photos, videos, or other media for any purpose other than the functionality requested by you. We do not upload your personal media or files to our servers.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">6. Location Information</h4>
+        <p style="margin-bottom: 10px;">Nature Status does not collect, track, or store your location information. The App does not require your GPS location or precise location to provide its functionality.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">7. Contacts and Personal Information</h4>
+        <p style="margin-bottom: 10px;">Nature Status does not access or collect your contacts, phonebook, messages, call history, or other personal information.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">8. Tracking</h4>
+        <p style="margin-bottom: 10px;">Nature Status does not personally track users or create personal profiles of users. We do not use personal information to monitor or identify individual users.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">9. Third-Party Services</h4>
+        <p style="margin-bottom: 10px;">Nature Status does not sell or provide users' personal information to third parties.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">10. Advertisements</h4>
+        <p style="margin-bottom: 10px;">Nature Status does not collect users' personal information for advertising purposes.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">11. Children's Privacy</h4>
+        <p style="margin-bottom: 10px;">Nature Status does not knowingly collect personal information from children or any other users. The App complies with COPPA and Google Play Families Policies.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">12. User Content and Downloaded Videos</h4>
+        <p style="margin-bottom: 10px;">Nature Status does not claim ownership of videos downloaded by users. Users should respect copyright and intellectual property rights.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">13. Data Security</h4>
+        <p style="margin-bottom: 10px;">Downloaded videos remain stored directly on your own device.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">14. Changes to This Privacy Policy</h4>
+        <p style="margin-bottom: 10px;">If this Privacy Policy is updated, the new version will be published with an updated Effective Date.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">15. Your Privacy Rights</h4>
+        <p style="margin-bottom: 10px;">Since we do not collect personal information, there is no personal data held on our servers to request, modify, or delete.</p>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">16. Contact Us</h4>
+        <p style="margin-bottom: 6px;">For questions regarding this policy, contact us at:</p>
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; margin-bottom: 12px;">
+          Email: <a href="mailto:gulshanyadav62000@gmail.com" style="color: #38BDF8; text-decoration: none;">gulshanyadav62000@gmail.com</a>
+        </div>
+
+        <h4 style="color: #38BDF8; font-size: 0.95rem; margin: 16px 0 6px 0;">17. Final Statement</h4>
+        <p style="margin-bottom: 0;">Nature Status is committed to respecting your privacy. By using Nature Status, you acknowledge that you have read and understood this Privacy Policy.</p>
       </div>
-      <div class="modal-footer">
-        <button id="privacy-btn-ok" style="padding: 10px 24px; border-radius: var(--radius-full); border: none; background: var(--color-dark-green); color: #fff; font-weight: 700; cursor: pointer;">Understood</button>
+      <div class="modal-footer" style="background: rgba(15, 23, 42, 0.95); border-top: 1px solid rgba(56, 189, 248, 0.2); display: flex; justify-content: space-between; align-items: center; padding: 12px 18px;">
+        <a id="privacy-btn-web" href="privacy-policy.html" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 6px; color: #38BDF8; text-decoration: none; font-size: 0.85rem; font-weight: 700;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+          <span>Open Full Web Page</span>
+        </a>
+        <button id="privacy-btn-ok" style="padding: 10px 24px; border-radius: 9999px; border: 1.5px solid rgba(56, 189, 248, 0.45); background: rgba(10, 16, 30, 0.85); color: #38BDF8; font-weight: 700; cursor: pointer;">Understood</button>
       </div>
     </div>
   </div>

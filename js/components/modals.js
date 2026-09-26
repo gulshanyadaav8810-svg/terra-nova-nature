@@ -202,9 +202,22 @@ export class ModalsManager {
 
     const closeBtn = this.privacyModal.querySelector('#privacy-btn-close');
     const okBtn = this.privacyModal.querySelector('#privacy-btn-ok');
+    const webBtn = this.privacyModal.querySelector('#privacy-btn-web');
 
     if (closeBtn) closeBtn.addEventListener('click', () => this.privacyModal.classList.remove('open'));
     if (okBtn) okBtn.addEventListener('click', () => this.privacyModal.classList.remove('open'));
+
+    if (webBtn) {
+      webBtn.addEventListener('click', (e) => {
+        // Allow default anchor navigation or open in browser window
+        const url = 'privacy-policy.html';
+        try {
+          window.open(url, '_blank');
+        } catch(err) {
+          window.location.href = url;
+        }
+      });
+    }
 
     this.privacyModal.addEventListener('click', (e) => {
       if (e.target === this.privacyModal) this.privacyModal.classList.remove('open');
