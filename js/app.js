@@ -159,7 +159,18 @@ class NatureMomentsApp {
       onOpenLanguage: () => this.modals.openLanguage(),
       onOpenFeedback: () => this.modals.openFeedback(),
       onOpenRate: () => this.modals.openRate(),
-      onOpenPrivacy: () => this.modals.openPrivacy()
+      onOpenPrivacy: () => {
+        const url = 'https://nature-moments-app.vercel.app/privacy-policy';
+        if (window.AndroidBridge && typeof window.AndroidBridge.openPrivacyPolicy === 'function') {
+          window.AndroidBridge.openPrivacyPolicy();
+        } else {
+          try {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          } catch (e) {
+            window.location.href = url;
+          }
+        }
+      }
     });
 
     if (this.btnHamburger) {

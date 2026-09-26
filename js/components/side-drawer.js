@@ -77,9 +77,12 @@ export class SideDrawer {
     // Menu Item 5: Privacy Policy
     const privacyBtn = this.backdrop.querySelector('#drawer-item-privacy');
     if (privacyBtn) {
-      privacyBtn.addEventListener('click', () => {
+      privacyBtn.addEventListener('click', (e) => {
         this.close();
-        if (this.callbacks.onOpenPrivacy) this.callbacks.onOpenPrivacy();
+        if (this.callbacks.onOpenPrivacy) {
+          e.preventDefault();
+          this.callbacks.onOpenPrivacy();
+        }
       });
     }
   }

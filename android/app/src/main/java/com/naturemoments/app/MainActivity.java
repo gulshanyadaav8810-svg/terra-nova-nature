@@ -86,6 +86,18 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void openPrivacyPolicy() {
+            mActivity.runOnUiThread(() -> {
+                try {
+                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://nature-moments-app.vercel.app/privacy-policy"));
+                    mActivity.startActivity(browserIntent);
+                } catch (Exception e) {
+                    Log.e(TAG, "Cannot launch external browser for privacy policy", e);
+                }
+            });
+        }
+
+        @JavascriptInterface
         public void shareWhatsApp(String shareText) {
             mActivity.runOnUiThread(() -> {
                 try {
@@ -554,6 +566,16 @@ public class MainActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (request != null && request.getUrl() != null) {
                     Uri uri = request.getUrl();
+                    String urlStr = uri.toString();
+                    if (urlStr.contains("privacy-policy") || urlStr.contains("/privacy")) {
+                        try {
+                            Intent browserIntent = new Intent(Intent.ACTION_VIEW, uri);
+                            startActivity(browserIntent);
+                            return true;
+                        } catch (Exception e) {
+                            Log.e(TAG, "Cannot launch external browser for privacy policy", e);
+                        }
+                    }
                     String scheme = uri.getScheme();
                     if (scheme != null && (scheme.equalsIgnoreCase("whatsapp") ||
                                            scheme.equalsIgnoreCase("intent") ||
