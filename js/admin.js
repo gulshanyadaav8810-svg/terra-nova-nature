@@ -2809,7 +2809,7 @@ class AdminStudio {
   async _autoCommitReelsToGitHub(reels) {
     // 1. Update localStorage copies safely (keep memory lean)
     try {
-      localStorage.setItem('nature_remote_reels', JSON.stringify(reels));
+      localStorage.setItem('nature_remote_reels', JSON.stringify(reels.slice(0, 250)));
       localStorage.removeItem('nature_custom_reels');
     } catch (e) {
       console.warn('LocalStorage quota limit reached, relying on in-memory and cloud data:', e);

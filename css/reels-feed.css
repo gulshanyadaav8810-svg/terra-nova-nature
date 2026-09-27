@@ -366,10 +366,22 @@ video::-webkit-media-controls-play-button {
   background: linear-gradient(90deg, rgba(8, 16, 13, 0.5) 0%, rgba(8, 16, 13, 0.4) 100%);
 }
 
+.floating-cat-pill:active {
+  transform: scale(0.92) translateZ(0) !important;
+  transition: transform 0.08s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
 .floating-cat-pill.active {
   border-color: #FFFFFF !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 16px var(--cat-glow, rgba(52, 211, 153, 0.6)) !important;
-  transform: scale(1.06);
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.6), 0 0 20px var(--cat-glow, rgba(52, 211, 153, 0.75)) !important;
+  transform: scale(1.06) translateZ(0);
+  animation: pillActivePulse 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pillActivePulse {
+  0% { transform: scale(0.92); }
+  60% { transform: scale(1.09); }
+  100% { transform: scale(1.06); }
 }
 
 .floating-cat-pill.active::before {

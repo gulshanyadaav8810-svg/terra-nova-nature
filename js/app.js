@@ -263,6 +263,10 @@ class NatureMomentsApp {
         <span>${cat.name}</span>
       `;
 
+      chip.addEventListener('pointerdown', () => {
+        if (navigator.vibrate) try { navigator.vibrate(10); } catch(e) {}
+      }, { passive: true });
+
       chip.addEventListener('click', (e) => {
         e.preventDefault();
         this.selectCategory(cat.id);

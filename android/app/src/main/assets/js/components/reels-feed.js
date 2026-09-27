@@ -51,7 +51,7 @@ export class ReelsFeed {
 
     window.addEventListener('reelsUpdated', () => {
       this._initCategoryHeader();
-      this.refresh();
+      this.onRemoteUpdate();
     });
 
     document.addEventListener('visibilitychange', () => {
@@ -61,6 +61,17 @@ export class ReelsFeed {
     });
   }
 
+  onRemoteUpdate() {
+    const newReels = getReelsByCategory(this.activeCategory);
+    // If a video is actively playing right now, DO NOT destroy DOM or reset playback!
+    if (this.activeVideo && !this.activeVideo.paused) {
+      this.filteredReels = newReels;
+      this._pendingRefresh = true;
+      return;
+    }
+    this.refresh();
+  }
+
   refresh() {
     const newReels = getReelsByCategory(this.activeCategory);
     const oldFingerprint = (this.filteredReels || []).map(r => `${r.content_id}:${r.thumbnail_url}:${r.video_url}:${r.title}:${r.category_id}`).join('|');
@@ -68,6 +79,13 @@ export class ReelsFeed {
 
     // If reel list and content didn't change and items are already rendered, do not wipe container or reset playback!
     if (oldFingerprint === newFingerprint && this.container.children.length > 0) {
+      return;
+    }
+
+    // Never wipe container if active video is currently playing smoothly!
+    if (this.activeVideo && !this.activeVideo.paused) {
+      this.filteredReels = newReels;
+      this._pendingRefresh = true;
       return;
     }
 
@@ -97,6 +115,10 @@ export class ReelsFeed {
         <span class="cat-name">${cat.name}</span>
         <span class="cat-dot"></span>
       `;
+
+      pill.addEventListener('pointerdown', () => {
+        if (navigator.vibrate) try { navigator.vibrate(10); } catch(e) {}
+      }, { passive: true });
 
       pill.addEventListener('click', (e) => {
         e.preventDefault();
@@ -381,27 +403,36 @@ export class ReelsFeed {
     this.showToast('Liked Nature Reel ❤️', '❤️');
   }
 
-  // Filter vertical feed by category
+  // Filter vertical feed by category (0ms Instant Switch)
   filterCategory(categoryId) {
+    if (this.activeCategory === categoryId && this.filteredReels && !this._needsRender) return;
     this.activeCategory = categoryId;
     this.pauseAll();
 
-    // Update floating pill styles
+    // 1. Instant 0ms center-scroll floating pills without thread-blocking smooth scroll
     const pills = document.querySelectorAll('.floating-cat-pill');
     pills.forEach(p => {
       if (p.getAttribute('data-id') === categoryId) {
         p.classList.add('active');
-        p.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        const scroller = p.parentElement;
+        if (scroller) {
+          scroller.scrollLeft = p.offsetLeft - (scroller.clientWidth / 2) + (p.offsetWidth / 2);
+        }
       } else {
         p.classList.remove('active');
       }
     });
 
     this.filteredReels = getReelsByCategory(categoryId);
-    this.render();
 
-    // Scroll container back to first reel
-    this.container.scrollTo({ top: 0, behavior: 'instant' });
+    // 2. Lazy render: ONLY render ReelsFeed DOM if reels tab is actively visible!
+    const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
+    if (isReelsTab) {
+      this.render();
+      this.container.scrollTop = 0;
+    } else {
+      this._needsRender = true;
+    }
 
     if (typeof this.onCategoryChange === 'function') {
       this.onCategoryChange(categoryId);
@@ -459,14 +490,26 @@ export class ReelsFeed {
     // 4. Locate target DOM element and snap to it
     const targetItem = this.container.querySelector(`.feed-reel-item[data-id="${contentId}"]`);
     if (targetItem) {
+      this._isProgrammaticScroll = true;
       this.pauseAll();
-      this.container.scrollTop = targetItem.offsetTop;
-      this.activeItem = targetItem;
 
-      // Slight delay to ensure layout settles before starting playback
+      // Preload target video immediately before snapping so playback starts at 0ms
+      const targetVid = targetItem.querySelector('video');
+      if (targetVid) {
+        const src = targetVid.getAttribute('data-src') || targetVid.src;
+        if (src && (!targetVid.src || targetVid.src === '' || targetVid.src === window.location.href)) {
+          targetVid.src = src;
+        }
+        targetVid.preload = 'auto';
+        try { targetVid.load(); } catch(e) {}
+      }
+
+      this.container.scrollTop = targetItem.offsetTop;
+      this._playReelItem(targetItem);
+
       setTimeout(() => {
-        this._playReelItem(targetItem);
-      }, 60);
+        this._isProgrammaticScroll = false;
+      }, 150);
     } else {
       this.render();
       this.resumeActive();
@@ -499,22 +542,24 @@ export class ReelsFeed {
 
     this.container.addEventListener('touchend', () => {
       this._isUserTouching = false;
+      if (this._isProgrammaticScroll) return;
       if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
       scrollSettleTimer = setTimeout(() => {
         this._detectAndPlaySnappedReel();
-      }, 50);
+      }, 60);
     }, { passive: true });
 
     this.container.addEventListener('scroll', () => {
-      if (this._isUserTouching) return;
+      if (this._isUserTouching || this._isProgrammaticScroll) return;
       if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
       scrollSettleTimer = setTimeout(() => {
         this._detectAndPlaySnappedReel();
-      }, 40);
+      }, 80);
     }, { passive: true });
 
     this.container.addEventListener('scrollend', () => {
       this._isUserTouching = false;
+      if (this._isProgrammaticScroll) return;
       if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
       this._detectAndPlaySnappedReel();
     }, { passive: true });
@@ -529,6 +574,18 @@ export class ReelsFeed {
     const containerHeight = this.container.clientHeight || window.innerHeight;
     if (!containerHeight) return;
 
+    // If active reel is currently playing and still centered in viewport, NEVER interrupt it!
+    if (this.activeItem && this.activeVideo && !this.activeVideo.paused) {
+      const activeRect = this.activeItem.getBoundingClientRect();
+      const contRect = this.container.getBoundingClientRect();
+      const mid = contRect.top + contRect.height / 2;
+      if (activeRect.top <= mid && activeRect.bottom >= mid) {
+        this.activeVideo.muted = this.isMuted;
+        this.activeVideo.volume = this.isMuted ? 0 : 1.0;
+        return;
+      }
+    }
+
     const targetIdx = Math.round(this.container.scrollTop / containerHeight);
     const items = this.container.children;
     if (!items || !items.length) return;
@@ -536,9 +593,15 @@ export class ReelsFeed {
     const clampedIdx = Math.max(0, Math.min(items.length - 1, targetIdx));
     const closestItem = items[clampedIdx];
 
-    if (closestItem && this.activeItem === closestItem && this.activeVideo && !this.activeVideo.paused) {
-      this.activeVideo.muted = this.isMuted;
-      this.activeVideo.volume = this.isMuted ? 0 : 1.0;
+    if (closestItem && this.activeItem === closestItem) {
+      if (this.activeVideo) {
+        this.activeVideo.muted = this.isMuted;
+        this.activeVideo.volume = this.isMuted ? 0 : 1.0;
+        if (this.activeVideo.paused && !closestItem.classList.contains('is-paused') && !this._playLock) {
+          this._playLock = true;
+          this.activeVideo.play().catch(() => {}).finally(() => { this._playLock = false; });
+        }
+      }
       return;
     }
 
@@ -547,34 +610,35 @@ export class ReelsFeed {
     }
   }
 
-  // Pre-buffer next reel (activeIndex + 1) to readyState >= 3 so swipe is 100% 0ms INSTANT
+  // Pre-buffer next reels (activeIndex + 1 and activeIndex + 2) to readyState >= 3 so swipe is 100% 0ms INSTANT
   _prebufferUpcomingReels(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
 
-    // 1. Next reel (Highest priority - must be fully loaded and buffered)
-    const nextItem = items[activeIndex + 1];
-    if (nextItem) {
-      const nextVid = nextItem.querySelector('video');
-      if (nextVid) {
-        const src = nextVid.getAttribute('data-src') || nextVid.src;
-        if (src && (!nextVid.src || nextVid.src === '' || nextVid.src === window.location.href)) {
-          nextVid.src = src;
-        }
-        nextVid.preload = 'auto';
-        // Instruct native Chromium pipeline to fetch bytes and decode initial keyframe in background!
-        if (nextVid.readyState < 2) {
-          try { nextVid.load(); } catch(e) {}
-        }
-        if (nextVid.readyState >= 2) {
-          nextItem.classList.add('video-ready');
-        } else {
-          nextVid.addEventListener('loadeddata', () => {
-            nextItem.classList.add('video-ready');
-          }, { once: true });
+    // 1. Next 2 reels (Highest priority - buffer ahead for rapid continuous swiping)
+    [activeIndex + 1, activeIndex + 2].forEach(idx => {
+      const item = items[idx];
+      if (item) {
+        const vid = item.querySelector('video');
+        if (vid) {
+          const src = vid.getAttribute('data-src') || vid.src;
+          if (src && (!vid.src || vid.src === '' || vid.src === window.location.href)) {
+            vid.src = src;
+          }
+          vid.preload = 'auto';
+          if (vid.readyState < 2) {
+            try { vid.load(); } catch(e) {}
+          }
+          if (vid.readyState >= 2) {
+            item.classList.add('video-ready');
+          } else {
+            vid.addEventListener('loadeddata', () => {
+              item.classList.add('video-ready');
+            }, { once: true });
+          }
         }
       }
-    }
+    });
 
     // 2. Previous reel (keep ready in case user swipes back up)
     const prevItem = items[activeIndex - 1];
@@ -590,7 +654,7 @@ export class ReelsFeed {
     }
   }
 
-  // Strict hardware decoder lifecycle: activeIndex plays, activeIndex+1 prebuffers, all others RELEASE MediaCodec!
+  // Strict hardware decoder lifecycle: activeIndex plays, adjacent prebuffers, distance > 2 RELEASE MediaCodec!
   _pauseInactiveVideos(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
@@ -608,9 +672,9 @@ export class ReelsFeed {
           } catch(e) {}
 
           // Release hardware decoder for non-adjacent videos to prevent Android 4-5 video limit!
-          // Guarantees smooth scrolling through 10,000+ reels without any memory leak or crash!
+          // Distance > 2 keeps active-1, active, active+1, active+2 ready and buttery smooth!
           const distance = Math.abs(i - activeIndex);
-          if (distance > 1 && v.src && v.src !== '') {
+          if (distance > 2 && v.src && v.src !== '') {
             try {
               v.removeAttribute('src');
               v.load(); // Forces WebKit/Chromium to free native MediaCodec immediately!
@@ -636,10 +700,14 @@ export class ReelsFeed {
     const video = targetItem.querySelector('video');
     if (!video) return;
 
-    // If targetItem is already playing, simply maintain volume and return immediately
-    if (this.activeItem === targetItem && this.activeVideo === video && !video.paused) {
+    // If targetItem is ALREADY the active item, maintain state and return immediately!
+    if (this.activeItem === targetItem) {
       video.muted = this.isMuted;
       video.volume = this.isMuted ? 0 : 1.0;
+      if (video.paused && !targetItem.classList.contains('is-paused') && !this._playLock) {
+        this._playLock = true;
+        video.play().catch(() => {}).finally(() => { this._playLock = false; });
+      }
       return;
     }
 
@@ -715,7 +783,7 @@ export class ReelsFeed {
         video.play().catch(() => {});
       });
 
-      // Stall Watchdog: Automatically auto-recovers and nudges playback if buffer hiccup occurs
+      // Stall Watchdog: Automatically auto-recovers playback without bad seeks
       let stallTimer = null;
       video.addEventListener('waiting', () => {
         targetItem.classList.add('is-buffering');
@@ -723,9 +791,6 @@ export class ReelsFeed {
         stallTimer = setTimeout(() => {
           if (this.activeItem === targetItem && !targetItem.classList.contains('is-paused')) {
             if (video.paused) {
-              video.play().catch(() => {});
-            } else if (video.currentTime > 0) {
-              video.currentTime += 0.05;
               video.play().catch(() => {});
             }
           }
@@ -736,9 +801,22 @@ export class ReelsFeed {
         clearTimeout(stallTimer);
         stallTimer = setTimeout(() => {
           if (this.activeItem === targetItem && !targetItem.classList.contains('is-paused')) {
-            video.play().catch(() => {});
+            if (video.paused) {
+              video.play().catch(() => {});
+            }
           }
-        }, 800);
+        }, 1000);
+      });
+
+      // Guard against external pause interruptions while item is active and user didn't pause
+      video.addEventListener('pause', () => {
+        if (this.activeItem === targetItem && !targetItem.classList.contains('is-paused') && !document.hidden) {
+          setTimeout(() => {
+            if (this.activeItem === targetItem && !targetItem.classList.contains('is-paused') && video.paused && !document.hidden) {
+              video.play().catch(() => {});
+            }
+          }, 150);
+        }
       });
 
       video.addEventListener('error', () => {
@@ -777,13 +855,14 @@ export class ReelsFeed {
   _initObserver() {
     if (this.observer) this.observer.disconnect();
 
-    // High performance IntersectionObserver: Triggers instant playback the microsecond reel crosses 55%
+    // High performance IntersectionObserver: Triggers instant playback when reel crosses 65%
     const options = {
       root: this.container,
-      threshold: [0.1, 0.55]
+      threshold: [0.1, 0.70]
     };
 
     this.observer = new IntersectionObserver((entries) => {
+      if (this._isProgrammaticScroll) return;
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
       const reelsView = document.getElementById('view-reels');
       const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
@@ -793,13 +872,13 @@ export class ReelsFeed {
         const item = entry.target;
         const video = item.querySelector('video');
 
-        // Dominant item (> 55% visible on screen): start playing INSTANTLY during swipe!
-        if (entry.intersectionRatio >= 0.55) {
+        // Dominant item (>= 70% visible on screen): start playing INSTANTLY during swipe!
+        if (entry.intersectionRatio >= 0.70) {
           if (this.activeItem !== item) {
             this._playReelItem(item);
           }
         } else if (entry.intersectionRatio <= 0.1) {
-          // Off screen (< 10% visible): pause safely
+          // Off screen (< 10% visible): pause safely (NEVER pause activeItem!)
           if (this.activeItem !== item && video && !video.paused) {
             try { video.pause(); } catch(e) {}
           }
@@ -841,6 +920,11 @@ export class ReelsFeed {
       return;
     }
 
+    if (this._needsRender || this.container.children.length === 0) {
+      this._needsRender = false;
+      this.render();
+    }
+
     let item = this.activeItem;
     if (!item || !this.container.contains(item)) {
       const containerTop = this.container.scrollTop || 0;
@@ -878,7 +962,7 @@ export class ReelsFeed {
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="eager" />
 
       <!-- 9:16 Video Canvas (100% Seamless Fast Playback, Zero Black Screen, Zero Delay) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline poster="${reel.thumbnail_url}" ${index < 2 ? `src="${reel.video_url}"` : ''} preload="${index < 2 ? 'auto' : 'none'}" data-src="${reel.video_url}">
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline disablepictureinpicture disableremoteplayback poster="${reel.thumbnail_url}" ${index < 3 ? `src="${reel.video_url}"` : ''} preload="${index < 3 ? 'auto' : 'none'}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
@@ -1016,14 +1100,16 @@ export class ReelsFeed {
   appendBatch() {
     if (this.renderedCount >= this.filteredReels.length) return;
 
-    const nextBatchCount = Math.min(this.renderedCount + 15, this.filteredReels.length);
+    const nextBatchCount = Math.min(this.renderedCount + 5, this.filteredReels.length);
+    const fragment = document.createDocumentFragment();
     for (let i = this.renderedCount; i < nextBatchCount; i++) {
       const item = this._createReelItem(this.filteredReels[i], i);
-      this.container.appendChild(item);
+      fragment.appendChild(item);
       if (this.observer) {
         this.observer.observe(item);
       }
     }
+    this.container.appendChild(fragment);
     this.renderedCount = nextBatchCount;
   }
 
@@ -1068,27 +1154,28 @@ export class ReelsFeed {
       return;
     }
 
-    // Render initial batch of reels for instant 0ms startup, appendBatch expands infinitely on scroll
-    const initialBatch = Math.min(30, this.filteredReels.length);
+    // Render initial batch of 5 reels for instant 0ms startup, appendBatch expands on scroll
+    const initialBatch = Math.min(5, this.filteredReels.length);
+    const fragment = document.createDocumentFragment();
     for (let i = 0; i < initialBatch; i++) {
       const item = this._createReelItem(this.filteredReels[i], i);
-      this.container.appendChild(item);
+      fragment.appendChild(item);
     }
+    this.container.appendChild(fragment);
     this.renderedCount = initialBatch;
 
     this._initObserver();
 
-    // NEVER autoplay on render if app is on Home tab!
-    // Video will ONLY play when user explicitly navigates to Reels tab!
+    // Autoplay ONLY if reels view is actively visible
     setTimeout(() => {
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
       const reelsView = document.getElementById('view-reels');
-      if (isReelsTab && reelsView && reelsView.style.display === 'block') {
+      if (isReelsTab && reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null)) {
         this.resumeActive();
       } else {
         this.pauseAll();
       }
-    }, 50);
+    }, 30);
   }
 
   _updateLanguageUI() {

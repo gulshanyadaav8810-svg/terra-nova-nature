@@ -205,6 +205,9 @@ async function extractPinterestMedia(inputUrl) {
     }
 
     if (videoUrl) {
+      if (videoUrl.includes('/hevcMp4V3/')) {
+        videoUrl = videoUrl.replace('/hevcMp4V3/', '/expMp4/');
+      }
       return {
         success: true,
         video_url: videoUrl,
