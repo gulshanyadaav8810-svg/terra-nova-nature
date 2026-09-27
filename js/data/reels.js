@@ -413,6 +413,27 @@ if (typeof window !== 'undefined') {
         } catch (e) {}
         REELS_DATA = reels;
         window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+      } else if (type === 'SET_CATEGORY_VISIBILITY') {
+        const { category_id, is_hidden } = event.data;
+        REELS_DATA.forEach(r => {
+          if (r.category_id === category_id) r.is_hidden = !!is_hidden;
+        });
+        invalidateReelsCache();
+        window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+      } else if (type === 'TOGGLE_REEL_VISIBILITY') {
+        const { content_id, is_hidden } = event.data;
+        const target = REELS_DATA.find(r => r.content_id === content_id);
+        if (target) target.is_hidden = !!is_hidden;
+        invalidateReelsCache();
+        window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+      } else if (type === 'BATCH_VISIBILITY') {
+        const { ids, is_hidden } = event.data;
+        const idSet = new Set(ids || []);
+        REELS_DATA.forEach(r => {
+          if (idSet.has(r.content_id)) r.is_hidden = !!is_hidden;
+        });
+        invalidateReelsCache();
+        window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
       } else if (type === 'UPDATE_REEL' && reel) {
         loadAllReels();
         window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
@@ -431,6 +452,10 @@ let CATEGORY_INDEX = null;
 let TRENDING_CACHE = null;
 let REEL_BY_ID_MAP = null;
 
+function isCurrentAdmin() {
+  return typeof window !== 'undefined' && window.location && (window.location.pathname.includes('admin') || window.location.href.includes('admin.html'));
+}
+
 export function invalidateReelsCache() {
   CATEGORY_INDEX = null;
   TRENDING_CACHE = null;
@@ -443,9 +468,17 @@ function ensureCategoryIndex() {
   TRENDING_CACHE = [];
   REEL_BY_ID_MAP = new Map();
 
+  const isAdmin = isCurrentAdmin();
+
   for (let i = 0; i < REELS_DATA.length; i++) {
     const r = REELS_DATA[i];
     if (!r) continue;
+
+    // Public users do NOT see hidden reels
+    if (!isAdmin && (r.is_hidden === true || r.hidden === true)) {
+      continue;
+    }
+
     REEL_BY_ID_MAP.set(r.content_id, r);
     if (r.is_trending === true || r.category_id === 'trending') {
       TRENDING_CACHE.push(r);
@@ -467,13 +500,25 @@ export function getReelsByCategory(categoryId) {
   }
   ensureCategoryIndex();
 
+  const isAdmin = isCurrentAdmin();
+
   if (!categoryId || categoryId === 'all') {
-    return REELS_DATA;
+    if (isAdmin) return REELS_DATA;
+    return REELS_DATA.filter(r => r.is_hidden !== true && r.hidden !== true);
   }
   if (categoryId === 'trending') {
     return TRENDING_CACHE || [];
   }
   return CATEGORY_INDEX.get(categoryId) || [];
+}
+
+export function getAllReels() {
+  if (!REELS_DATA || REELS_DATA.length === 0) {
+    loadAllReels();
+  }
+  const isAdmin = isCurrentAdmin();
+  if (isAdmin) return REELS_DATA;
+  return REELS_DATA.filter(r => r.is_hidden !== true && r.hidden !== true);
 }
 
 export function getReelById(contentId) {
@@ -482,6 +527,132 @@ export function getReelById(contentId) {
   }
   ensureCategoryIndex();
   return REEL_BY_ID_MAP.get(contentId);
+}
+
+export function setCategoryVideosVisibility(categoryId, isHidden) {
+  try {
+    if (!categoryId) return false;
+    const hideBool = !!isHidden;
+
+    // 1. Update in-memory
+    REELS_DATA.forEach(r => {
+      if (r.category_id === categoryId) {
+        r.is_hidden = hideBool;
+      }
+    });
+
+    // 2. Update persistent storage
+    try {
+      const custom = JSON.parse(localStorage.getItem('nature_custom_reels') || '[]');
+      custom.forEach(r => {
+        if (r.category_id === categoryId) r.is_hidden = hideBool;
+      });
+      localStorage.setItem('nature_custom_reels', JSON.stringify(custom));
+    } catch(e) {}
+
+    try {
+      const remote = JSON.parse(localStorage.getItem('nature_remote_reels') || '[]');
+      remote.forEach(r => {
+        if (r.category_id === categoryId) r.is_hidden = hideBool;
+      });
+      localStorage.setItem('nature_remote_reels', JSON.stringify(remote.slice(0, 300)));
+    } catch(e) {}
+
+    invalidateReelsCache();
+
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('nature_moments_sync');
+      channel.postMessage({ type: 'SET_CATEGORY_VISIBILITY', category_id: categoryId, is_hidden: hideBool });
+    }
+    window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+    syncToCloudApi('batch_visibility', { category_id: categoryId, is_hidden: hideBool });
+    return true;
+  } catch(e) {
+    console.error('Error setting category videos visibility:', e);
+    return false;
+  }
+}
+
+export function toggleReelVisibility(contentId, isHidden) {
+  try {
+    if (!contentId) return false;
+    const hideBool = !!isHidden;
+
+    const r = REELS_DATA.find(item => item.content_id === contentId);
+    if (r) {
+      r.is_hidden = hideBool;
+    }
+
+    try {
+      const custom = JSON.parse(localStorage.getItem('nature_custom_reels') || '[]');
+      const cr = custom.find(item => item.content_id === contentId);
+      if (cr) cr.is_hidden = hideBool;
+      localStorage.setItem('nature_custom_reels', JSON.stringify(custom));
+    } catch(e) {}
+
+    try {
+      const remote = JSON.parse(localStorage.getItem('nature_remote_reels') || '[]');
+      const rr = remote.find(item => item.content_id === contentId);
+      if (rr) rr.is_hidden = hideBool;
+      localStorage.setItem('nature_remote_reels', JSON.stringify(remote.slice(0, 300)));
+    } catch(e) {}
+
+    invalidateReelsCache();
+
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('nature_moments_sync');
+      channel.postMessage({ type: 'TOGGLE_REEL_VISIBILITY', content_id: contentId, is_hidden: hideBool });
+    }
+    window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+    syncToCloudApi('toggle_visibility', { content_id: contentId, is_hidden: hideBool });
+    return true;
+  } catch(e) {
+    console.error('Error toggling reel visibility:', e);
+    return false;
+  }
+}
+
+export function setBatchVideosVisibility(idList, isHidden) {
+  try {
+    if (!Array.isArray(idList) || idList.length === 0) return false;
+    const hideBool = !!isHidden;
+    const idSet = new Set(idList);
+
+    REELS_DATA.forEach(r => {
+      if (idSet.has(r.content_id)) {
+        r.is_hidden = hideBool;
+      }
+    });
+
+    try {
+      const custom = JSON.parse(localStorage.getItem('nature_custom_reels') || '[]');
+      custom.forEach(r => {
+        if (idSet.has(r.content_id)) r.is_hidden = hideBool;
+      });
+      localStorage.setItem('nature_custom_reels', JSON.stringify(custom));
+    } catch(e) {}
+
+    try {
+      const remote = JSON.parse(localStorage.getItem('nature_remote_reels') || '[]');
+      remote.forEach(r => {
+        if (idSet.has(r.content_id)) r.is_hidden = hideBool;
+      });
+      localStorage.setItem('nature_remote_reels', JSON.stringify(remote.slice(0, 300)));
+    } catch(e) {}
+
+    invalidateReelsCache();
+
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('nature_moments_sync');
+      channel.postMessage({ type: 'BATCH_VISIBILITY', ids: idList, is_hidden: hideBool });
+    }
+    window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
+    syncToCloudApi('batch_visibility', { ids: idList, is_hidden: hideBool });
+    return true;
+  } catch(e) {
+    console.error('Error setting batch visibility:', e);
+    return false;
+  }
 }
 
 async function syncToCloudApi(action, data) {

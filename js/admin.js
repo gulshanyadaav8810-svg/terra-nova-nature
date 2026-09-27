@@ -5,7 +5,7 @@
    ========================================================== */
 
 import { getAllCategories, addCustomCategory, getCategoryById } from './data/categories.js';
-import { loadAllReels, addCustomReel, updateCustomReel, addCustomReelsBatch, deleteCustomReel, deleteCustomReelsBatch, wipeAllReels, REELS_DATA } from './data/reels.js';
+import { loadAllReels, addCustomReel, updateCustomReel, addCustomReelsBatch, deleteCustomReel, deleteCustomReelsBatch, wipeAllReels, REELS_DATA, toggleReelVisibility, setBatchVideosVisibility, setCategoryVideosVisibility } from './data/reels.js';
 import { videoCache } from './services/video-cache.js';
 
 class AdminStudio {
@@ -177,6 +177,14 @@ class AdminStudio {
 
     document.getElementById('btn-bulk-delete-selected')?.addEventListener('click', () => {
       this._handleBulkDeleteSelected();
+    });
+
+    document.getElementById('btn-bulk-hide-selected')?.addEventListener('click', () => {
+      this._handleBulkVisibilitySelected(true);
+    });
+
+    document.getElementById('btn-bulk-show-selected')?.addEventListener('click', () => {
+      this._handleBulkVisibilitySelected(false);
     });
 
     document.getElementById('btn-wipe-all-reels')?.addEventListener('click', () => {
@@ -391,7 +399,10 @@ class AdminStudio {
 
     container.innerHTML = '';
     this.categories.forEach(cat => {
-      const reelCount = this.reels.filter(r => cat.id === 'trending' ? r.is_trending : r.category_id === cat.id).length;
+      const catReels = this.reels.filter(r => cat.id === 'trending' ? r.is_trending : r.category_id === cat.id);
+      const reelCount = catReels.length;
+      const hiddenCount = catReels.filter(r => r.is_hidden).length;
+      const isAllHidden = reelCount > 0 && hiddenCount === reelCount;
 
       const card = document.createElement('div');
       card.className = 'category-admin-card';
@@ -403,14 +414,32 @@ class AdminStudio {
               <span>${cat.icon}</span>
               <span>${cat.name}</span>
             </div>
-            <span class="cat-card-badge">${reelCount} Reels</span>
+            <span class="cat-card-badge">${reelCount} Reels ${hiddenCount > 0 ? `<span style="color: #f87171;">(${hiddenCount} hidden)</span>` : ''}</span>
           </div>
           <div class="cat-card-desc">${cat.description || 'Peaceful nature soundscapes and visuals.'}</div>
-          <div style="margin-top: 10px; font-size: 0.72rem; color: var(--admin-text-dim); font-family: monospace;">
-            ID: #${cat.id}
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+            <div style="font-size: 0.72rem; color: var(--admin-text-dim); font-family: monospace;">
+              ID: #${cat.id}
+            </div>
+            ${reelCount > 0 ? `
+              <button type="button" class="btn btn-secondary btn-cat-toggle-vis" style="font-size: 0.72rem; padding: 4px 8px; ${isAllHidden ? 'color: #f87171; border-color: rgba(239,68,68,0.4);' : 'color: #34d399;'}">
+                ${isAllHidden ? '👁️ Show in App' : '🙈 Hide in App'}
+              </button>
+            ` : ''}
           </div>
         </div>
       `;
+
+      card.querySelector('.btn-cat-toggle-vis')?.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const willHide = !isAllHidden;
+        setCategoryVideosVisibility(cat.id, willHide);
+        this.showToast(`${cat.name} ${willHide ? 'hidden from app' : 'now live in app'}`, willHide ? '🙈' : '👁️');
+        this._loadData();
+        const all = loadAllReels();
+        await this._autoCommitReelsToGitHub(all);
+      });
+
       container.appendChild(card);
     });
   }
@@ -472,6 +501,25 @@ class AdminStudio {
       } else {
         this.showToast(`⚠️ ${count} reels deleted locally. Cloud sync in progress.`, '⚠️');
       }
+    }
+  }
+
+  async _handleBulkVisibilitySelected(isHidden) {
+    const count = this.selectedReelIds.size;
+    if (count === 0) return;
+
+    const actionText = isHidden ? 'hide' : 'show';
+    const ids = Array.from(this.selectedReelIds);
+    setBatchVideosVisibility(ids, isHidden);
+    this.selectedReelIds.clear();
+    this.showToast(`${isHidden ? 'Hiding' : 'Showing'} ${count} reels in app...`, isHidden ? '🙈' : '👁️');
+    this._loadData();
+    const all = loadAllReels();
+    const synced = await this._autoCommitReelsToGitHub(all);
+    if (synced) {
+      this.showToast(`✅ ${count} reels ${actionText === 'hide' ? 'hidden from' : 'now visible in'} app on all devices!`, isHidden ? '🙈' : '👁️');
+    } else {
+      this.showToast(`⚠️ Visibility updated locally. Cloud sync in progress.`, '⚠️');
     }
   }
 
@@ -624,7 +672,10 @@ class AdminStudio {
         <td><span class="badge-tag">${cat.icon} ${cat.name}</span></td>
         <td><span style="font-family: monospace; font-size: 0.85rem;">${reel.duration}</span></td>
         <td>
-          <div style="display: flex; gap: 8px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="btn btn-secondary btn-toggle-vis" data-id="${reel.content_id}" style="padding: 6px 10px; font-size: 0.8rem; ${reel.is_hidden ? 'color: #f87171; border-color: rgba(239,68,68,0.4);' : 'color: #34d399; border-color: rgba(52,211,153,0.4);'}" title="${reel.is_hidden ? 'App se chupaya hua hai (Click to Show)' : 'App me live dikh raha hai (Click to Hide)'}">
+              ${reel.is_hidden ? '🙈 Hidden' : '👁️ Live'}
+            </button>
             <button class="btn btn-secondary btn-preview-reel" data-url="${reel.video_url}" style="padding: 6px 10px; font-size: 0.8rem;" title="Preview Video">
               ▶️ Play
             </button>
@@ -653,6 +704,16 @@ class AdminStudio {
       });
 
       // Bind actions
+      tr.querySelector('.btn-toggle-vis')?.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const willHide = !reel.is_hidden;
+        toggleReelVisibility(reel.content_id, willHide);
+        this.showToast(willHide ? `Reel "${reel.title}" hidden from app` : `Reel "${reel.title}" is now live in app`, willHide ? '🙈' : '👁️');
+        this._loadData();
+        const all = loadAllReels();
+        await this._autoCommitReelsToGitHub(all);
+      });
+
       tr.querySelector('.btn-preview-reel').addEventListener('click', () => {
         this._openPlayerModal(reel);
       });

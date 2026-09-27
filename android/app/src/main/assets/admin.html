@@ -452,8 +452,14 @@
               <span>☑️</span>
               <span id="bulk-selected-count">0 reels selected</span>
             </div>
-            <div class="bulk-btn-group">
+            <div class="bulk-btn-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
               <button class="btn btn-secondary" id="btn-bulk-deselect-all" style="padding: 6px 14px; font-size: 0.82rem;">Deselect</button>
+              <button class="btn btn-secondary" id="btn-bulk-hide-selected" style="padding: 6px 12px; font-size: 0.82rem; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171;">
+                <span>🙈 Hide in App</span>
+              </button>
+              <button class="btn btn-secondary" id="btn-bulk-show-selected" style="padding: 6px 12px; font-size: 0.82rem; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399;">
+                <span>👁️ Show in App</span>
+              </button>
               <button class="btn btn-danger" id="btn-bulk-delete-selected" style="padding: 6px 16px; font-size: 0.85rem;">
                 <span>🗑️ Delete Selected</span>
               </button>

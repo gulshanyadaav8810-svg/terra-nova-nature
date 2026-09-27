@@ -681,6 +681,29 @@ export default async function handler(req, res) {
       } else if (action === 'batch_delete' && Array.isArray(ids)) {
         const idSet = new Set(ids);
         updatedReels = updatedReels.filter(r => !idSet.has(r.content_id));
+      } else if (action === 'batch_visibility') {
+        const { category_id, is_hidden, ids } = payload;
+        if (category_id) {
+          updatedReels = updatedReels.map(r => {
+            if (r.category_id === category_id) {
+              return { ...r, is_hidden: !!is_hidden };
+            }
+            return r;
+          });
+        } else if (Array.isArray(ids)) {
+          const idSet = new Set(ids);
+          updatedReels = updatedReels.map(r => {
+            if (idSet.has(r.content_id)) {
+              return { ...r, is_hidden: !!is_hidden };
+            }
+            return r;
+          });
+        }
+      } else if (action === 'toggle_visibility' && payload.content_id) {
+        const target = updatedReels.find(r => r.content_id === payload.content_id);
+        if (target) {
+          target.is_hidden = !!payload.is_hidden;
+        }
       } else if (action === 'wipe') {
         updatedReels = [];
       } else if (action === 'track') {
