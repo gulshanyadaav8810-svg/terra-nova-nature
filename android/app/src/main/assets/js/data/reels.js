@@ -130,6 +130,20 @@ if (typeof window !== 'undefined') {
   } catch (e) {}
 }
 
+let CATEGORY_INDEX = null;
+let TRENDING_CACHE = null;
+let REEL_BY_ID_MAP = null;
+
+function isCurrentAdmin() {
+  return typeof window !== 'undefined' && window.location && (window.location.pathname.includes('admin') || window.location.href.includes('admin.html'));
+}
+
+export function invalidateReelsCache() {
+  CATEGORY_INDEX = null;
+  TRENDING_CACHE = null;
+  REEL_BY_ID_MAP = null;
+}
+
 // Compute comprehensive content fingerprint to detect any thumbnail, video, or title edit
 export function getReelsFingerprint(list) {
   if (!Array.isArray(list) || list.length === 0) return '';
@@ -446,20 +460,6 @@ if (typeof window !== 'undefined') {
       }
     };
   }
-}
-
-let CATEGORY_INDEX = null;
-let TRENDING_CACHE = null;
-let REEL_BY_ID_MAP = null;
-
-function isCurrentAdmin() {
-  return typeof window !== 'undefined' && window.location && (window.location.pathname.includes('admin') || window.location.href.includes('admin.html'));
-}
-
-export function invalidateReelsCache() {
-  CATEGORY_INDEX = null;
-  TRENDING_CACHE = null;
-  REEL_BY_ID_MAP = null;
 }
 
 function ensureCategoryIndex() {
