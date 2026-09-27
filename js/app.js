@@ -54,6 +54,7 @@ class NatureMomentsApp {
     this._initComponents();
     this._initHomeCategories();
     this._bindNavigation();
+    this._initPwaAndInstall();
     this._checkUrlParameters();
 
     // Initialize Home view & enable banner ad display
@@ -482,6 +483,196 @@ class NatureMomentsApp {
     if (this.reelsFeed) {
       this.reelsFeed.scrollToReel(reel.content_id, this.currentCategory);
     }
+  }
+
+  _initPwaAndInstall() {
+    // 1. Register Service Worker for PWA (Progressive Web App)
+    if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          console.log('[PWA] Service Worker registered with scope:', reg.scope);
+        }).catch((err) => {
+          console.warn('[PWA] Service Worker registration failed:', err);
+        });
+      });
+    }
+
+    // 2. Adjust Drawer "Download App" element
+    const dlItem = document.getElementById('drawer-item-download-apk');
+    if (!dlItem) return;
+
+    const isInsideNativeApp = !!(window.AndroidBridge && typeof window.AndroidBridge === 'object');
+    const isStandalonePWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+    if (isInsideNativeApp) {
+      // Running inside Android APK: User already has native app!
+      dlItem.removeAttribute('href');
+      dlItem.removeAttribute('download');
+      dlItem.style.cursor = 'pointer';
+      dlItem.innerHTML = `
+        <div class="drawer-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10B981;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <div class="drawer-text-col">
+          <span class="drawer-item-title" style="color: #10B981; font-weight: 700;">App is Up to Date</span>
+          <span class="drawer-item-sub">Live auto-updating active • No download needed</span>
+        </div>
+        <div class="drawer-right-meta">
+          <span class="drawer-badge" style="background: #10B981; color: #011811; font-weight: 700;">Active</span>
+        </div>
+      `;
+      dlItem.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showToast('App is connected & auto-updates live! No APK download needed.', '✅');
+      });
+      return;
+    }
+
+    if (isStandalonePWA) {
+      // Running as installed PWA from Home Screen
+      dlItem.removeAttribute('href');
+      dlItem.removeAttribute('download');
+      dlItem.style.cursor = 'pointer';
+      dlItem.innerHTML = `
+        <div class="drawer-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10B981;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <div class="drawer-text-col">
+          <span class="drawer-item-title" style="color: #10B981; font-weight: 700;">Installed Web App</span>
+          <span class="drawer-item-sub">Zero download auto-updating enabled</span>
+        </div>
+        <div class="drawer-right-meta">
+          <span class="drawer-badge" style="background: #10B981; color: #011811; font-weight: 700;">PWA</span>
+        </div>
+      `;
+      dlItem.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showToast('You are using the installed app! It updates automatically.', '✨');
+      });
+      return;
+    }
+
+    // Running in standard mobile/desktop web browser:
+    // Offer 1-Tap "Add to Home Screen / Install App" so user never needs to download an APK file!
+    let deferredPrompt = null;
+
+    const setupInstallButton = (canPrompt) => {
+      dlItem.removeAttribute('href');
+      dlItem.removeAttribute('download');
+      dlItem.style.cursor = 'pointer';
+      dlItem.innerHTML = `
+        <div class="drawer-icon-box" style="background: rgba(0,255,224,0.15); color: #00FFE0;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+        </div>
+        <div class="drawer-text-col">
+          <span class="drawer-item-title" style="color: #00FFE0; font-weight: 700;">Install App to Phone</span>
+          <span class="drawer-item-sub">Add to Home Screen (No APK download needed)</span>
+        </div>
+        <div class="drawer-right-meta">
+          <span class="drawer-badge" style="background: #00FFE0; color: #011811; font-weight: 700;">1-Tap</span>
+        </div>
+      `;
+    };
+
+    setupInstallButton(false);
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      setupInstallButton(true);
+
+      // Show floating bottom banner on mobile web if not dismissed previously
+      if (!sessionStorage.getItem('nature_pwa_banner_dismissed')) {
+        this._showPwaInstallBanner(() => {
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choice) => {
+              if (choice.outcome === 'accepted') {
+                this.showToast('Adding Nature Moments to your Home Screen...', '📲');
+              }
+              deferredPrompt = null;
+            });
+          }
+        });
+      }
+    });
+
+    dlItem.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          this.showToast('Nature Moments installed to Home Screen!', '📲');
+        }
+        deferredPrompt = null;
+      } else {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) {
+          alert('To install without downloading:\n1. Tap the Share button at the bottom of Safari.\n2. Tap "Add to Home Screen" 📲');
+        } else {
+          alert('To install without downloading APK:\n1. Tap the 3 dots menu (⋮) in your browser.\n2. Tap "Install App" or "Add to Home Screen" 📲\n\nThe app icon will appear on your phone automatically!');
+        }
+      }
+    });
+  }
+
+  _showPwaInstallBanner(onInstall) {
+    if (document.getElementById('pwa-install-banner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'pwa-install-banner';
+    banner.style.cssText = `
+      position: fixed;
+      bottom: 74px;
+      left: 14px;
+      right: 14px;
+      background: linear-gradient(135deg, rgba(8, 20, 28, 0.96), rgba(12, 34, 44, 0.98));
+      border: 1px solid rgba(0, 255, 224, 0.35);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      z-index: 9999;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 255, 224, 0.15);
+      backdrop-filter: blur(12px);
+    `;
+    banner.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+        <img src="assets/icon-192.png" style="width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;" />
+        <div style="min-width: 0;">
+          <div style="font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Install Nature Moments</div>
+          <div style="font-size: 11px; color: rgba(255, 255, 255, 0.7); line-height: 1.2;">Use as app without downloading APK</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <button id="pwa-install-action-btn" style="background: #00FFE0; color: #011811; border: none; border-radius: 20px; padding: 7px 14px; font-size: 12px; font-weight: 800; cursor: pointer;">Install</button>
+        <button id="pwa-install-close-btn" style="background: transparent; color: rgba(255,255,255,0.6); border: none; font-size: 16px; padding: 4px 6px; cursor: pointer;">✕</button>
+      </div>
+    `;
+
+    document.body.appendChild(banner);
+
+    const actionBtn = banner.querySelector('#pwa-install-action-btn');
+    const closeBtn = banner.querySelector('#pwa-install-close-btn');
+
+    actionBtn.addEventListener('click', () => {
+      banner.remove();
+      if (onInstall) onInstall();
+    });
+
+    closeBtn.addEventListener('click', () => {
+      sessionStorage.setItem('nature_pwa_banner_dismissed', '1');
+      banner.remove();
+    });
   }
 
   _checkUrlParameters() {

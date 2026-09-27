@@ -710,10 +710,18 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(new WebAppInterface(this), "AndroidBridge");
         webView.setBackgroundColor(android.graphics.Color.parseColor("#03081a"));
 
-        // High-Performance 60/120 FPS loading: Always load local bundled assets directly for 0ms latency.
-        // Remote reels & uploads are synced automatically in the background via IndexedDB/localStorage!
-        Log.d(TAG, "Loading local APK assets for 60 FPS fluid performance: " + OFFLINE_FALLBACK_URL);
-        webView.loadUrl(OFFLINE_FALLBACK_URL);
+        // Zero-Download Auto-Update Architecture:
+        // If network is available, load live online URL so user NEVER has to download or reinstall APKs for updates.
+        // If offline or network fails, automatically fallback to bundled APK assets.
+        if (isNetworkAvailable()) {
+            settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+            Log.d(TAG, "Network active: loading live online URL for real-time auto-updates: " + ONLINE_URL);
+            webView.loadUrl(ONLINE_URL);
+        } else {
+            settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+            Log.d(TAG, "No network: falling back to local bundled assets: " + OFFLINE_FALLBACK_URL);
+            webView.loadUrl(OFFLINE_FALLBACK_URL);
+        }
     }
 
     private boolean isNetworkAvailable() {
