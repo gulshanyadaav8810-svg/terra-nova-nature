@@ -642,7 +642,12 @@ export default async function handler(req, res) {
       let updatedReels = [...currentReels];
 
       if (fullList && Array.isArray(fullList)) {
-        updatedReels = fullList;
+        // Safe merge: Never drop existing reels on fullList sync!
+        const mergedMap = new Map();
+        currentReels.forEach(r => { if (r && r.content_id) mergedMap.set(r.content_id, r); });
+        fullList.forEach(r => { if (r && r.content_id) mergedMap.set(r.content_id, r); });
+        updatedReels = Array.from(mergedMap.values());
+        updatedReels.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       } else if (action === 'add' && reel) {
         if (typeof reel.likes_count !== 'number') reel.likes_count = 0;
         if (typeof reel.shares_count !== 'number') reel.shares_count = 0;
