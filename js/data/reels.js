@@ -216,16 +216,7 @@ export function loadAllReels() {
         }
         sanitizedRemote.forEach(r => {
           if (r.video_url && !r.video_url.startsWith('blob:')) {
-            let isHidden = false;
-            if (r.is_hidden === true || r.hidden === true) {
-              isHidden = true;
-              hiddenIds.add(r.content_id);
-            } else if (r.is_hidden === false || r.hidden === false) {
-              isHidden = false;
-              hiddenIds.delete(r.content_id);
-            } else {
-              isHidden = hiddenIds.has(r.content_id);
-            }
+            const isHidden = hiddenIds.has(r.content_id) || r.is_hidden === true || r.hidden === true;
             mergedMap.set(r.content_id, {
               ...r,
               is_hidden: isHidden,
@@ -234,7 +225,6 @@ export function loadAllReels() {
             });
           }
         });
-        saveHiddenReelIds(hiddenIds);
       }
     }
   } catch (e) {
@@ -361,15 +351,9 @@ export async function syncRemoteReels() {
           // 1. Add valid remote reels first (AUTHORITATIVE: contains newest thumbnails, titles, and visibility)
           cleanRemote.forEach(r => {
             if (r.video_url && !r.video_url.startsWith('blob:')) {
-              let isHidden = false;
+              const isHidden = hiddenIds.has(r.content_id) || r.is_hidden === true || r.hidden === true;
               if (r.is_hidden === true || r.hidden === true) {
-                isHidden = true;
                 hiddenIds.add(r.content_id);
-              } else if (r.is_hidden === false || r.hidden === false) {
-                isHidden = false;
-                hiddenIds.delete(r.content_id);
-              } else {
-                isHidden = hiddenIds.has(r.content_id);
               }
               merged.set(r.content_id, {
                 ...r,
