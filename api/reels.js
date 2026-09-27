@@ -463,6 +463,26 @@ export default async function handler(req, res) {
             const content = Buffer.from(fileData.content, 'base64').toString('utf8');
             const parsed = JSON.parse(content || '[]');
             return res.status(200).json(parsed);
+          } else if (fileData.sha) {
+            // File >= 1MB: Fetch full content via Git Blobs API (supports up to 100MB)
+            try {
+              const blobRes = await fetch(`https://api.github.com/repos/${REPO}/git/blobs/${fileData.sha}`, {
+                headers: {
+                  'Authorization': `Bearer ${GITHUB_TOKEN}`,
+                  'Accept': 'application/vnd.github.v3+json',
+                  'User-Agent': 'NatureMomentsServer'
+                }
+              });
+              if (blobRes.ok) {
+                const blobData = await blobRes.json();
+                if (blobData.content) {
+                  const bContent = Buffer.from(blobData.content, blobData.encoding === 'base64' ? 'base64' : 'utf8').toString('utf8');
+                  return res.status(200).json(JSON.parse(bContent || '[]'));
+                }
+              }
+            } catch (blobErr) {
+              console.warn('Git Blobs API GET failed:', blobErr.message);
+            }
           }
         }
       } catch (e) {
@@ -562,25 +582,60 @@ export default async function handler(req, res) {
           if (fileData.content) {
             const content = Buffer.from(fileData.content, 'base64').toString('utf8');
             currentReels = JSON.parse(content || '[]');
+          } else if (sha) {
+            // File >= 1MB: GitHub Contents API omits content, fetch from Git Blobs API (supports up to 100MB)
+            try {
+              const blobRes = await fetch(`https://api.github.com/repos/${REPO}/git/blobs/${sha}`, {
+                headers: {
+                  'Authorization': `Bearer ${GITHUB_TOKEN}`,
+                  'Accept': 'application/vnd.github.v3+json',
+                  'User-Agent': 'NatureMomentsServer'
+                }
+              });
+              if (blobRes.ok) {
+                const blobData = await blobRes.json();
+                if (blobData.content) {
+                  const content = Buffer.from(blobData.content, blobData.encoding === 'base64' ? 'base64' : 'utf8').toString('utf8');
+                  currentReels = JSON.parse(content || '[]');
+                }
+              }
+            } catch (blobErr) {
+              console.warn('Git Blobs API POST fetch failed:', blobErr.message);
+            }
           }
         }
       } catch (e) {
         console.warn('GitHub API fetch failed:', e.message);
       }
 
-      // Fallback if GitHub API failed: calculate from raw
-      if (!sha) {
+      // Fallback: calculate from raw github if currentReels is empty
+      if (!currentReels || currentReels.length === 0) {
         try {
           const rawRes = await fetch(`https://raw.githubusercontent.com/${REPO}/main/${FILE_PATH}?t=${Date.now()}`, {
             headers: { 'Cache-Control': 'no-cache' }
           });
           if (rawRes.ok) {
             const rawText = await rawRes.text();
-            const buf = Buffer.from(rawText, 'utf8');
-            sha = computeGitBlobSha(buf);
-            currentReels = JSON.parse(rawText || '[]');
+            const parsed = JSON.parse(rawText || '[]');
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              currentReels = parsed;
+              if (!sha) {
+                const buf = Buffer.from(rawText, 'utf8');
+                sha = computeGitBlobSha(buf);
+              }
+            }
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn('Raw fallback fetch failed:', e.message);
+        }
+      }
+
+      // CRITICAL DATA PROTECTION LOCK:
+      // If action is NOT wipe, and existing reels could not be retrieved from GitHub while sha exists,
+      // ABORT immediately to prevent accidental data destruction!
+      if (action !== 'wipe' && (!currentReels || currentReels.length === 0) && sha) {
+        console.error('[CloudApi] FATAL: Refusing to overwrite - existing reels could not be loaded from GitHub.');
+        return res.status(500).json({ error: 'Database safety lock: unable to verify existing reels from GitHub. Aborted to prevent data loss.' });
       }
 
       // 2. Perform modification
@@ -634,8 +689,8 @@ export default async function handler(req, res) {
         updatedReels = payload;
       }
 
-      // 3. Commit back to GitHub
-      const newJsonString = JSON.stringify(updatedReels, null, 2);
+      // 3. Commit back to GitHub (minify JSON to keep under limits and save bandwidth)
+      const newJsonString = JSON.stringify(updatedReels);
       const encodedContent = Buffer.from(newJsonString, 'utf8').toString('base64');
 
       const putRes = await fetch(GITHUB_URL, {

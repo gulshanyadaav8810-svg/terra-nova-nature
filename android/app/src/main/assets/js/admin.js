@@ -404,7 +404,74 @@ class AdminStudio {
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      list = list.filter(r => r.title.toLowerCase().includes(q) || r.category_id.toLowerCase().includes(q));
+      list = list.filter(r => (r.title || '').toLowerCase().includes(q) || (r.category_id || '').toLowerCase().includes(q));
+    }
+
+    this._currentFilteredReels = list;
+    const pageSize = this.libraryPageSize || 50;
+    const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+    if (this.libraryPage > totalPages) this.libraryPage = totalPages;
+    if (!this.libraryPage || this.libraryPage < 1) this.libraryPage = 1;
+
+    // Update Pagination Bar UI
+    const paginationBar = document.getElementById('library-pagination-bar');
+    const paginationInfo = document.getElementById('library-pagination-info');
+    const pageNumEl = document.getElementById('library-page-number');
+    const btnFirst = document.getElementById('btn-page-first');
+    const btnPrev = document.getElementById('btn-page-prev');
+    const btnNext = document.getElementById('btn-page-next');
+    const btnLast = document.getElementById('btn-page-last');
+
+    if (paginationBar) paginationBar.style.display = list.length > 0 ? 'flex' : 'none';
+    if (paginationInfo) {
+      const start = list.length === 0 ? 0 : (this.libraryPage - 1) * pageSize + 1;
+      const end = Math.min(this.libraryPage * pageSize, list.length);
+      paginationInfo.textContent = `Showing ${start}–${end} of ${list.length.toLocaleString()} reels`;
+    }
+    if (pageNumEl) {
+      pageNumEl.textContent = `Page ${this.libraryPage} of ${totalPages}`;
+    }
+    if (btnFirst) btnFirst.disabled = this.libraryPage <= 1;
+    if (btnPrev) btnPrev.disabled = this.libraryPage <= 1;
+    if (btnNext) btnNext.disabled = this.libraryPage >= totalPages;
+    if (btnLast) btnLast.disabled = this.libraryPage >= totalPages;
+
+    if (!this._paginationBound) {
+      this._paginationBound = true;
+      btnFirst?.addEventListener('click', () => {
+        if (this.libraryPage > 1) {
+          this.libraryPage = 1;
+          const sVal = document.getElementById('lib-search-input')?.value || '';
+          const cVal = document.getElementById('lib-category-filter')?.value || 'all';
+          this._renderLibraryTable(cVal, sVal);
+        }
+      });
+      btnPrev?.addEventListener('click', () => {
+        if (this.libraryPage > 1) {
+          this.libraryPage--;
+          const sVal = document.getElementById('lib-search-input')?.value || '';
+          const cVal = document.getElementById('lib-category-filter')?.value || 'all';
+          this._renderLibraryTable(cVal, sVal);
+        }
+      });
+      btnNext?.addEventListener('click', () => {
+        const tPages = Math.max(1, Math.ceil((this._currentFilteredReels || []).length / pageSize));
+        if (this.libraryPage < tPages) {
+          this.libraryPage++;
+          const sVal = document.getElementById('lib-search-input')?.value || '';
+          const cVal = document.getElementById('lib-category-filter')?.value || 'all';
+          this._renderLibraryTable(cVal, sVal);
+        }
+      });
+      btnLast?.addEventListener('click', () => {
+        const tPages = Math.max(1, Math.ceil((this._currentFilteredReels || []).length / pageSize));
+        if (this.libraryPage < tPages) {
+          this.libraryPage = tPages;
+          const sVal = document.getElementById('lib-search-input')?.value || '';
+          const cVal = document.getElementById('lib-category-filter')?.value || 'all';
+          this._renderLibraryTable(cVal, sVal);
+        }
+      });
     }
 
     // Select All Checkbox Handler
@@ -427,7 +494,7 @@ class AdminStudio {
     if (list.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
+          <td colspan="8" style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
             🌿 No reels found matching this filter.
           </td>
         </tr>
@@ -436,13 +503,15 @@ class AdminStudio {
       return;
     }
 
-    list.forEach(reel => {
+    const pageSlice = list.slice((this.libraryPage - 1) * pageSize, this.libraryPage * pageSize);
+
+    pageSlice.forEach(reel => {
       const cat = getCategoryById(reel.category_id);
       const isChecked = this.selectedReelIds.has(reel.content_id);
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><input type="checkbox" class="admin-checkbox reel-row-checkbox" data-id="${reel.content_id}" ${isChecked ? 'checked' : ''} /></td>
-        <td><img class="table-thumb" src="${reel.thumbnail_url}" alt="${reel.title}" /></td>
+        <td><img class="table-thumb" src="${reel.thumbnail_url}" alt="${reel.title}" loading="lazy" onerror="this.src='assets/icons/icon-192.png'" /></td>
         <td>
           <div style="font-weight: 700; color: #fff; max-width: 320px;">${reel.title}</div>
           <div style="font-size: 0.75rem; color: var(--admin-text-dim);">${reel.content_id}</div>
@@ -517,12 +586,14 @@ class AdminStudio {
 
     if (searchInput) {
       searchInput.addEventListener('input', () => {
+        this.libraryPage = 1;
         this._renderLibraryTable(catFilter ? catFilter.value : 'all', searchInput.value);
       });
     }
 
     if (catFilter) {
       catFilter.addEventListener('change', () => {
+        this.libraryPage = 1;
         this._renderLibraryTable(catFilter.value, searchInput ? searchInput.value : '');
       });
     }
@@ -2633,11 +2704,13 @@ class AdminStudio {
 
   // ── AUTO-COMMIT: Push reels.json to GitHub after every publish/delete ──
   async _autoCommitReelsToGitHub(reels) {
-    // 1. Update localStorage copies immediately so local views reflect state in 0ms
+    // 1. Update localStorage copies safely (keep memory lean)
     try {
       localStorage.setItem('nature_remote_reels', JSON.stringify(reels));
-      localStorage.setItem('nature_custom_reels', JSON.stringify(reels));
-    } catch (e) {}
+      localStorage.removeItem('nature_custom_reels');
+    } catch (e) {
+      console.warn('LocalStorage quota limit reached, relying on in-memory and cloud data:', e);
+    }
 
     // 2. Broadcast immediately to any active app tabs
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -2647,9 +2720,12 @@ class AdminStudio {
       } catch (e) {}
     }
 
-    // 3. Primary Cloud Sync: Call /api/reels on Vercel
+    // 3. Primary Cloud Sync: Call /api/reels on Vercel or local
     try {
-      const apiRes = await fetch('https://nature-moments-app.vercel.app/api/reels', {
+      const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      const apiEndpoint = isLocal ? '/api/reels' : 'https://nature-moments-app.vercel.app/api/reels';
+
+      const apiRes = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'sync_all', fullList: reels })
