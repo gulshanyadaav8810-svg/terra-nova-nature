@@ -532,40 +532,26 @@ export class ReelsFeed {
   }
 
   _bindScrollSnapHandler() {
-    this._isUserTouching = false;
-    let scrollSettleTimer = null;
+    this._scrollRaf = null;
 
-    this.container.addEventListener('touchstart', () => {
-      this._isUserTouching = true;
-      if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
-    }, { passive: true });
-
-    this.container.addEventListener('touchend', () => {
-      this._isUserTouching = false;
+    const handleScroll = () => {
       if (this._isProgrammaticScroll) return;
-      if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
-      scrollSettleTimer = setTimeout(() => {
-        this._detectAndPlaySnappedReel();
-      }, 60);
-    }, { passive: true });
+      if (this._scrollRaf) return;
+      this._scrollRaf = requestAnimationFrame(() => {
+        this._scrollRaf = null;
+        this._detectSnappedReelFast();
+      });
+    };
 
-    this.container.addEventListener('scroll', () => {
-      if (this._isUserTouching || this._isProgrammaticScroll) return;
-      if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
-      scrollSettleTimer = setTimeout(() => {
-        this._detectAndPlaySnappedReel();
-      }, 80);
-    }, { passive: true });
-
+    this.container.addEventListener('scroll', handleScroll, { passive: true });
     this.container.addEventListener('scrollend', () => {
-      this._isUserTouching = false;
-      if (this._isProgrammaticScroll) return;
-      if (scrollSettleTimer) clearTimeout(scrollSettleTimer);
-      this._detectAndPlaySnappedReel();
+      this._detectSnappedReelFast(true);
     }, { passive: true });
   }
 
-  _detectAndPlaySnappedReel() {
+  // Instant O(1) detection of whichever reel occupies the screen midpoint
+  _detectSnappedReelFast(force = false) {
+    if (this._isProgrammaticScroll) return;
     const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
     const reelsView = document.getElementById('view-reels');
     const isReelsVisible = reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null);
@@ -574,49 +560,32 @@ export class ReelsFeed {
     const containerHeight = this.container.clientHeight || window.innerHeight;
     if (!containerHeight) return;
 
-    // If active reel is currently playing and still centered in viewport, NEVER interrupt it!
-    if (this.activeItem && this.activeVideo && !this.activeVideo.paused) {
-      const activeRect = this.activeItem.getBoundingClientRect();
-      const contRect = this.container.getBoundingClientRect();
-      const mid = contRect.top + contRect.height / 2;
-      if (activeRect.top <= mid && activeRect.bottom >= mid) {
-        this.activeVideo.muted = this.isMuted;
-        this.activeVideo.volume = this.isMuted ? 0 : 1.0;
-        return;
-      }
-    }
-
-    const targetIdx = Math.round(this.container.scrollTop / containerHeight);
+    // Midpoint of current viewport
+    const mid = this.container.scrollTop + (containerHeight / 2);
     const items = this.container.children;
     if (!items || !items.length) return;
 
-    const clampedIdx = Math.max(0, Math.min(items.length - 1, targetIdx));
-    const closestItem = items[clampedIdx];
-
-    if (closestItem && this.activeItem === closestItem) {
-      if (this.activeVideo) {
-        this.activeVideo.muted = this.isMuted;
-        this.activeVideo.volume = this.isMuted ? 0 : 1.0;
-        if (this.activeVideo.paused && !closestItem.classList.contains('is-paused') && !this._playLock) {
-          this._playLock = true;
-          this.activeVideo.play().catch(() => {}).finally(() => { this._playLock = false; });
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (!item.classList.contains('feed-reel-item')) continue;
+      const top = item.offsetTop;
+      const bottom = top + item.offsetHeight;
+      if (mid >= top && mid <= bottom) {
+        if (this.activeItem !== item || force) {
+          this._playReelItem(item);
         }
+        break;
       }
-      return;
-    }
-
-    if (closestItem) {
-      this._playReelItem(closestItem);
     }
   }
 
-  // Pre-buffer next reels (activeIndex + 1 and activeIndex + 2) to readyState >= 3 so swipe is 100% 0ms INSTANT
+  // Pre-buffer next reels (Instagram Pipeline: N+1, N+2, N+3) to readyState >= 3 so swipe is 100% 0ms INSTANT
   _prebufferUpcomingReels(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
 
-    // 1. Next 2 reels (Highest priority - buffer ahead for rapid continuous swiping)
-    [activeIndex + 1, activeIndex + 2].forEach(idx => {
+    // 1. Next 3 reels (Highest priority - buffer ahead for rapid continuous swiping)
+    [activeIndex + 1, activeIndex + 2, activeIndex + 3].forEach(idx => {
       const item = items[idx];
       if (item) {
         const vid = item.querySelector('video');
@@ -626,9 +595,6 @@ export class ReelsFeed {
             vid.src = src;
           }
           vid.preload = 'auto';
-          if (vid.readyState < 2) {
-            try { vid.load(); } catch(e) {}
-          }
           if (vid.readyState >= 2) {
             item.classList.add('video-ready');
           } else {
@@ -654,7 +620,7 @@ export class ReelsFeed {
     }
   }
 
-  // Strict hardware decoder lifecycle: activeIndex plays, adjacent prebuffers, distance > 2 RELEASE MediaCodec!
+  // Non-blocking hardware decoder lifecycle: activeIndex plays, adjacent prebuffers, distance > 4 gracefully detaches
   _pauseInactiveVideos(activeIndex) {
     const items = this.container.children;
     if (!items || !items.length) return;
@@ -671,15 +637,11 @@ export class ReelsFeed {
             if (!v.paused) v.pause();
           } catch(e) {}
 
-          // Release hardware decoder for non-adjacent videos to prevent Android 4-5 video limit!
-          // Distance > 2 keeps active-1, active, active+1, active+2 ready and buttery smooth!
+          // Release hardware decoder for distant videos without blocking main UI thread
           const distance = Math.abs(i - activeIndex);
-          if (distance > 2 && v.src && v.src !== '') {
-            try {
-              v.removeAttribute('src');
-              v.load(); // Forces WebKit/Chromium to free native MediaCodec immediately!
-              item.classList.remove('video-ready', 'video-playing');
-            } catch(e) {}
+          if (distance > 4 && v.src && v.src !== '') {
+            v.removeAttribute('src');
+            item.classList.remove('video-ready', 'video-playing');
           }
         }
       }
@@ -855,10 +817,10 @@ export class ReelsFeed {
   _initObserver() {
     if (this.observer) this.observer.disconnect();
 
-    // High performance IntersectionObserver: Triggers instant playback when reel crosses 65%
+    // High performance IntersectionObserver: Triggers instant playback when reel crosses 48% (midpoint)
     const options = {
       root: this.container,
-      threshold: [0.1, 0.70]
+      threshold: [0.1, 0.48, 0.65]
     };
 
     this.observer = new IntersectionObserver((entries) => {
@@ -872,8 +834,8 @@ export class ReelsFeed {
         const item = entry.target;
         const video = item.querySelector('video');
 
-        // Dominant item (>= 70% visible on screen): start playing INSTANTLY during swipe!
-        if (entry.intersectionRatio >= 0.70) {
+        // INSTAGRAM SPEED: The moment a reel is >= 48% visible, start playing INSTANTLY during swipe!
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.48) {
           if (this.activeItem !== item) {
             this._playReelItem(item);
           }
@@ -962,7 +924,7 @@ export class ReelsFeed {
       <img class="feed-reel-poster" src="${reel.thumbnail_url}" alt="${reel.title}" loading="eager" />
 
       <!-- 9:16 Video Canvas (100% Seamless Fast Playback, Zero Black Screen, Zero Delay) -->
-      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline disablepictureinpicture disableremoteplayback poster="${reel.thumbnail_url}" ${index < 3 ? `src="${reel.video_url}"` : ''} preload="${index < 3 ? 'auto' : 'none'}" data-src="${reel.video_url}">
+      <video class="feed-reel-video" loop playsinline webkit-playsinline x5-playsinline disablepictureinpicture disableremoteplayback poster="${reel.thumbnail_url}" ${index < 4 ? `src="${reel.video_url}"` : ''} preload="${index < 4 ? 'auto' : 'none'}" data-src="${reel.video_url}">
       </video>
       
       <div class="feed-reel-overlay"></div>
