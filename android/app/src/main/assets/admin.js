@@ -128,6 +128,44 @@ class AdminStudio {
     document.getElementById('btn-lib-add-reel')?.addEventListener('click', () => this.switchTab('tab-upload'));
     document.getElementById('btn-lib-bulk-upload-trigger')?.addEventListener('click', () => this.switchTab('tab-bulk-upload'));
 
+    // Mobile Navigation & Drawer Toggle Events
+    const menuBtn = document.getElementById('admin-mobile-menu-btn');
+    const closeBtn = document.getElementById('admin-sidebar-close-btn');
+    const backdrop = document.getElementById('admin-sidebar-backdrop');
+    const sidebar = document.getElementById('admin-sidebar');
+
+    menuBtn?.addEventListener('click', () => {
+      sidebar?.classList.add('open');
+      backdrop?.classList.add('open');
+    });
+
+    closeBtn?.addEventListener('click', () => {
+      sidebar?.classList.remove('open');
+      backdrop?.classList.remove('open');
+    });
+
+    backdrop?.addEventListener('click', () => {
+      sidebar?.classList.remove('open');
+      backdrop?.classList.remove('open');
+    });
+
+    // Mobile bottom navigation tabs
+    document.querySelectorAll('.admin-mobile-bottom-nav .mobile-nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetTab = btn.getAttribute('data-tab');
+        this.switchTab(targetTab);
+      });
+    });
+
+    // Dashboard Stat Cards quick click navigation
+    document.getElementById('card-stat-categories')?.addEventListener('click', () => {
+      this.switchTab('tab-categories');
+    });
+
+    document.getElementById('card-stat-category-selected')?.addEventListener('click', () => {
+      this.switchTab('tab-library');
+    });
+
     // Bulk actions in library
     document.getElementById('btn-bulk-deselect-all')?.addEventListener('click', () => {
       this.selectedReelIds.clear();
@@ -172,6 +210,21 @@ class AdminStudio {
         btn.classList.remove('active');
       }
     });
+
+    // Update mobile bottom nav buttons
+    document.querySelectorAll('.admin-mobile-bottom-nav .mobile-nav-btn').forEach(btn => {
+      if (btn.getAttribute('data-tab') === tabId) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // Auto-close mobile sidebar drawer upon selecting a tab
+    const sidebar = document.getElementById('admin-sidebar');
+    const backdrop = document.getElementById('admin-sidebar-backdrop');
+    if (sidebar) sidebar.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('open');
 
     // Update panels
     document.querySelectorAll('.tab-panel').forEach(panel => {
@@ -225,37 +278,83 @@ class AdminStudio {
   }
 
   _renderStats() {
-    if (this.statTotalReels) this.statTotalReels.textContent = this.reels.length;
-    if (this.statTotalCats) this.statTotalCats.textContent = this.categories.length;
-    const totalLikes = this.reels.reduce((sum, r) => sum + (r.likes_count || 0), 0);
-    const totalShares = this.reels.reduce((sum, r) => sum + (r.shares_count || 0), 0);
-    const statLikes = document.getElementById('stat-total-likes');
-    const statShares = document.getElementById('stat-total-shares');
-    if (statLikes) statLikes.textContent = totalLikes;
-    if (statShares) statShares.textContent = totalShares;
+    const statTotal = document.getElementById('stat-total-reels');
+    if (statTotal) statTotal.textContent = this.reels.length.toLocaleString();
+
+    const statCats = document.getElementById('stat-total-categories');
+    if (statCats) statCats.textContent = this.categories.length;
+
+    this._updateSelectedCategoryStat();
+  }
+
+  _updateSelectedCategoryStat(selectedCatId = null) {
+    const catFilter = document.getElementById('lib-category-filter');
+    const catId = selectedCatId || (catFilter ? catFilter.value : 'all');
+    const iconEl = document.getElementById('stat-active-cat-icon');
+    const labelEl = document.getElementById('stat-active-cat-label');
+    const countEl = document.getElementById('stat-active-cat-count');
+    const badgeEl = document.getElementById('lib-category-count-badge');
+
+    let count = 0;
+    let label = 'All Categories';
+    let icon = '🌐';
+
+    if (catId === 'all') {
+      count = this.reels.length;
+      label = 'All Categories';
+      icon = '🎬';
+    } else if (catId === 'trending') {
+      count = this.reels.filter(r => r.is_trending).length;
+      label = 'Trending Status';
+      icon = '🔥';
+    } else {
+      const catObj = this.categories.find(c => c.id === catId);
+      count = this.reels.filter(r => r.category_id === catId).length;
+      label = catObj ? catObj.name : catId;
+      icon = catObj ? catObj.icon : '🌲';
+    }
+
+    if (iconEl) iconEl.textContent = icon;
+    if (labelEl) labelEl.textContent = label;
+    if (countEl) countEl.textContent = `${count.toLocaleString()} reels`;
+    if (badgeEl) badgeEl.textContent = `${icon} ${label}: ${count.toLocaleString()} videos`;
   }
 
   _renderCategorySelect() {
-    if (!this.selectCategory) return;
-    this.selectCategory.innerHTML = '';
-    
-    this.categories.forEach(cat => {
-      const opt = document.createElement('option');
-      opt.value = cat.id;
-      opt.textContent = `${cat.icon} ${cat.name}`;
-      this.selectCategory.appendChild(opt);
+    // 1. Calculate real, authoritative reel count per category
+    const counts = {};
+    this.reels.forEach(r => {
+      const cid = r.category_id || 'forest';
+      counts[cid] = (counts[cid] || 0) + 1;
+      if (r.is_trending) {
+        counts['trending'] = (counts['trending'] || 0) + 1;
+      }
     });
 
-    // Also update library filter
-    const libFilter = document.getElementById('lib-category-filter');
-    if (libFilter) {
-      libFilter.innerHTML = '<option value="all">All Categories</option>';
+    if (this.selectCategory) {
+      this.selectCategory.innerHTML = '';
       this.categories.forEach(cat => {
+        const count = counts[cat.id] || 0;
         const opt = document.createElement('option');
         opt.value = cat.id;
-        opt.textContent = `${cat.icon} ${cat.name}`;
+        opt.textContent = `${cat.icon} ${cat.name} (${count.toLocaleString()} ${count === 1 ? 'reel' : 'reels'})`;
+        this.selectCategory.appendChild(opt);
+      });
+    }
+
+    // Also update library filter with live count in each option
+    const libFilter = document.getElementById('lib-category-filter');
+    if (libFilter) {
+      const currentVal = libFilter.value || 'all';
+      libFilter.innerHTML = `<option value="all">🌐 All Categories (${this.reels.length.toLocaleString()} reels)</option>`;
+      this.categories.forEach(cat => {
+        const count = counts[cat.id] || 0;
+        const opt = document.createElement('option');
+        opt.value = cat.id;
+        opt.textContent = `${cat.icon} ${cat.name} (${count.toLocaleString()} ${count === 1 ? 'reel' : 'reels'})`;
         libFilter.appendChild(opt);
       });
+      libFilter.value = currentVal;
     }
 
     // Also update bulk batch categories
@@ -263,9 +362,10 @@ class AdminStudio {
     if (bulkCatSelect) {
       bulkCatSelect.innerHTML = '';
       this.categories.forEach(cat => {
+        const count = counts[cat.id] || 0;
         const opt = document.createElement('option');
         opt.value = cat.id;
-        opt.textContent = `${cat.icon} ${cat.name}`;
+        opt.textContent = `${cat.icon} ${cat.name} (${count.toLocaleString()} reels)`;
         bulkCatSelect.appendChild(opt);
       });
     }
@@ -274,12 +374,15 @@ class AdminStudio {
     if (bulkUrlsCatSelect) {
       bulkUrlsCatSelect.innerHTML = '';
       this.categories.forEach(cat => {
+        const count = counts[cat.id] || 0;
         const opt = document.createElement('option');
         opt.value = cat.id;
-        opt.textContent = `${cat.icon} ${cat.name}`;
+        opt.textContent = `${cat.icon} ${cat.name} (${count.toLocaleString()} reels)`;
         bulkUrlsCatSelect.appendChild(opt);
       });
     }
+
+    this._updateSelectedCategoryStat();
   }
 
   _renderCategoriesGrid() {
@@ -491,10 +594,12 @@ class AdminStudio {
       };
     }
 
+    this._updateSelectedCategoryStat(filterCategory);
+
     if (list.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8" style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
+          <td colspan="6" style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
             🌿 No reels found matching this filter.
           </td>
         </tr>
@@ -518,8 +623,6 @@ class AdminStudio {
         </td>
         <td><span class="badge-tag">${cat.icon} ${cat.name}</span></td>
         <td><span style="font-family: monospace; font-size: 0.85rem;">${reel.duration}</span></td>
-        <td><span style="color: #f43f5e; font-weight: 700; font-size: 0.85rem;">❤️ ${reel.likes_count || 0}</span></td>
-        <td><span style="color: #22c55e; font-weight: 700; font-size: 0.85rem;">↗️ ${reel.shares_count || 0}</span></td>
         <td>
           <div style="display: flex; gap: 8px;">
             <button class="btn btn-secondary btn-preview-reel" data-url="${reel.video_url}" style="padding: 6px 10px; font-size: 0.8rem;" title="Preview Video">
@@ -1763,9 +1866,9 @@ class AdminStudio {
             duration: '0:25',
             is_trending: isTrending,
             is_downloadable: true,
-            views_count: Math.floor(Math.random() * 8000) + 1500,
-            likes_count: Math.floor(Math.random() * 2500) + 300,
-            shares_count: Math.floor(Math.random() * 800) + 80,
+            views_count: 0,
+            likes_count: 0,
+            shares_count: 0,
             created_at: new Date().toISOString()
           };
         }
@@ -1954,9 +2057,9 @@ class AdminStudio {
           duration: item.duration || '0:25',
           is_trending: Boolean(item.is_trending),
           is_downloadable: true,
-          views_count: item.views_count || Math.floor(Math.random() * 8000) + 1200,
-          likes_count: item.likes_count || Math.floor(Math.random() * 2500) + 200,
-          shares_count: item.shares_count || Math.floor(Math.random() * 500) + 50,
+          views_count: item.views_count || 0,
+          likes_count: item.likes_count || 0,
+          shares_count: item.shares_count || 0,
           created_at: item.created_at || new Date().toISOString()
         };
       });

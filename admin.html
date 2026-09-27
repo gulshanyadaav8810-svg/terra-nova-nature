@@ -16,14 +16,18 @@
 
   <div class="admin-layout">
 
+    <!-- Mobile Backdrop -->
+    <div class="admin-sidebar-backdrop" id="admin-sidebar-backdrop"></div>
+
     <!-- 1. STUDIO SIDEBAR -->
     <aside class="admin-sidebar" id="admin-sidebar">
       <div class="brand-header">
         <img class="brand-logo" src="assets/logo.png" alt="Nature Status Logo" />
-        <div>
+        <div style="flex: 1;">
           <div class="brand-title">Nature Status</div>
           <div class="brand-tag">Studio Admin Portal</div>
         </div>
+        <button id="admin-sidebar-close-btn" class="admin-sidebar-close-btn" aria-label="Close Sidebar">✕</button>
       </div>
 
       <nav class="sidebar-nav">
@@ -70,9 +74,18 @@
       
       <!-- Topbar -->
       <header class="admin-topbar">
-        <div class="page-headline">
-          <h1 id="topbar-title">Studio Dashboard</h1>
-          <p id="topbar-subtitle">Real-time content management & live app synchronization</p>
+        <div class="topbar-left-wrapper">
+          <button id="admin-mobile-menu-btn" class="admin-mobile-menu-btn" aria-label="Open Navigation Menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="4" y1="7" x2="20" y2="7"></line>
+              <line x1="4" y1="12" x2="20" y2="12"></line>
+              <line x1="4" y1="17" x2="20" y2="17"></line>
+            </svg>
+          </button>
+          <div class="page-headline">
+            <h1 id="topbar-title">Studio Dashboard</h1>
+            <p id="topbar-subtitle">Real-time content management & live app synchronization</p>
+          </div>
         </div>
         <div class="topbar-actions">
           <button class="btn btn-secondary" id="btn-top-sync-github">
@@ -84,27 +97,27 @@
         </div>
       </header>
 
-      <!-- Stat Overview Cards -->
+      <!-- Stat Overview Cards (Clean, authentic metrics without fake numbers) -->
       <section class="stats-grid">
         <div class="stat-card">
           <div class="stat-icon">🎬</div>
           <div class="stat-info">
             <h3>Active Reels</h3>
-            <div class="stat-value" id="stat-total-reels">0</div>
+            <div class="stat-value" id="stat-total-reels">1,590</div>
           </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-icon">❤️</div>
+        <div class="stat-card" id="card-stat-categories" style="cursor: pointer;" title="View all categories">
+          <div class="stat-icon">📂</div>
           <div class="stat-info">
-            <h3>Total Likes</h3>
-            <div class="stat-value" id="stat-total-likes" style="color: #f43f5e;">0</div>
+            <h3>Categories</h3>
+            <div class="stat-value" id="stat-total-categories" style="color: #38bdf8;">20</div>
           </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-icon">↗️</div>
+        <div class="stat-card" id="card-stat-category-selected" style="cursor: pointer;" title="Filter in Library">
+          <div class="stat-icon" id="stat-active-cat-icon">🌲</div>
           <div class="stat-info">
-            <h3>Total Shares</h3>
-            <div class="stat-value" id="stat-total-shares" style="color: #22c55e;">0</div>
+            <h3 id="stat-active-cat-label">Selected Category</h3>
+            <div class="stat-value" id="stat-active-cat-count" style="color: #4ade80;">1,590 reels</div>
           </div>
         </div>
         <div class="stat-card">
@@ -454,24 +467,25 @@
               <input type="text" id="lib-search-input" placeholder="Search by reel title or category..." />
             </div>
 
-            <select id="lib-category-filter" class="form-select" style="max-width: 200px;">
-              <option value="all">All Categories</option>
-              <!-- Options populated dynamically -->
-            </select>
+            <div class="category-filter-wrapper">
+              <select id="lib-category-filter" class="form-select" style="min-width: 220px;">
+                <option value="all">All Categories</option>
+                <!-- Options populated dynamically with exact reel count -->
+              </select>
+              <div id="lib-category-count-badge" class="lib-category-count-badge">1,590 videos</div>
+            </div>
           </div>
 
           <!-- Reels Table -->
-          <div style="overflow-x: auto;">
+          <div class="table-scroll-container">
             <table class="reels-table">
               <thead>
                 <tr>
                   <th style="width: 36px;"><input type="checkbox" id="check-select-all-reels" class="admin-checkbox" title="Select All" /></th>
                   <th>Thumbnail</th>
-                  <th>Title</th>
+                  <th>Title & ID</th>
                   <th>Category</th>
                   <th>Duration</th>
-                  <th>Likes ❤️</th>
-                  <th>Shares ↗️</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -946,6 +960,34 @@ https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlaze
     <span id="toast-icon">✨</span>
     <span id="toast-message">Notification message</span>
   </div>
+
+  <!-- Mobile Bottom Touch Navigation for Quick 1-Tap Access -->
+  <nav class="admin-mobile-bottom-nav" id="admin-mobile-bottom-nav">
+    <button class="mobile-nav-btn active" data-tab="tab-dashboard">
+      <span class="m-icon">📊</span>
+      <span class="m-label">Dashboard</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="tab-upload">
+      <span class="m-icon">➕</span>
+      <span class="m-label">Upload</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="tab-library">
+      <span class="m-icon">🎞️</span>
+      <span class="m-label">Library</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="tab-bulk-upload">
+      <span class="m-icon">⚡</span>
+      <span class="m-label">Bulk</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="tab-categories">
+      <span class="m-icon">📂</span>
+      <span class="m-label">Categories</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="tab-sync">
+      <span class="m-icon">☁️</span>
+      <span class="m-label">Sync</span>
+    </button>
+  </nav>
 
   <!-- Admin Controller Logic -->
   <script type="module" src="js/admin.js"></script>

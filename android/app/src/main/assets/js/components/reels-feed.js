@@ -5,7 +5,7 @@
    ========================================================== */
 
 import { REELS_DATA, getReelsByCategory, trackEngagement } from '../data/reels.js';
-import { CATEGORIES, getCategoryTheme } from '../data/categories.js';
+import { CATEGORIES, getAllCategories, getCategoryTheme } from '../data/categories.js';
 import { storage } from '../services/storage.js';
 import { shareService } from '../services/share.js';
 import { downloader } from '../services/downloader.js';
@@ -81,7 +81,8 @@ export class ReelsFeed {
     if (!scroller) return;
 
     scroller.innerHTML = '';
-    CATEGORIES.forEach(cat => {
+    const categoriesList = typeof getAllCategories === 'function' ? getAllCategories() : CATEGORIES;
+    categoriesList.forEach(cat => {
       const theme = getCategoryTheme(cat.id);
       const pill = document.createElement('button');
       pill.className = `floating-cat-pill ${cat.id === this.activeCategory ? 'active' : ''}`;

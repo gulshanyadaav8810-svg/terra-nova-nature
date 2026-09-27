@@ -299,7 +299,7 @@ video::-webkit-media-controls-play-button {
 /* Floating Horizontal Category Pills */
 .reels-category-scroller {
   pointer-events: auto;
-  display: flex;
+  display: flex !important;
   align-items: center;
   gap: 10px;
   overflow-x: auto;
@@ -307,6 +307,9 @@ video::-webkit-media-controls-play-button {
   padding: 4px 2px 8px 2px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  min-height: 48px;
+  flex-shrink: 0;
+  visibility: visible !important;
 }
 
 .reels-category-scroller::-webkit-scrollbar {

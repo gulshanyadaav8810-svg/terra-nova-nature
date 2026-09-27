@@ -6,7 +6,7 @@
 
 import { i18n } from './services/i18n.js';
 import { getReelsByCategory, getReelById, syncRemoteReels } from './data/reels.js';
-import { CATEGORIES, getCategoryById, getCategoryTheme } from './data/categories.js';
+import { CATEGORIES, getAllCategories, getCategoryById, getCategoryTheme } from './data/categories.js';
 import { VideoPlayer } from './components/video-player.js';
 import { ReelsFeed } from './components/reels-feed.js';
 import { ReelsGrid } from './components/reels-grid.js';
@@ -56,6 +56,12 @@ class NatureMomentsApp {
     this._bindNavigation();
     this._checkUrlParameters();
 
+    // Initialize Home view & enable banner ad display
+    this.switchView('home');
+    if (window.AndroidBridge && typeof window.AndroidBridge.setBannerVisibility === 'function') {
+      window.AndroidBridge.setBannerVisibility(true);
+    }
+
     // Ensure 100% strict silence on app boot
     window.pauseAllMedia();
 
@@ -77,6 +83,14 @@ class NatureMomentsApp {
     const splash = document.getElementById('app-splash-screen');
     if (!splash) return;
 
+    // Inside Android APK, the native SplashOverlay is already displayed seamlessly.
+    // Immediately remove HTML splash to eliminate any double-splash or flicker!
+    if (window.AndroidBridge) {
+      splash.style.display = 'none';
+      if (typeof splash.remove === 'function') splash.remove();
+      return;
+    }
+
     let dismissed = false;
     const dismissSplash = () => {
       if (dismissed) return;
@@ -88,8 +102,8 @@ class NatureMomentsApp {
       }, 700);
     };
 
-    // Auto dismiss after 1.5s to reveal the app smoothly from inside
-    setTimeout(dismissSplash, 1500);
+    // Auto dismiss after 1.8s for web browser
+    setTimeout(dismissSplash, 1800);
 
     // Also dismiss immediately if tapped
     splash.addEventListener('click', dismissSplash, { once: true });
@@ -145,7 +159,18 @@ class NatureMomentsApp {
       onOpenLanguage: () => this.modals.openLanguage(),
       onOpenFeedback: () => this.modals.openFeedback(),
       onOpenRate: () => this.modals.openRate(),
-      onOpenPrivacy: () => this.modals.openPrivacy()
+      onOpenPrivacy: () => {
+        const url = 'https://nature-moments-app.vercel.app/privacy-policy';
+        if (window.AndroidBridge && typeof window.AndroidBridge.openPrivacyPolicy === 'function') {
+          window.AndroidBridge.openPrivacyPolicy();
+        } else {
+          try {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          } catch (e) {
+            window.location.href = url;
+          }
+        }
+      }
     });
 
     if (this.btnHamburger) {
@@ -224,7 +249,8 @@ class NatureMomentsApp {
     if (!scroller) return;
 
     scroller.innerHTML = '';
-    CATEGORIES.forEach(cat => {
+    const categoriesList = typeof getAllCategories === 'function' ? getAllCategories() : CATEGORIES;
+    categoriesList.forEach(cat => {
       const theme = getCategoryTheme(cat.id);
       const chip = document.createElement('button');
       chip.className = `home-cat-chip ${cat.id === this.currentCategory ? 'active' : ''}`;
@@ -237,7 +263,8 @@ class NatureMomentsApp {
       chip.style.setProperty('--cat-border', theme.border);
       chip.style.setProperty('--cat-glow', theme.glow);
       chip.innerHTML = `
-        <img src="${cat.image_url}" alt="${cat.name}" loading="lazy" />
+        <span class="home-cat-icon">${cat.icon || '🌿'}</span>
+        <img src="${cat.image_url}" alt="${cat.name}" loading="lazy" onerror="this.style.display='none'" />
         <span>${cat.name}</span>
       `;
 
@@ -388,6 +415,11 @@ class NatureMomentsApp {
     });
 
     const floatingHeader = document.getElementById('reels-floating-header');
+
+    // Control Native AdMob Banner Ad visibility
+    if (window.AndroidBridge && typeof window.AndroidBridge.setBannerVisibility === 'function') {
+      window.AndroidBridge.setBannerVisibility(viewName === 'home' || viewName === 'save');
+    }
 
     if (viewName === 'home') {
       if (bottomNav) {
