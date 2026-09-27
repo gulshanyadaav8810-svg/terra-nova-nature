@@ -207,20 +207,8 @@ class NatureMomentsApp {
 
     // Link category change to update Home grid as well
     this.reelsFeed.onCategoryChange = (categoryId) => {
-      this.currentCategory = categoryId;
-      if (this.homeGrid) {
-        const reels = getReelsByCategory(categoryId);
-        this.homeGrid.setReels(reels, categoryId);
-      }
-      // Update home chips highlight
-      const chips = document.querySelectorAll('.home-cat-chip');
-      chips.forEach(c => {
-        if (c.getAttribute('data-id') === categoryId) {
-          c.classList.add('active');
-        } else {
-          c.classList.remove('active');
-        }
-      });
+      if (this._isInternalCategorySync) return;
+      this.selectCategory(categoryId);
     };
 
     // 6. Save Screen (Saved, Liked & Downloaded tabs)
@@ -279,9 +267,12 @@ class NatureMomentsApp {
   }
 
   selectCategory(categoryId) {
+    if (!categoryId) return;
+    if (this.currentCategory === categoryId && this._hasRenderedGrid) return;
+    this._hasRenderedGrid = true;
     this.currentCategory = categoryId;
 
-    // Update active class on home chips
+    // 1. Instant Active Highlight on Home Chips (0ms immediate touch response)
     const chips = document.querySelectorAll('.home-cat-chip');
     chips.forEach(c => {
       if (c.getAttribute('data-id') === categoryId) {
@@ -292,7 +283,7 @@ class NatureMomentsApp {
       }
     });
 
-    // Dynamically update section heading and icon
+    // 2. Dynamically update section heading and icon
     const cat = getCategoryById(categoryId);
     const headingEl = document.getElementById('home-category-heading');
     const iconEl = document.getElementById('home-section-icon');
@@ -303,15 +294,17 @@ class NatureMomentsApp {
       iconEl.textContent = cat.icon || '✨';
     }
 
-    // Update Home grid
+    // 3. Fast batch update Home grid (0ms DocumentFragment render)
     if (this.homeGrid) {
       const reels = getReelsByCategory(categoryId);
       this.homeGrid.setReels(reels, categoryId);
     }
 
-    // Sync reels feed category as well
+    // 4. Sync ReelsFeed category without recursive circular callback
     if (this.reelsFeed && this.reelsFeed.activeCategory !== categoryId) {
+      this._isInternalCategorySync = true;
       this.reelsFeed.filterCategory(categoryId);
+      this._isInternalCategorySync = false;
     }
   }
 
@@ -437,7 +430,6 @@ class NatureMomentsApp {
       if (this.reelsFeed) this.reelsFeed.pauseAll();
       if (this.player && this.player.video) this.player.video.pause();
       if (window.pauseAllMedia) window.pauseAllMedia();
-      try { syncRemoteReels().catch(() => {}); } catch(e) {}
     } else if (viewName === 'reels') {
       if (bottomNav) {
         bottomNav.classList.remove('bottom-nav-dark');
@@ -456,7 +448,6 @@ class NatureMomentsApp {
       if (this.reelsFeed && !skipResume) {
         this.reelsFeed.resumeActive();
       }
-      try { syncRemoteReels().catch(() => {}); } catch(e) {}
     } else if (viewName === 'save') {
       if (bottomNav) {
         bottomNav.classList.remove('bottom-nav-dark');

@@ -383,6 +383,7 @@ export class ReelsFeed {
 
   // Filter vertical feed by category
   filterCategory(categoryId) {
+    if (this.activeCategory === categoryId && this.filteredReels && !this._needsRender) return;
     this.activeCategory = categoryId;
     this.pauseAll();
 
@@ -398,10 +399,16 @@ export class ReelsFeed {
     });
 
     this.filteredReels = getReelsByCategory(categoryId);
-    this.render();
 
-    // Scroll container back to first reel
-    this.container.scrollTo({ top: 0, behavior: 'instant' });
+    // Lazy render: ONLY render ReelsFeed DOM if the reels tab is actively visible!
+    // When user is on Home tab, avoid rendering 30 complex reels feed items!
+    const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
+    if (isReelsTab) {
+      this.render();
+      this.container.scrollTo({ top: 0, behavior: 'instant' });
+    } else {
+      this._needsRender = true;
+    }
 
     if (typeof this.onCategoryChange === 'function') {
       this.onCategoryChange(categoryId);
@@ -839,6 +846,11 @@ export class ReelsFeed {
     if (!isReelsTab || !isReelsVisible) {
       this.pauseAll();
       return;
+    }
+
+    if (this._needsRender || this.container.children.length === 0) {
+      this._needsRender = false;
+      this.render();
     }
 
     let item = this.activeItem;

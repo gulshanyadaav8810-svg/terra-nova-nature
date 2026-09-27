@@ -228,6 +228,7 @@ export function loadAllReels() {
   const all = Array.from(mergedMap.values());
   all.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   REELS_DATA = all;
+  invalidateReelsCache();
   return REELS_DATA;
 }
 
@@ -353,6 +354,7 @@ export async function syncRemoteReels() {
           const hasChanged = oldFingerprint !== newFingerprint || REELS_DATA.length === 0;
 
           REELS_DATA = all;
+          invalidateReelsCache();
           if (hasChanged) {
             console.log('[ReelsSync] Content updated! Firing reelsUpdated event');
             window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
@@ -418,21 +420,61 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Strict category filtering: NEVER leaks all reels if category is empty
+let CATEGORY_INDEX = null;
+let TRENDING_CACHE = null;
+let REEL_BY_ID_MAP = null;
+
+export function invalidateReelsCache() {
+  CATEGORY_INDEX = null;
+  TRENDING_CACHE = null;
+  REEL_BY_ID_MAP = null;
+}
+
+function ensureCategoryIndex() {
+  if (CATEGORY_INDEX) return;
+  CATEGORY_INDEX = new Map();
+  TRENDING_CACHE = [];
+  REEL_BY_ID_MAP = new Map();
+
+  for (let i = 0; i < REELS_DATA.length; i++) {
+    const r = REELS_DATA[i];
+    if (!r) continue;
+    REEL_BY_ID_MAP.set(r.content_id, r);
+    if (r.is_trending === true || r.category_id === 'trending') {
+      TRENDING_CACHE.push(r);
+    }
+    const cat = r.category_id || 'nature';
+    let list = CATEGORY_INDEX.get(cat);
+    if (!list) {
+      list = [];
+      CATEGORY_INDEX.set(cat, list);
+    }
+    list.push(r);
+  }
+}
+
+// Strict category filtering: 0ms Instant O(1) in-memory lookup
 export function getReelsByCategory(categoryId) {
-  loadAllReels();
+  if (!REELS_DATA || REELS_DATA.length === 0) {
+    loadAllReels();
+  }
+  ensureCategoryIndex();
+
   if (!categoryId || categoryId === 'all') {
     return REELS_DATA;
   }
   if (categoryId === 'trending') {
-    return REELS_DATA.filter(r => r.is_trending === true || r.category_id === 'trending');
+    return TRENDING_CACHE || [];
   }
-  return REELS_DATA.filter(r => r.category_id === categoryId);
+  return CATEGORY_INDEX.get(categoryId) || [];
 }
 
 export function getReelById(contentId) {
-  loadAllReels();
-  return REELS_DATA.find(r => r.content_id === contentId);
+  if (!REELS_DATA || REELS_DATA.length === 0) {
+    loadAllReels();
+  }
+  ensureCategoryIndex();
+  return REEL_BY_ID_MAP.get(contentId);
 }
 
 async function syncToCloudApi(action, data) {
