@@ -51,7 +51,7 @@ export class ReelsFeed {
 
     window.addEventListener('reelsUpdated', () => {
       this._initCategoryHeader();
-      this.refresh();
+      this.onRemoteUpdate();
     });
 
     document.addEventListener('visibilitychange', () => {
@@ -61,6 +61,17 @@ export class ReelsFeed {
     });
   }
 
+  onRemoteUpdate() {
+    const newReels = getReelsByCategory(this.activeCategory);
+    // If a video is actively playing right now, DO NOT destroy DOM or reset playback!
+    if (this.activeVideo && !this.activeVideo.paused) {
+      this.filteredReels = newReels;
+      this._pendingRefresh = true;
+      return;
+    }
+    this.refresh();
+  }
+
   refresh() {
     const newReels = getReelsByCategory(this.activeCategory);
     const oldFingerprint = (this.filteredReels || []).map(r => `${r.content_id}:${r.thumbnail_url}:${r.video_url}:${r.title}:${r.category_id}`).join('|');
@@ -68,6 +79,13 @@ export class ReelsFeed {
 
     // If reel list and content didn't change and items are already rendered, do not wipe container or reset playback!
     if (oldFingerprint === newFingerprint && this.container.children.length > 0) {
+      return;
+    }
+
+    // Never wipe container if active video is currently playing smoothly!
+    if (this.activeVideo && !this.activeVideo.paused) {
+      this.filteredReels = newReels;
+      this._pendingRefresh = true;
       return;
     }
 
@@ -381,18 +399,21 @@ export class ReelsFeed {
     this.showToast('Liked Nature Reel ❤️', '❤️');
   }
 
-  // Filter vertical feed by category
+  // Filter vertical feed by category (0ms Instant Switch)
   filterCategory(categoryId) {
     if (this.activeCategory === categoryId && this.filteredReels && !this._needsRender) return;
     this.activeCategory = categoryId;
     this.pauseAll();
 
-    // Update floating pill styles
+    // 1. Instant 0ms center-scroll floating pills without thread-blocking smooth scroll
     const pills = document.querySelectorAll('.floating-cat-pill');
     pills.forEach(p => {
       if (p.getAttribute('data-id') === categoryId) {
         p.classList.add('active');
-        p.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        const scroller = p.parentElement;
+        if (scroller) {
+          scroller.scrollLeft = p.offsetLeft - (scroller.clientWidth / 2) + (p.offsetWidth / 2);
+        }
       } else {
         p.classList.remove('active');
       }
@@ -400,12 +421,11 @@ export class ReelsFeed {
 
     this.filteredReels = getReelsByCategory(categoryId);
 
-    // Lazy render: ONLY render ReelsFeed DOM if the reels tab is actively visible!
-    // When user is on Home tab, avoid rendering 30 complex reels feed items!
+    // 2. Lazy render: ONLY render ReelsFeed DOM if reels tab is actively visible!
     const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
     if (isReelsTab) {
       this.render();
-      this.container.scrollTo({ top: 0, behavior: 'instant' });
+      this.container.scrollTop = 0;
     } else {
       this._needsRender = true;
     }
@@ -535,6 +555,18 @@ export class ReelsFeed {
 
     const containerHeight = this.container.clientHeight || window.innerHeight;
     if (!containerHeight) return;
+
+    // If active reel is currently playing and still centered in viewport, NEVER interrupt it!
+    if (this.activeItem && this.activeVideo && !this.activeVideo.paused) {
+      const activeRect = this.activeItem.getBoundingClientRect();
+      const contRect = this.container.getBoundingClientRect();
+      const mid = contRect.top + contRect.height / 2;
+      if (activeRect.top <= mid && activeRect.bottom >= mid) {
+        this.activeVideo.muted = this.isMuted;
+        this.activeVideo.volume = this.isMuted ? 0 : 1.0;
+        return;
+      }
+    }
 
     const targetIdx = Math.round(this.container.scrollTop / containerHeight);
     const items = this.container.children;
@@ -722,7 +754,7 @@ export class ReelsFeed {
         video.play().catch(() => {});
       });
 
-      // Stall Watchdog: Automatically auto-recovers and nudges playback if buffer hiccup occurs
+      // Stall Watchdog: Automatically auto-recovers playback without bad seeks
       let stallTimer = null;
       video.addEventListener('waiting', () => {
         targetItem.classList.add('is-buffering');
@@ -730,9 +762,6 @@ export class ReelsFeed {
         stallTimer = setTimeout(() => {
           if (this.activeItem === targetItem && !targetItem.classList.contains('is-paused')) {
             if (video.paused) {
-              video.play().catch(() => {});
-            } else if (video.currentTime > 0) {
-              video.currentTime += 0.05;
               video.play().catch(() => {});
             }
           }
@@ -743,9 +772,22 @@ export class ReelsFeed {
         clearTimeout(stallTimer);
         stallTimer = setTimeout(() => {
           if (this.activeItem === targetItem && !targetItem.classList.contains('is-paused')) {
-            video.play().catch(() => {});
+            if (video.paused) {
+              video.play().catch(() => {});
+            }
           }
-        }, 800);
+        }, 1000);
+      });
+
+      // Guard against external pause interruptions while item is active and user didn't pause
+      video.addEventListener('pause', () => {
+        if (this.activeItem === targetItem && !targetItem.classList.contains('is-paused') && !document.hidden) {
+          setTimeout(() => {
+            if (this.activeItem === targetItem && !targetItem.classList.contains('is-paused') && video.paused && !document.hidden) {
+              video.play().catch(() => {});
+            }
+          }, 150);
+        }
       });
 
       video.addEventListener('error', () => {
@@ -784,10 +826,10 @@ export class ReelsFeed {
   _initObserver() {
     if (this.observer) this.observer.disconnect();
 
-    // High performance IntersectionObserver: Triggers instant playback the microsecond reel crosses 55%
+    // High performance IntersectionObserver: Triggers instant playback when reel crosses 65%
     const options = {
       root: this.container,
-      threshold: [0.1, 0.55]
+      threshold: [0.1, 0.65]
     };
 
     this.observer = new IntersectionObserver((entries) => {
@@ -800,13 +842,13 @@ export class ReelsFeed {
         const item = entry.target;
         const video = item.querySelector('video');
 
-        // Dominant item (> 55% visible on screen): start playing INSTANTLY during swipe!
-        if (entry.intersectionRatio >= 0.55) {
+        // Dominant item (> 65% visible on screen): start playing INSTANTLY during swipe!
+        if (entry.intersectionRatio >= 0.65) {
           if (this.activeItem !== item) {
             this._playReelItem(item);
           }
         } else if (entry.intersectionRatio <= 0.1) {
-          // Off screen (< 10% visible): pause safely
+          // Off screen (< 10% visible): pause safely (NEVER pause activeItem!)
           if (this.activeItem !== item && video && !video.paused) {
             try { video.pause(); } catch(e) {}
           }
@@ -1028,14 +1070,16 @@ export class ReelsFeed {
   appendBatch() {
     if (this.renderedCount >= this.filteredReels.length) return;
 
-    const nextBatchCount = Math.min(this.renderedCount + 15, this.filteredReels.length);
+    const nextBatchCount = Math.min(this.renderedCount + 5, this.filteredReels.length);
+    const fragment = document.createDocumentFragment();
     for (let i = this.renderedCount; i < nextBatchCount; i++) {
       const item = this._createReelItem(this.filteredReels[i], i);
-      this.container.appendChild(item);
+      fragment.appendChild(item);
       if (this.observer) {
         this.observer.observe(item);
       }
     }
+    this.container.appendChild(fragment);
     this.renderedCount = nextBatchCount;
   }
 
@@ -1080,27 +1124,28 @@ export class ReelsFeed {
       return;
     }
 
-    // Render initial batch of reels for instant 0ms startup, appendBatch expands infinitely on scroll
-    const initialBatch = Math.min(30, this.filteredReels.length);
+    // Render initial batch of 5 reels for instant 0ms startup, appendBatch expands on scroll
+    const initialBatch = Math.min(5, this.filteredReels.length);
+    const fragment = document.createDocumentFragment();
     for (let i = 0; i < initialBatch; i++) {
       const item = this._createReelItem(this.filteredReels[i], i);
-      this.container.appendChild(item);
+      fragment.appendChild(item);
     }
+    this.container.appendChild(fragment);
     this.renderedCount = initialBatch;
 
     this._initObserver();
 
-    // NEVER autoplay on render if app is on Home tab!
-    // Video will ONLY play when user explicitly navigates to Reels tab!
+    // Autoplay ONLY if reels view is actively visible
     setTimeout(() => {
       const isReelsTab = window.natureAppInstance && window.natureAppInstance.currentView === 'reels';
       const reelsView = document.getElementById('view-reels');
-      if (isReelsTab && reelsView && reelsView.style.display === 'block') {
+      if (isReelsTab && reelsView && (reelsView.style.display === 'block' || reelsView.offsetParent !== null)) {
         this.resumeActive();
       } else {
         this.pauseAll();
       }
-    }, 50);
+    }, 30);
   }
 
   _updateLanguageUI() {

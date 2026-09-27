@@ -46,7 +46,6 @@ class NatureMomentsApp {
       }
     });
     window.addEventListener('pagehide', () => window.pauseAllMedia());
-    window.addEventListener('blur', () => window.pauseAllMedia());
 
     this._initToast();
     this._initSplashScreen();
@@ -220,12 +219,19 @@ class NatureMomentsApp {
     // 7. Dynamic live sync listener from Admin Panel
     window.addEventListener('reelsUpdated', () => {
       this._initHomeCategories();
-      if (this.homeGrid) {
+      if (this.currentView === 'home' && this.homeGrid) {
         const reels = getReelsByCategory(this.currentCategory);
         this.homeGrid.setReels(reels, this.currentCategory);
+        this._homeNeedsUpdate = false;
+      } else {
+        this._homeNeedsUpdate = true;
       }
       if (this.reelsFeed) {
-        this.reelsFeed.refresh();
+        if (typeof this.reelsFeed.onRemoteUpdate === 'function') {
+          this.reelsFeed.onRemoteUpdate();
+        } else {
+          this.reelsFeed.refresh();
+        }
       }
     });
 
@@ -277,7 +283,10 @@ class NatureMomentsApp {
     chips.forEach(c => {
       if (c.getAttribute('data-id') === categoryId) {
         c.classList.add('active');
-        c.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        const scroller = c.parentElement;
+        if (scroller) {
+          scroller.scrollLeft = c.offsetLeft - (scroller.clientWidth / 2) + (c.offsetWidth / 2);
+        }
       } else {
         c.classList.remove('active');
       }
@@ -294,10 +303,15 @@ class NatureMomentsApp {
       iconEl.textContent = cat.icon || '✨';
     }
 
-    // 3. Fast batch update Home grid (0ms DocumentFragment render)
+    // 3. Fast update Home grid ONLY if Home view is currently active!
     if (this.homeGrid) {
-      const reels = getReelsByCategory(categoryId);
-      this.homeGrid.setReels(reels, categoryId);
+      if (this.currentView === 'home') {
+        const reels = getReelsByCategory(categoryId);
+        this.homeGrid.setReels(reels, categoryId);
+        this._homeNeedsUpdate = false;
+      } else {
+        this._homeNeedsUpdate = true;
+      }
     }
 
     // 4. Sync ReelsFeed category without recursive circular callback
@@ -427,6 +441,11 @@ class NatureMomentsApp {
       if (this.reelsView) this.reelsView.style.display = 'none';
       if (this.saveView) this.saveView.style.display = 'none';
       if (floatingHeader) floatingHeader.style.display = 'none';
+      if (this._homeNeedsUpdate && this.homeGrid) {
+        this._homeNeedsUpdate = false;
+        const reels = getReelsByCategory(this.currentCategory);
+        this.homeGrid.setReels(reels, this.currentCategory);
+      }
       if (this.reelsFeed) this.reelsFeed.pauseAll();
       if (this.player && this.player.video) this.player.video.pause();
       if (window.pauseAllMedia) window.pauseAllMedia();
@@ -445,6 +464,10 @@ class NatureMomentsApp {
       if (this.reelsView) this.reelsView.style.display = 'block';
       if (this.saveView) this.saveView.style.display = 'none';
       if (floatingHeader) floatingHeader.style.display = 'block';
+      if (this.reelsFeed && this.reelsFeed._needsRender) {
+        this.reelsFeed._needsRender = false;
+        this.reelsFeed.render();
+      }
       if (this.reelsFeed && !skipResume) {
         this.reelsFeed.resumeActive();
       }

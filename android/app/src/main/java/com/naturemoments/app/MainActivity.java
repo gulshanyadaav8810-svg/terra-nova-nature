@@ -311,9 +311,13 @@ public class MainActivity extends Activity {
 
                 FileInputStream fis = new FileInputStream(file);
                 if (start > 0) {
-                    long skipped = fis.skip(start);
-                    while (skipped < start && fis.available() > 0) {
-                        skipped += fis.skip(start - skipped);
+                    try {
+                        fis.getChannel().position(start);
+                    } catch (Exception e) {
+                        long skipped = fis.skip(start);
+                        while (skipped < start && fis.available() > 0) {
+                            skipped += fis.skip(start - skipped);
+                        }
                     }
                 }
 
@@ -740,18 +744,9 @@ public class MainActivity extends Activity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        if (hasFocus) {
-            if (webView != null) {
-                webView.onResume();
-                webView.resumeTimers();
-            }
-        } else {
-            if (webView != null) {
-                webView.evaluateJavascript("if (typeof window.pauseAllMedia === 'function') { window.pauseAllMedia(); }", null);
-                webView.onPause();
-                webView.pauseTimers();
-            }
-        }
+        // Do NOT pause WebView on temporary window focus changes.
+        // AdMob banner ads, soft keyboards, or hardware overlays trigger temporary focus changes.
+        // Complete background/foreground lifecycle is safely managed by onResume() and onPause().
     }
 
     @Override
