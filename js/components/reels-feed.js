@@ -63,19 +63,69 @@ export class ReelsFeed {
 
   onRemoteUpdate() {
     const newReels = getReelsByCategory(this.activeCategory);
-    // If a video is actively playing right now, DO NOT destroy DOM or reset playback!
-    if (this.activeVideo && !this.activeVideo.paused) {
-      this.filteredReels = newReels;
-      this._pendingRefresh = true;
+    const newReelsMap = new Map((newReels || []).map(r => [r.content_id, r]));
+
+    // 1. Immediately remove any DOM elements that are now hidden or deleted
+    const currentDomItems = Array.from(this.container.querySelectorAll('.feed-reel-item'));
+    let activeItemWasRemoved = false;
+    let anyRemoved = false;
+
+    currentDomItems.forEach(item => {
+      const id = item.getAttribute('data-id');
+      if (!newReelsMap.has(id)) {
+        anyRemoved = true;
+        if (item === this.activeItem) {
+          activeItemWasRemoved = true;
+          this.pauseAll();
+        }
+        if (this.observer) {
+          try { this.observer.unobserve(item); } catch(e) {}
+        }
+        item.remove();
+      }
+    });
+
+    this.filteredReels = newReels;
+
+    // 2. If the currently playing item was the one hidden, smoothly play next available
+    if (activeItemWasRemoved) {
+      const remainingItems = Array.from(this.container.querySelectorAll('.feed-reel-item'));
+      if (remainingItems.length > 0) {
+        remainingItems.forEach((el, idx) => el.setAttribute('data-index', idx));
+        this.renderedCount = remainingItems.length;
+        this._playReelItem(remainingItems[0]);
+      } else if (newReels.length > 0) {
+        this.render();
+      } else {
+        this.render(); // empty state
+      }
       return;
     }
-    this.refresh();
+
+    // 3. If any item was removed, update remaining data-index
+    if (anyRemoved) {
+      const remainingItems = Array.from(this.container.querySelectorAll('.feed-reel-item'));
+      remainingItems.forEach((el, idx) => el.setAttribute('data-index', idx));
+      this.renderedCount = remainingItems.length;
+      if (remainingItems.length === 0) {
+        this.render(); // empty state
+      }
+      return;
+    }
+
+    // 4. If no video is actively playing, or container empty, do full clean refresh
+    if (!this.activeVideo || this.activeVideo.paused || this.container.children.length === 0) {
+      this.refresh();
+      return;
+    }
+
+    this._pendingRefresh = true;
   }
 
   refresh() {
     const newReels = getReelsByCategory(this.activeCategory);
-    const oldFingerprint = (this.filteredReels || []).map(r => `${r.content_id}:${r.thumbnail_url}:${r.video_url}:${r.title}:${r.category_id}`).join('|');
-    const newFingerprint = (newReels || []).map(r => `${r.content_id}:${r.thumbnail_url}:${r.video_url}:${r.title}:${r.category_id}`).join('|');
+    const oldFingerprint = (this.filteredReels || []).map(r => `${r.content_id}:${r.is_hidden ? 1 : 0}:${r.thumbnail_url}:${r.video_url}:${r.title}:${r.category_id}`).join('|');
+    const newFingerprint = (newReels || []).map(r => `${r.content_id}:${r.is_hidden ? 1 : 0}:${r.thumbnail_url}:${r.video_url}:${r.title}:${r.category_id}`).join('|');
 
     // If reel list and content didn't change and items are already rendered, do not wipe container or reset playback!
     if (oldFingerprint === newFingerprint && this.container.children.length > 0) {
@@ -84,9 +134,27 @@ export class ReelsFeed {
 
     // Never wipe container if active video is currently playing smoothly!
     if (this.activeVideo && !this.activeVideo.paused) {
-      this.filteredReels = newReels;
-      this._pendingRefresh = true;
-      return;
+      const activeId = this.activeItem ? this.activeItem.getAttribute('data-id') : null;
+      const isCurrentReelStillActive = activeId && newReels.some(r => r.content_id === activeId);
+      if (isCurrentReelStillActive) {
+        this.filteredReels = newReels;
+        const newReelsMap = new Map((newReels || []).map(r => [r.content_id, r]));
+        const currentDomItems = Array.from(this.container.querySelectorAll('.feed-reel-item'));
+        currentDomItems.forEach(item => {
+          const id = item.getAttribute('data-id');
+          if (!newReelsMap.has(id)) {
+            if (this.observer) {
+              try { this.observer.unobserve(item); } catch(e) {}
+            }
+            item.remove();
+          }
+        });
+        const remaining = Array.from(this.container.querySelectorAll('.feed-reel-item'));
+        remaining.forEach((el, idx) => el.setAttribute('data-index', idx));
+        this.renderedCount = remaining.length;
+        this._pendingRefresh = false;
+        return;
+      }
     }
 
     this.filteredReels = newReels;

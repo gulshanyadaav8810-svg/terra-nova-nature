@@ -65,13 +65,26 @@ class NatureMomentsApp {
     // Ensure 100% strict silence on app boot
     window.pauseAllMedia();
 
-    // Initial background sync and periodic sync every 30s
+    // Initial background sync and fast periodic sync (3.5s) for instant cross-device updates
     try { syncRemoteReels().catch(() => {}); } catch(e) {}
     setInterval(() => {
       if (typeof document !== 'undefined' && !document.hidden) {
         try { syncRemoteReels().catch(() => {}); } catch(e) {}
       }
-    }, 30000);
+    }, 3500);
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          try { syncRemoteReels().catch(() => {}); } catch(e) {}
+        }
+      });
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', () => {
+        try { syncRemoteReels().catch(() => {}); } catch(e) {}
+      });
+    }
   }
 
   _initToast() {

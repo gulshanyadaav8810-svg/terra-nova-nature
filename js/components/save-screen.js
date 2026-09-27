@@ -7,7 +7,7 @@
 
 import { storage } from '../services/storage.js';
 import { offlineDb } from '../services/offline-db.js';
-import { REELS_DATA } from '../data/reels.js';
+import { REELS_DATA, getAllReels } from '../data/reels.js';
 import { getCategoryById } from '../data/categories.js';
 
 export class SaveScreen {
@@ -131,7 +131,7 @@ export class SaveScreen {
   }
 
   _renderRecommendations(contentArea) {
-    const recReels = REELS_DATA.slice(0, 2);
+    const recReels = (getAllReels() || []).slice(0, 2);
     const recWrapper = document.createElement('div');
     recWrapper.className = 'empty-rec-section';
     recWrapper.innerHTML = `
@@ -188,7 +188,7 @@ export class SaveScreen {
   // 1. SAVED (BOOKMARKS) TAB
   renderSavedTab(contentArea) {
     const savedIds = storage.getSaved();
-    const savedReels = REELS_DATA.filter(r => savedIds.has(r.content_id));
+    const savedReels = getAllReels().filter(r => savedIds.has(r.content_id));
 
     if (savedReels.length === 0) {
       contentArea.innerHTML = `
@@ -275,7 +275,7 @@ export class SaveScreen {
   // 2. LIKED (GENUINE USER LIKES) TAB
   renderLikedTab(contentArea) {
     const likedIds = storage.getLikes();
-    const likedReels = REELS_DATA.filter(r => likedIds.has(r.content_id));
+    const likedReels = getAllReels().filter(r => likedIds.has(r.content_id));
 
     if (likedReels.length === 0) {
       contentArea.innerHTML = `

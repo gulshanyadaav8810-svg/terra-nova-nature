@@ -144,10 +144,32 @@ export function invalidateReelsCache() {
   REEL_BY_ID_MAP = null;
 }
 
-// Compute comprehensive content fingerprint to detect any thumbnail, video, or title edit
+export function getHiddenReelIds() {
+  const hiddenIds = new Set();
+  try {
+    const rawHidden = localStorage.getItem('nature_hidden_reels');
+    if (rawHidden) {
+      const parsed = JSON.parse(rawHidden);
+      if (Array.isArray(parsed)) {
+        parsed.forEach(id => {
+          if (id) hiddenIds.add(String(id));
+        });
+      }
+    }
+  } catch (e) {}
+  return hiddenIds;
+}
+
+export function saveHiddenReelIds(hiddenIdsSet) {
+  try {
+    localStorage.setItem('nature_hidden_reels', JSON.stringify(Array.from(hiddenIdsSet)));
+  } catch (e) {}
+}
+
+// Compute comprehensive content fingerprint to detect any thumbnail, video, title, or visibility edit
 export function getReelsFingerprint(list) {
   if (!Array.isArray(list) || list.length === 0) return '';
-  return list.map(r => `${r.content_id}#${r.thumbnail_url}#${r.video_url}#${r.title}#${r.category_id}#${r.is_trending ? 1 : 0}`).join('|');
+  return list.map(r => `${r.content_id}#${r.thumbnail_url}#${r.video_url}#${r.title}#${r.category_id}#${r.is_trending ? 1 : 0}#${(r.is_hidden || r.hidden) ? 1 : 0}`).join('|');
 }
 
 // Dynamic merge function: Remote dataset is authoritative
@@ -166,17 +188,22 @@ export function loadAllReels() {
     }
   } catch (e) {}
 
+  // 1.2 Get persistent hidden IDs
+  const hiddenIds = getHiddenReelIds();
   
   // 1.5 Seed with bundled INITIAL_REELS (guarantees offline availability of all 31+ reels)
   INITIAL_REELS.forEach(r => {
     if (r && r.content_id && !deletedIds.has(r.content_id) && !isDemoReel(r)) {
+      const isHidden = hiddenIds.has(r.content_id) || r.is_hidden === true || r.hidden === true;
       mergedMap.set(r.content_id, {
         ...r,
+        is_hidden: isHidden,
         video_url: normalizeVideoUrl(r.video_url),
         thumbnail_url: normalizeImageUrl(r.thumbnail_url)
       });
     }
   });
+
   // 2. Add remote reels cached from Cloud/GitHub sync (Authoritative Source)
   try {
     const remote = localStorage.getItem('nature_remote_reels');
@@ -189,13 +216,25 @@ export function loadAllReels() {
         }
         sanitizedRemote.forEach(r => {
           if (r.video_url && !r.video_url.startsWith('blob:')) {
+            let isHidden = false;
+            if (r.is_hidden === true || r.hidden === true) {
+              isHidden = true;
+              hiddenIds.add(r.content_id);
+            } else if (r.is_hidden === false || r.hidden === false) {
+              isHidden = false;
+              hiddenIds.delete(r.content_id);
+            } else {
+              isHidden = hiddenIds.has(r.content_id);
+            }
             mergedMap.set(r.content_id, {
               ...r,
+              is_hidden: isHidden,
               video_url: normalizeVideoUrl(r.video_url),
               thumbnail_url: normalizeImageUrl(r.thumbnail_url)
             });
           }
         });
+        saveHiddenReelIds(hiddenIds);
       }
     }
   } catch (e) {
@@ -214,8 +253,10 @@ export function loadAllReels() {
           sanitizedCustom.forEach(r => {
             if (r.video_url && !r.video_url.startsWith('blob:')) {
               if (!mergedMap.has(r.content_id)) {
+                const isHidden = hiddenIds.has(r.content_id) || r.is_hidden === true || r.hidden === true;
                 mergedMap.set(r.content_id, {
                   ...r,
+                  is_hidden: isHidden,
                   video_url: normalizeVideoUrl(r.video_url),
                   thumbnail_url: normalizeImageUrl(r.thumbnail_url)
                 });
@@ -315,17 +356,30 @@ export async function syncRemoteReels() {
           } catch (e) {}
 
           const merged = new Map();
+          const hiddenIds = getHiddenReelIds();
 
-          // 1. Add valid remote reels first (AUTHORITATIVE: contains newest thumbnails and titles)
+          // 1. Add valid remote reels first (AUTHORITATIVE: contains newest thumbnails, titles, and visibility)
           cleanRemote.forEach(r => {
             if (r.video_url && !r.video_url.startsWith('blob:')) {
+              let isHidden = false;
+              if (r.is_hidden === true || r.hidden === true) {
+                isHidden = true;
+                hiddenIds.add(r.content_id);
+              } else if (r.is_hidden === false || r.hidden === false) {
+                isHidden = false;
+                hiddenIds.delete(r.content_id);
+              } else {
+                isHidden = hiddenIds.has(r.content_id);
+              }
               merged.set(r.content_id, {
                 ...r,
+                is_hidden: isHidden,
                 video_url: normalizeVideoUrl(r.video_url),
                 thumbnail_url: normalizeImageUrl(r.thumbnail_url)
               });
             }
           });
+          saveHiddenReelIds(hiddenIds);
 
           // 2. In Admin Studio ONLY: allow local pending drafts
           const isAdmin = typeof window !== 'undefined' && window.location && window.location.pathname.includes('admin');
@@ -339,8 +393,10 @@ export async function syncRemoteReels() {
                     if (r && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
                       if (r.video_url && !r.video_url.startsWith('blob:')) {
                         if (!merged.has(r.content_id)) {
+                          const isHidden = hiddenIds.has(r.content_id) || r.is_hidden === true || r.hidden === true;
                           merged.set(r.content_id, {
                             ...r,
+                            is_hidden: isHidden,
                             video_url: normalizeVideoUrl(r.video_url),
                             thumbnail_url: normalizeImageUrl(r.thumbnail_url)
                           });
@@ -420,32 +476,88 @@ if (typeof window !== 'undefined') {
           localStorage.setItem('nature_remote_reels', JSON.stringify(filtered));
         } catch (e) {}
         REELS_DATA = REELS_DATA.filter(r => r.content_id !== content_id);
+        invalidateReelsCache();
         window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
       } else if (type === 'SYNC_ALL_REELS' && Array.isArray(reels)) {
+        const hiddenIds = getHiddenReelIds();
+        reels.forEach(r => {
+          if (r.is_hidden === true || r.hidden === true) {
+            hiddenIds.add(r.content_id);
+            r.is_hidden = true;
+          } else if (r.is_hidden === false || r.hidden === false) {
+            hiddenIds.delete(r.content_id);
+            r.is_hidden = false;
+          } else {
+            r.is_hidden = hiddenIds.has(r.content_id);
+          }
+        });
+        saveHiddenReelIds(hiddenIds);
         try {
           localStorage.setItem('nature_remote_reels', JSON.stringify(reels));
         } catch (e) {}
         REELS_DATA = reels;
+        invalidateReelsCache();
         window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
       } else if (type === 'SET_CATEGORY_VISIBILITY') {
         const { category_id, is_hidden } = event.data;
+        const hideBool = !!is_hidden;
+        const hiddenIds = getHiddenReelIds();
         REELS_DATA.forEach(r => {
-          if (r.category_id === category_id) r.is_hidden = !!is_hidden;
+          if (r.category_id === category_id) {
+            r.is_hidden = hideBool;
+            if (hideBool) hiddenIds.add(r.content_id);
+            else hiddenIds.delete(r.content_id);
+          }
         });
+        saveHiddenReelIds(hiddenIds);
+        try {
+          const remote = JSON.parse(localStorage.getItem('nature_remote_reels') || '[]');
+          remote.forEach(r => {
+            if (r.category_id === category_id) r.is_hidden = hideBool;
+          });
+          localStorage.setItem('nature_remote_reels', JSON.stringify(remote.slice(0, 300)));
+        } catch(e) {}
         invalidateReelsCache();
         window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
       } else if (type === 'TOGGLE_REEL_VISIBILITY') {
         const { content_id, is_hidden } = event.data;
+        const hideBool = !!is_hidden;
+        const hiddenIds = getHiddenReelIds();
+        if (hideBool) hiddenIds.add(content_id);
+        else hiddenIds.delete(content_id);
+        saveHiddenReelIds(hiddenIds);
+
         const target = REELS_DATA.find(r => r.content_id === content_id);
-        if (target) target.is_hidden = !!is_hidden;
+        if (target) target.is_hidden = hideBool;
+        try {
+          const remote = JSON.parse(localStorage.getItem('nature_remote_reels') || '[]');
+          const rr = remote.find(r => r.content_id === content_id);
+          if (rr) rr.is_hidden = hideBool;
+          localStorage.setItem('nature_remote_reels', JSON.stringify(remote.slice(0, 300)));
+        } catch(e) {}
         invalidateReelsCache();
         window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
       } else if (type === 'BATCH_VISIBILITY') {
         const { ids, is_hidden } = event.data;
+        const hideBool = !!is_hidden;
         const idSet = new Set(ids || []);
-        REELS_DATA.forEach(r => {
-          if (idSet.has(r.content_id)) r.is_hidden = !!is_hidden;
+        const hiddenIds = getHiddenReelIds();
+        (ids || []).forEach(id => {
+          if (hideBool) hiddenIds.add(id);
+          else hiddenIds.delete(id);
         });
+        saveHiddenReelIds(hiddenIds);
+
+        REELS_DATA.forEach(r => {
+          if (idSet.has(r.content_id)) r.is_hidden = hideBool;
+        });
+        try {
+          const remote = JSON.parse(localStorage.getItem('nature_remote_reels') || '[]');
+          remote.forEach(r => {
+            if (idSet.has(r.content_id)) r.is_hidden = hideBool;
+          });
+          localStorage.setItem('nature_remote_reels', JSON.stringify(remote.slice(0, 300)));
+        } catch(e) {}
         invalidateReelsCache();
         window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
       } else if (type === 'UPDATE_REEL' && reel) {
@@ -534,12 +646,16 @@ export function setCategoryVideosVisibility(categoryId, isHidden) {
     if (!categoryId) return false;
     const hideBool = !!isHidden;
 
-    // 1. Update in-memory
+    // 1. Update in-memory and persistent hiddenIds
+    const hiddenIds = getHiddenReelIds();
     REELS_DATA.forEach(r => {
       if (r.category_id === categoryId) {
         r.is_hidden = hideBool;
+        if (hideBool) hiddenIds.add(r.content_id);
+        else hiddenIds.delete(r.content_id);
       }
     });
+    saveHiddenReelIds(hiddenIds);
 
     // 2. Update persistent storage
     try {
@@ -577,6 +693,12 @@ export function toggleReelVisibility(contentId, isHidden) {
   try {
     if (!contentId) return false;
     const hideBool = !!isHidden;
+
+    // Update hiddenIds
+    const hiddenIds = getHiddenReelIds();
+    if (hideBool) hiddenIds.add(contentId);
+    else hiddenIds.delete(contentId);
+    saveHiddenReelIds(hiddenIds);
 
     const r = REELS_DATA.find(item => item.content_id === contentId);
     if (r) {
@@ -618,6 +740,13 @@ export function setBatchVideosVisibility(idList, isHidden) {
     const hideBool = !!isHidden;
     const idSet = new Set(idList);
 
+    const hiddenIds = getHiddenReelIds();
+    idList.forEach(id => {
+      if (hideBool) hiddenIds.add(id);
+      else hiddenIds.delete(id);
+    });
+    saveHiddenReelIds(hiddenIds);
+
     REELS_DATA.forEach(r => {
       if (idSet.has(r.content_id)) {
         r.is_hidden = hideBool;
@@ -650,7 +779,7 @@ export function setBatchVideosVisibility(idList, isHidden) {
     syncToCloudApi('batch_visibility', { ids: idList, is_hidden: hideBool });
     return true;
   } catch(e) {
-    console.error('Error setting batch visibility:', e);
+    console.error('Error setting batch videos visibility:', e);
     return false;
   }
 }

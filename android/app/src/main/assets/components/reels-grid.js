@@ -23,6 +23,9 @@ export class ReelsGrid {
     this.container.addEventListener('click', (e) => {
       const card = e.target.closest('.home-reel-card');
       if (!card) return;
+      if (navigator.vibrate) {
+        try { navigator.vibrate(10); } catch(err) {}
+      }
       const id = card.getAttribute('data-id');
       const reel = this.reelsMap.get(id);
       if (reel && typeof this.onReelClick === 'function') {
@@ -69,7 +72,7 @@ export class ReelsGrid {
   }
 
   setReels(reelsList, categoryId = 'trending') {
-    this.reels = reelsList || [];
+    this.reels = (reelsList || []).filter(r => r && r.is_hidden !== true && r.hidden !== true);
     this.activeCategory = categoryId;
     this.reelsMap = new Map();
     for (let i = 0; i < this.reels.length; i++) {
@@ -161,6 +164,12 @@ export class ReelsGrid {
           </div>
         </div>
       `;
+
+      if (start === 0 && (i - start) < 10) {
+        card.style.animationDelay = `${(i - start) * 22}ms`;
+      } else {
+        card.style.animation = 'none';
+      }
 
       fragment.appendChild(card);
     }

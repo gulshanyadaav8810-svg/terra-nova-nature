@@ -5,7 +5,7 @@
    ========================================================== */
 
 import { getAllCategories, addCustomCategory, getCategoryById } from './data/categories.js';
-import { loadAllReels, addCustomReel, updateCustomReel, addCustomReelsBatch, deleteCustomReel, deleteCustomReelsBatch, wipeAllReels, REELS_DATA } from './data/reels.js';
+import { loadAllReels, addCustomReel, updateCustomReel, addCustomReelsBatch, deleteCustomReel, deleteCustomReelsBatch, wipeAllReels, REELS_DATA, toggleReelVisibility, setBatchVideosVisibility, setCategoryVideosVisibility } from './data/reels.js';
 import { videoCache } from './services/video-cache.js';
 
 class AdminStudio {
@@ -179,6 +179,14 @@ class AdminStudio {
       this._handleBulkDeleteSelected();
     });
 
+    document.getElementById('btn-bulk-hide-selected')?.addEventListener('click', () => {
+      this._handleBulkVisibilitySelected(true);
+    });
+
+    document.getElementById('btn-bulk-show-selected')?.addEventListener('click', () => {
+      this._handleBulkVisibilitySelected(false);
+    });
+
     document.getElementById('btn-wipe-all-reels')?.addEventListener('click', () => {
       this._handleWipeAllReels();
     });
@@ -253,6 +261,13 @@ class AdminStudio {
     if (tabId === 'tab-upload') {
       this._generateNewReelId();
       this._updateLivePreview();
+    } else if (tabId === 'tab-library') {
+      const catFilter = document.getElementById('lib-category-filter');
+      const searchInput = document.getElementById('lib-search-input');
+      this._renderLibraryTable(catFilter ? catFilter.value : 'all', searchInput ? searchInput.value : '');
+    } else if (tabId === 'tab-dashboard') {
+      this._renderCategoriesGrid();
+      this._renderDashboardRecent();
     }
   }
 
@@ -264,17 +279,25 @@ class AdminStudio {
     }
   }
 
-  _loadData() {
+  _loadData(targetTab = null) {
     this.categories = getAllCategories();
     this.reels = loadAllReels();
 
     this._renderStats();
     this._renderCategorySelect();
-    this._renderCategoriesGrid();
-    this._renderDashboardRecent();
-    this._renderLibraryTable();
-    this._generateNewReelId();
-    this._updateLivePreview();
+
+    const activeTab = targetTab || this.currentTab || 'tab-dashboard';
+    if (activeTab === 'tab-dashboard') {
+      this._renderCategoriesGrid();
+      this._renderDashboardRecent();
+    } else if (activeTab === 'tab-library') {
+      const catFilter = document.getElementById('lib-category-filter');
+      const searchInput = document.getElementById('lib-search-input');
+      this._renderLibraryTable(catFilter ? catFilter.value : 'all', searchInput ? searchInput.value : '');
+    } else if (activeTab === 'tab-upload') {
+      this._generateNewReelId();
+      this._updateLivePreview();
+    }
   }
 
   _renderStats() {
@@ -391,7 +414,10 @@ class AdminStudio {
 
     container.innerHTML = '';
     this.categories.forEach(cat => {
-      const reelCount = this.reels.filter(r => cat.id === 'trending' ? r.is_trending : r.category_id === cat.id).length;
+      const catReels = this.reels.filter(r => cat.id === 'trending' ? r.is_trending : r.category_id === cat.id);
+      const reelCount = catReels.length;
+      const hiddenCount = catReels.filter(r => r.is_hidden).length;
+      const isAllHidden = reelCount > 0 && hiddenCount === reelCount;
 
       const card = document.createElement('div');
       card.className = 'category-admin-card';
@@ -403,14 +429,32 @@ class AdminStudio {
               <span>${cat.icon}</span>
               <span>${cat.name}</span>
             </div>
-            <span class="cat-card-badge">${reelCount} Reels</span>
+            <span class="cat-card-badge">${reelCount} Reels ${hiddenCount > 0 ? `<span style="color: #f87171;">(${hiddenCount} hidden)</span>` : ''}</span>
           </div>
           <div class="cat-card-desc">${cat.description || 'Peaceful nature soundscapes and visuals.'}</div>
-          <div style="margin-top: 10px; font-size: 0.72rem; color: var(--admin-text-dim); font-family: monospace;">
-            ID: #${cat.id}
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+            <div style="font-size: 0.72rem; color: var(--admin-text-dim); font-family: monospace;">
+              ID: #${cat.id}
+            </div>
+            ${reelCount > 0 ? `
+              <button type="button" class="btn btn-secondary btn-cat-toggle-vis" style="font-size: 0.72rem; padding: 4px 8px; ${isAllHidden ? 'color: #f87171; border-color: rgba(239,68,68,0.4);' : 'color: #34d399;'}">
+                ${isAllHidden ? '👁️ Show in App' : '🙈 Hide in App'}
+              </button>
+            ` : ''}
           </div>
         </div>
       `;
+
+      card.querySelector('.btn-cat-toggle-vis')?.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const willHide = !isAllHidden;
+        setCategoryVideosVisibility(cat.id, willHide);
+        this.showToast(`${cat.name} ${willHide ? 'hidden from app' : 'now live in app'}`, willHide ? '🙈' : '👁️');
+        this._loadData();
+        const all = loadAllReels();
+        await this._autoCommitReelsToGitHub(all);
+      });
+
       container.appendChild(card);
     });
   }
@@ -472,6 +516,25 @@ class AdminStudio {
       } else {
         this.showToast(`⚠️ ${count} reels deleted locally. Cloud sync in progress.`, '⚠️');
       }
+    }
+  }
+
+  async _handleBulkVisibilitySelected(isHidden) {
+    const count = this.selectedReelIds.size;
+    if (count === 0) return;
+
+    const actionText = isHidden ? 'hide' : 'show';
+    const ids = Array.from(this.selectedReelIds);
+    setBatchVideosVisibility(ids, isHidden);
+    this.selectedReelIds.clear();
+    this.showToast(`${isHidden ? 'Hiding' : 'Showing'} ${count} reels in app...`, isHidden ? '🙈' : '👁️');
+    this._loadData();
+    const all = loadAllReels();
+    const synced = await this._autoCommitReelsToGitHub(all);
+    if (synced) {
+      this.showToast(`✅ ${count} reels ${actionText === 'hide' ? 'hidden from' : 'now visible in'} app on all devices!`, isHidden ? '🙈' : '👁️');
+    } else {
+      this.showToast(`⚠️ Visibility updated locally. Cloud sync in progress.`, '⚠️');
     }
   }
 
@@ -610,63 +673,95 @@ class AdminStudio {
 
     const pageSlice = list.slice((this.libraryPage - 1) * pageSize, this.libraryPage * pageSize);
 
-    pageSlice.forEach(reel => {
+    // Fast Single-Batch HTML string generation for instant 0ms rendering
+    let html = '';
+    for (let i = 0; i < pageSlice.length; i++) {
+      const reel = pageSlice[i];
       const cat = getCategoryById(reel.category_id);
       const isChecked = this.selectedReelIds.has(reel.content_id);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><input type="checkbox" class="admin-checkbox reel-row-checkbox" data-id="${reel.content_id}" ${isChecked ? 'checked' : ''} /></td>
-        <td><img class="table-thumb" src="${reel.thumbnail_url}" alt="${reel.title}" loading="lazy" onerror="this.src='assets/icons/icon-192.png'" /></td>
-        <td>
-          <div style="font-weight: 700; color: #fff; max-width: 320px;">${reel.title}</div>
-          <div style="font-size: 0.75rem; color: var(--admin-text-dim);">${reel.content_id}</div>
-        </td>
-        <td><span class="badge-tag">${cat.icon} ${cat.name}</span></td>
-        <td><span style="font-family: monospace; font-size: 0.85rem;">${reel.duration}</span></td>
-        <td>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-secondary btn-preview-reel" data-url="${reel.video_url}" style="padding: 6px 10px; font-size: 0.8rem;" title="Preview Video">
-              ▶️ Play
-            </button>
-            <button class="btn btn-secondary btn-edit-reel" data-id="${reel.content_id}" style="padding: 6px 10px; font-size: 0.8rem;" title="Edit Reel & Thumbnail">
-              ✏️ Edit
-            </button>
-            <button class="btn btn-danger btn-delete-reel" data-id="${reel.content_id}" style="padding: 6px 10px; font-size: 0.8rem;" title="Delete Reel">
-              🗑️
-            </button>
-          </div>
-        </td>
+      html += `
+        <tr>
+          <td><input type="checkbox" class="admin-checkbox reel-row-checkbox" data-id="${reel.content_id}" ${isChecked ? 'checked' : ''} /></td>
+          <td><img class="table-thumb" src="${reel.thumbnail_url}" alt="${reel.title}" loading="lazy" onerror="this.src='assets/icons/icon-192.png'" /></td>
+          <td>
+            <div style="font-weight: 700; color: #fff; max-width: 320px;">${reel.title}</div>
+            <div style="font-size: 0.75rem; color: var(--admin-text-dim);">${reel.content_id}</div>
+          </td>
+          <td><span class="badge-tag">${cat.icon} ${cat.name}</span></td>
+          <td><span style="font-family: monospace; font-size: 0.85rem;">${reel.duration}</span></td>
+          <td>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button type="button" class="btn btn-secondary btn-toggle-vis" data-id="${reel.content_id}" style="padding: 6px 10px; font-size: 0.8rem; ${reel.is_hidden ? 'color: #f87171; border-color: rgba(239,68,68,0.4);' : 'color: #34d399; border-color: rgba(52,211,153,0.4);'}" title="${reel.is_hidden ? 'App se chupaya hua hai (Click to Show)' : 'App me live dikh raha hai (Click to Hide)'}">
+                ${reel.is_hidden ? '🙈 Hidden' : '👁️ Live'}
+              </button>
+              <button class="btn btn-secondary btn-preview-reel" data-id="${reel.content_id}" data-url="${reel.video_url}" style="padding: 6px 10px; font-size: 0.8rem;" title="Preview Video">
+                ▶️ Play
+              </button>
+              <button class="btn btn-secondary btn-edit-reel" data-id="${reel.content_id}" style="padding: 6px 10px; font-size: 0.8rem;" title="Edit Reel & Thumbnail">
+                ✏️ Edit
+              </button>
+              <button class="btn btn-danger btn-delete-reel" data-id="${reel.content_id}" style="padding: 6px 10px; font-size: 0.8rem;" title="Delete Reel">
+                🗑️
+              </button>
+            </div>
+          </td>
+        </tr>
       `;
+    }
 
-      // Checkbox event
-      const rowCb = tr.querySelector('.reel-row-checkbox');
-      rowCb.addEventListener('change', (e) => {
-        if (e.target.checked) {
-          this.selectedReelIds.add(reel.content_id);
-        } else {
-          this.selectedReelIds.delete(reel.content_id);
+    tbody.innerHTML = html;
+    this._initTableDelegation();
+    this._updateBulkActionBar();
+  }
+
+  // Single delegated event listener on tbody for maximum performance & zero memory overhead
+  _initTableDelegation() {
+    const tbody = document.getElementById('library-reels-tbody');
+    if (!tbody || tbody._delegated) return;
+    tbody._delegated = true;
+
+    tbody.addEventListener('click', async (e) => {
+      const btnToggle = e.target.closest('.btn-toggle-vis');
+      if (btnToggle) {
+        e.stopPropagation();
+        const id = btnToggle.getAttribute('data-id');
+        const reel = this.reels.find(r => r.content_id === id);
+        if (reel) {
+          const willHide = !reel.is_hidden;
+          toggleReelVisibility(reel.content_id, willHide);
+          this.showToast(willHide ? `Reel "${reel.title}" hidden from app` : `Reel "${reel.title}" is now live in app`, willHide ? '🙈' : '👁️');
+          this._loadData('tab-library');
+          const all = loadAllReels();
+          await this._autoCommitReelsToGitHub(all);
         }
-        if (selectAllCheck) {
-          selectAllCheck.checked = list.every(r => this.selectedReelIds.has(r.content_id));
-        }
-        this._updateBulkActionBar();
-      });
+        return;
+      }
 
-      // Bind actions
-      tr.querySelector('.btn-preview-reel').addEventListener('click', () => {
-        this._openPlayerModal(reel);
-      });
+      const btnPlay = e.target.closest('.btn-preview-reel');
+      if (btnPlay) {
+        const id = btnPlay.getAttribute('data-id');
+        const reel = this.reels.find(r => r.content_id === id);
+        if (reel) this._openPlayerModal(reel);
+        return;
+      }
 
-      tr.querySelector('.btn-edit-reel').addEventListener('click', () => {
-        this._openEditReelModal(reel);
-      });
+      const btnEdit = e.target.closest('.btn-edit-reel');
+      if (btnEdit) {
+        const id = btnEdit.getAttribute('data-id');
+        const reel = this.reels.find(r => r.content_id === id);
+        if (reel) this._openEditReelModal(reel);
+        return;
+      }
 
-      tr.querySelector('.btn-delete-reel').addEventListener('click', async () => {
-        if (confirm(`Are you sure you want to delete "${reel.title}"?`)) {
+      const btnDel = e.target.closest('.btn-delete-reel');
+      if (btnDel) {
+        const id = btnDel.getAttribute('data-id');
+        const reel = this.reels.find(r => r.content_id === id);
+        if (reel && confirm(`Are you sure you want to delete "${reel.title}"?`)) {
           deleteCustomReel(reel.content_id);
           this.selectedReelIds.delete(reel.content_id);
           this.showToast('Deleting reel from app & cloud...', '🗑️');
-          this._loadData();
+          this._loadData('tab-library');
           const remaining = loadAllReels();
           const synced = await this._autoCommitReelsToGitHub(remaining);
           if (synced) {
@@ -675,12 +770,27 @@ class AdminStudio {
             this.showToast('⚠️ Deleted locally. Cloud sync in progress.', '⚠️');
           }
         }
-      });
-
-      tbody.appendChild(tr);
+        return;
+      }
     });
 
-    this._updateBulkActionBar();
+    tbody.addEventListener('change', (e) => {
+      const cb = e.target.closest('.reel-row-checkbox');
+      if (cb) {
+        const id = cb.getAttribute('data-id');
+        if (cb.checked) {
+          this.selectedReelIds.add(id);
+        } else {
+          this.selectedReelIds.delete(id);
+        }
+        const selectAllCheck = document.getElementById('check-select-all-reels');
+        if (selectAllCheck) {
+          const allVisibleChecked = Array.from(tbody.querySelectorAll('.reel-row-checkbox')).every(c => c.checked);
+          selectAllCheck.checked = allVisibleChecked;
+        }
+        this._updateBulkActionBar();
+      }
+    });
   }
 
   _bindSearchFilter() {
@@ -688,9 +798,13 @@ class AdminStudio {
     const catFilter = document.getElementById('lib-category-filter');
 
     if (searchInput) {
+      let searchDebounce = null;
       searchInput.addEventListener('input', () => {
-        this.libraryPage = 1;
-        this._renderLibraryTable(catFilter ? catFilter.value : 'all', searchInput.value);
+        if (searchDebounce) clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+          this.libraryPage = 1;
+          this._renderLibraryTable(catFilter ? catFilter.value : 'all', searchInput.value);
+        }, 120);
       });
     }
 
@@ -2809,7 +2923,7 @@ class AdminStudio {
   async _autoCommitReelsToGitHub(reels) {
     // 1. Update localStorage copies safely (keep memory lean)
     try {
-      localStorage.setItem('nature_remote_reels', JSON.stringify(reels));
+      localStorage.setItem('nature_remote_reels', JSON.stringify(reels.slice(0, 250)));
       localStorage.removeItem('nature_custom_reels');
     } catch (e) {
       console.warn('LocalStorage quota limit reached, relying on in-memory and cloud data:', e);

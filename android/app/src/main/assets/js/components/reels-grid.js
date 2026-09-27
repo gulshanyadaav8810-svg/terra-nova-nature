@@ -72,7 +72,7 @@ export class ReelsGrid {
   }
 
   setReels(reelsList, categoryId = 'trending') {
-    this.reels = reelsList || [];
+    this.reels = (reelsList || []).filter(r => r && r.is_hidden !== true && r.hidden !== true);
     this.activeCategory = categoryId;
     this.reelsMap = new Map();
     for (let i = 0; i < this.reels.length; i++) {
