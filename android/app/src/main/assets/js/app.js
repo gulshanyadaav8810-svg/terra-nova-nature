@@ -246,6 +246,9 @@ class NatureMomentsApp {
           this.reelsFeed.refresh();
         }
       }
+      if (this.saveScreen && typeof this.saveScreen.render === 'function') {
+        this.saveScreen.render();
+      }
     });
 
     // Run initial localization
@@ -481,7 +484,7 @@ class NatureMomentsApp {
       if (this.reelsView) this.reelsView.style.display = 'block';
       if (this.saveView) this.saveView.style.display = 'none';
       if (floatingHeader) floatingHeader.style.display = 'block';
-      if (this.reelsFeed && this.reelsFeed._needsRender) {
+      if (this.reelsFeed && (this.reelsFeed._needsRender || !this.reelsFeed.container || !this.reelsFeed.container.querySelector('.feed-reel-item'))) {
         this.reelsFeed._needsRender = false;
         this.reelsFeed.render();
       }

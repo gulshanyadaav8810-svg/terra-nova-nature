@@ -4,7 +4,7 @@
    offline shell caching, and instant automatic background updates.
    ========================================================== */
 
-const CACHE_NAME = 'nature-moments-cache-v2.3';
+const CACHE_NAME = 'nature-moments-cache-v2.9.2';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -42,7 +42,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: Network-First for API/JSON & Stale-While-Revalidate for app code
+// Fetch: Network-First for API/JSON & JS app code, fallback to cache
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
@@ -53,8 +53,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-First for dynamic data & APIs
-  if (url.pathname.includes('/api/') || url.pathname.includes('reels.json')) {
+  // Network-First for dynamic data, APIs & JS script bundles (ensures instant updates)
+  if (url.pathname.includes('/api/') || url.pathname.includes('reels.json') || url.pathname.endsWith('.js')) {
     event.respondWith(
       fetch(request)
         .then((networkRes) => {

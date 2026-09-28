@@ -239,14 +239,15 @@ export function loadAllReels() {
       else hiddenIds.delete(r.content_id);
       return override;
     }
-    if (hiddenIds.has(r.content_id)) {
-      return true;
+    if (r.is_hidden === false || r.hidden === false) {
+      hiddenIds.delete(r.content_id);
+      return false;
     }
     if (r.is_hidden === true || r.hidden === true) {
       hiddenIds.add(r.content_id);
       return true;
     }
-    return false;
+    return hiddenIds.has(r.content_id);
   }
   
   // 1.5 Seed with bundled INITIAL_REELS (guarantees offline availability of all 31+ reels)
@@ -293,32 +294,29 @@ export function loadAllReels() {
     saveHiddenReelIds(hiddenIds);
   }
 
-  // 3. In Admin Studio only: load local drafts
-  const isAdmin = typeof window !== 'undefined' && window.location && window.location.pathname.includes('admin');
-  if (isAdmin) {
-    try {
-      const custom = localStorage.getItem('nature_custom_reels');
-      if (custom) {
-        const parsed = JSON.parse(custom);
-        if (Array.isArray(parsed)) {
-          const sanitizedCustom = parsed.filter(r => !isDemoReel(r) && !deletedIds.has(r.content_id));
-          sanitizedCustom.forEach(r => {
-            if (r.video_url && !r.video_url.startsWith('blob:')) {
-              if (!mergedMap.has(r.content_id)) {
-                const isHidden = determineVisibility(r);
-                mergedMap.set(r.content_id, {
-                  ...r,
-                  is_hidden: isHidden,
-                  video_url: normalizeVideoUrl(r.video_url),
-                  thumbnail_url: normalizeImageUrl(r.thumbnail_url)
-                });
-              }
+  // 3. Load custom / locally published reels (available in both Admin and User App)
+  try {
+    const custom = localStorage.getItem('nature_custom_reels');
+    if (custom) {
+      const parsed = JSON.parse(custom);
+      if (Array.isArray(parsed)) {
+        const sanitizedCustom = parsed.filter(r => !isDemoReel(r) && !deletedIds.has(r.content_id));
+        sanitizedCustom.forEach(r => {
+          if (r.video_url && !r.video_url.startsWith('blob:')) {
+            if (!mergedMap.has(r.content_id)) {
+              const isHidden = determineVisibility(r);
+              mergedMap.set(r.content_id, {
+                ...r,
+                is_hidden: isHidden,
+                video_url: normalizeVideoUrl(r.video_url),
+                thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+              });
             }
-          });
-        }
+          }
+        });
       }
-    } catch (e) {}
-  }
+    }
+  } catch (e) {}
 
   // 4. Apply persistent engagement overrides (likes, shares, downloads, views)
   try {
@@ -420,13 +418,13 @@ export async function syncRemoteReels() {
               else hiddenIds.delete(r.content_id);
               return override;
             }
+            if (r.is_hidden === false || r.hidden === false) {
+              hiddenIds.delete(r.content_id);
+              return false;
+            }
             if (r.is_hidden === true || r.hidden === true) {
               hiddenIds.add(r.content_id);
               return true;
-            }
-            if (!isOfflineFallback && (r.is_hidden === false || r.hidden === false)) {
-              hiddenIds.delete(r.content_id);
-              return false;
             }
             return hiddenIds.has(r.content_id);
           }

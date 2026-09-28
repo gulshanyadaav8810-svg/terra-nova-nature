@@ -25,6 +25,10 @@ export class SaveScreen {
     window.addEventListener('languageChanged', () => {
       this.render();
     });
+
+    window.addEventListener('reelsUpdated', () => {
+      this.render();
+    });
   }
 
   setTab(tabName) {

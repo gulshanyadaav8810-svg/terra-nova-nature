@@ -144,25 +144,64 @@ export function invalidateReelsCache() {
   REEL_BY_ID_MAP = null;
 }
 
+export function recordVisibilityOverride(contentId, isHidden) {
+  try {
+    const raw = localStorage.getItem('nature_vis_overrides');
+    const map = raw ? JSON.parse(raw) : {};
+    map[contentId] = { is_hidden: !!isHidden, ts: Date.now() };
+    localStorage.setItem('nature_vis_overrides', JSON.stringify(map));
+  } catch (e) {}
+}
+
+export function hasVisibilityOverride(contentId) {
+  try {
+    const raw = localStorage.getItem('nature_vis_overrides');
+    if (!raw) return false;
+    const map = JSON.parse(raw);
+    const item = map[contentId];
+    return item !== undefined && item !== null;
+  } catch (e) {
+    return false;
+  }
+}
+
+export function getVisibilityOverride(contentId) {
+  try {
+    const raw = localStorage.getItem('nature_vis_overrides');
+    if (!raw) return null;
+    const map = JSON.parse(raw);
+    const item = map[contentId];
+    if (item !== undefined && item !== null) {
+      return item.is_hidden;
+    }
+  } catch (e) {}
+  return null;
+}
+
+export function getLocalVisibilityOverride(contentId) {
+  return getVisibilityOverride(contentId);
+}
+
 export function getHiddenReelIds() {
   const hiddenIds = new Set();
   try {
     const rawHidden = localStorage.getItem('nature_hidden_reels');
-    if (rawHidden) {
+    if (rawHidden !== null && rawHidden !== undefined) {
       const parsed = JSON.parse(rawHidden);
       if (Array.isArray(parsed)) {
         parsed.forEach(id => {
           if (id) hiddenIds.add(String(id));
         });
       }
+      return hiddenIds;
     }
   } catch (e) {}
-  return hiddenIds;
+  return null;
 }
 
 export function saveHiddenReelIds(hiddenIdsSet) {
   try {
-    localStorage.setItem('nature_hidden_reels', JSON.stringify(Array.from(hiddenIdsSet)));
+    localStorage.setItem('nature_hidden_reels', JSON.stringify(Array.from(hiddenIdsSet || [])));
   } catch (e) {}
 }
 
@@ -189,12 +228,32 @@ export function loadAllReels() {
   } catch (e) {}
 
   // 1.2 Get persistent hidden IDs
-  const hiddenIds = getHiddenReelIds();
+  const rawSet = getHiddenReelIds();
+  const isFirstBoot = (rawSet === null);
+  const hiddenIds = rawSet || new Set();
+
+  function determineVisibility(r) {
+    if (hasVisibilityOverride(r.content_id)) {
+      const override = getVisibilityOverride(r.content_id);
+      if (override) hiddenIds.add(r.content_id);
+      else hiddenIds.delete(r.content_id);
+      return override;
+    }
+    if (r.is_hidden === false || r.hidden === false) {
+      hiddenIds.delete(r.content_id);
+      return false;
+    }
+    if (r.is_hidden === true || r.hidden === true) {
+      hiddenIds.add(r.content_id);
+      return true;
+    }
+    return hiddenIds.has(r.content_id);
+  }
   
   // 1.5 Seed with bundled INITIAL_REELS (guarantees offline availability of all 31+ reels)
   INITIAL_REELS.forEach(r => {
     if (r && r.content_id && !deletedIds.has(r.content_id) && !isDemoReel(r)) {
-      const isHidden = hiddenIds.has(r.content_id) || r.is_hidden === true || r.hidden === true;
+      const isHidden = determineVisibility(r);
       mergedMap.set(r.content_id, {
         ...r,
         is_hidden: isHidden,
@@ -216,7 +275,7 @@ export function loadAllReels() {
         }
         sanitizedRemote.forEach(r => {
           if (r.video_url && !r.video_url.startsWith('blob:')) {
-            const isHidden = hiddenIds.has(r.content_id) || r.is_hidden === true || r.hidden === true;
+            const isHidden = determineVisibility(r);
             mergedMap.set(r.content_id, {
               ...r,
               is_hidden: isHidden,
@@ -231,32 +290,33 @@ export function loadAllReels() {
     console.warn('Error reading nature_remote_reels from localStorage:', e);
   }
 
-  // 3. In Admin Studio only: load local drafts
-  const isAdmin = typeof window !== 'undefined' && window.location && window.location.pathname.includes('admin');
-  if (isAdmin) {
-    try {
-      const custom = localStorage.getItem('nature_custom_reels');
-      if (custom) {
-        const parsed = JSON.parse(custom);
-        if (Array.isArray(parsed)) {
-          const sanitizedCustom = parsed.filter(r => !isDemoReel(r) && !deletedIds.has(r.content_id));
-          sanitizedCustom.forEach(r => {
-            if (r.video_url && !r.video_url.startsWith('blob:')) {
-              if (!mergedMap.has(r.content_id)) {
-                const isHidden = hiddenIds.has(r.content_id) || r.is_hidden === true || r.hidden === true;
-                mergedMap.set(r.content_id, {
-                  ...r,
-                  is_hidden: isHidden,
-                  video_url: normalizeVideoUrl(r.video_url),
-                  thumbnail_url: normalizeImageUrl(r.thumbnail_url)
-                });
-              }
-            }
-          });
-        }
-      }
-    } catch (e) {}
+  if (isFirstBoot) {
+    saveHiddenReelIds(hiddenIds);
   }
+
+  // 3. Load custom / locally published reels (available in both Admin and User App)
+  try {
+    const custom = localStorage.getItem('nature_custom_reels');
+    if (custom) {
+      const parsed = JSON.parse(custom);
+      if (Array.isArray(parsed)) {
+        const sanitizedCustom = parsed.filter(r => !isDemoReel(r) && !deletedIds.has(r.content_id));
+        sanitizedCustom.forEach(r => {
+          if (r.video_url && !r.video_url.startsWith('blob:')) {
+            if (!mergedMap.has(r.content_id)) {
+              const isHidden = determineVisibility(r);
+              mergedMap.set(r.content_id, {
+                ...r,
+                is_hidden: isHidden,
+                video_url: normalizeVideoUrl(r.video_url),
+                thumbnail_url: normalizeImageUrl(r.thumbnail_url)
+              });
+            }
+          }
+        });
+      }
+    }
+  } catch (e) {}
 
   // 4. Apply persistent engagement overrides (likes, shares, downloads, views)
   try {
@@ -285,8 +345,9 @@ export function loadAllReels() {
 // Initial load
 loadAllReels();
 
-// Cloud API Base URL
-const CLOUD_API_URL = 'https://nature-moments-app.vercel.app/api/reels';
+// Cloud API Base URL (dynamic for local vs production)
+const isLocalEnv = typeof window !== 'undefined' && window.location && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const CLOUD_API_URL = isLocalEnv ? '/api/reels' : 'https://nature-moments-app.vercel.app/api/reels';
 
 // Remote fetch function to sync from GitHub & Cloud API
 export async function syncRemoteReels() {
@@ -346,15 +407,32 @@ export async function syncRemoteReels() {
           } catch (e) {}
 
           const merged = new Map();
-          const hiddenIds = getHiddenReelIds();
+          let rawSet = getHiddenReelIds();
+          const hiddenIds = rawSet || new Set();
+          const isOfflineFallback = url.includes('data/reels.json');
+
+          function determineSyncVisibility(r) {
+            if (hasVisibilityOverride(r.content_id)) {
+              const override = getVisibilityOverride(r.content_id);
+              if (override) hiddenIds.add(r.content_id);
+              else hiddenIds.delete(r.content_id);
+              return override;
+            }
+            if (r.is_hidden === false || r.hidden === false) {
+              hiddenIds.delete(r.content_id);
+              return false;
+            }
+            if (r.is_hidden === true || r.hidden === true) {
+              hiddenIds.add(r.content_id);
+              return true;
+            }
+            return hiddenIds.has(r.content_id);
+          }
 
           // 1. Add valid remote reels first (AUTHORITATIVE: contains newest thumbnails, titles, and visibility)
           cleanRemote.forEach(r => {
             if (r.video_url && !r.video_url.startsWith('blob:')) {
-              const isHidden = hiddenIds.has(r.content_id) || r.is_hidden === true || r.hidden === true;
-              if (r.is_hidden === true || r.hidden === true) {
-                hiddenIds.add(r.content_id);
-              }
+              const isHidden = determineSyncVisibility(r);
               merged.set(r.content_id, {
                 ...r,
                 is_hidden: isHidden,
@@ -377,7 +455,7 @@ export async function syncRemoteReels() {
                     if (r && !isDemoReel(r) && !deletedIds.has(r.content_id)) {
                       if (r.video_url && !r.video_url.startsWith('blob:')) {
                         if (!merged.has(r.content_id)) {
-                          const isHidden = hiddenIds.has(r.content_id) || r.is_hidden === true || r.hidden === true;
+                          const isHidden = determineSyncVisibility(r);
                           merged.set(r.content_id, {
                             ...r,
                             is_hidden: isHidden,
@@ -463,16 +541,20 @@ if (typeof window !== 'undefined') {
         invalidateReelsCache();
         window.dispatchEvent(new CustomEvent('reelsUpdated', { detail: REELS_DATA }));
       } else if (type === 'SYNC_ALL_REELS' && Array.isArray(reels)) {
-        const hiddenIds = getHiddenReelIds();
+        const rawSet = getHiddenReelIds();
+        const hiddenIds = rawSet || new Set();
         reels.forEach(r => {
-          if (r.is_hidden === true || r.hidden === true) {
+          if (hasVisibilityOverride(r.content_id)) {
+            r.is_hidden = getVisibilityOverride(r.content_id);
+            if (r.is_hidden) hiddenIds.add(r.content_id);
+            else hiddenIds.delete(r.content_id);
+          } else if (hiddenIds.has(r.content_id)) {
+            r.is_hidden = true;
+          } else if (r.is_hidden === true || r.hidden === true) {
             hiddenIds.add(r.content_id);
             r.is_hidden = true;
-          } else if (r.is_hidden === false || r.hidden === false) {
-            hiddenIds.delete(r.content_id);
-            r.is_hidden = false;
           } else {
-            r.is_hidden = hiddenIds.has(r.content_id);
+            r.is_hidden = false;
           }
         });
         saveHiddenReelIds(hiddenIds);
@@ -506,13 +588,17 @@ if (typeof window !== 'undefined') {
       } else if (type === 'TOGGLE_REEL_VISIBILITY') {
         const { content_id, is_hidden } = event.data;
         const hideBool = !!is_hidden;
-        const hiddenIds = getHiddenReelIds();
+        recordVisibilityOverride(content_id, hideBool);
+        const rawSet = getHiddenReelIds();
+        const hiddenIds = rawSet || new Set();
         if (hideBool) hiddenIds.add(content_id);
         else hiddenIds.delete(content_id);
         saveHiddenReelIds(hiddenIds);
 
         const target = REELS_DATA.find(r => r.content_id === content_id);
         if (target) target.is_hidden = hideBool;
+        const initR = INITIAL_REELS.find(r => r.content_id === content_id);
+        if (initR) initR.is_hidden = hideBool;
         try {
           const remote = JSON.parse(localStorage.getItem('nature_remote_reels') || '[]');
           const rr = remote.find(r => r.content_id === content_id);
@@ -525,14 +611,19 @@ if (typeof window !== 'undefined') {
         const { ids, is_hidden } = event.data;
         const hideBool = !!is_hidden;
         const idSet = new Set(ids || []);
-        const hiddenIds = getHiddenReelIds();
+        const rawSet = getHiddenReelIds();
+        const hiddenIds = rawSet || new Set();
         (ids || []).forEach(id => {
+          recordVisibilityOverride(id, hideBool);
           if (hideBool) hiddenIds.add(id);
           else hiddenIds.delete(id);
         });
         saveHiddenReelIds(hiddenIds);
 
         REELS_DATA.forEach(r => {
+          if (idSet.has(r.content_id)) r.is_hidden = hideBool;
+        });
+        INITIAL_REELS.forEach(r => {
           if (idSet.has(r.content_id)) r.is_hidden = hideBool;
         });
         try {
@@ -631,12 +722,19 @@ export function setCategoryVideosVisibility(categoryId, isHidden) {
     const hideBool = !!isHidden;
 
     // 1. Update in-memory and persistent hiddenIds
-    const hiddenIds = getHiddenReelIds();
+    const rawSet = getHiddenReelIds();
+    const hiddenIds = rawSet || new Set();
     REELS_DATA.forEach(r => {
       if (r.category_id === categoryId) {
+        recordVisibilityOverride(r.content_id, hideBool);
         r.is_hidden = hideBool;
         if (hideBool) hiddenIds.add(r.content_id);
         else hiddenIds.delete(r.content_id);
+      }
+    });
+    INITIAL_REELS.forEach(r => {
+      if (r.category_id === categoryId) {
+        r.is_hidden = hideBool;
       }
     });
     saveHiddenReelIds(hiddenIds);
@@ -678,8 +776,12 @@ export function toggleReelVisibility(contentId, isHidden) {
     if (!contentId) return false;
     const hideBool = !!isHidden;
 
+    // Record override to prevent any stale sync from undoing this
+    recordVisibilityOverride(contentId, hideBool);
+
     // Update hiddenIds
-    const hiddenIds = getHiddenReelIds();
+    const rawSet = getHiddenReelIds();
+    const hiddenIds = rawSet || new Set();
     if (hideBool) hiddenIds.add(contentId);
     else hiddenIds.delete(contentId);
     saveHiddenReelIds(hiddenIds);
@@ -687,6 +789,10 @@ export function toggleReelVisibility(contentId, isHidden) {
     const r = REELS_DATA.find(item => item.content_id === contentId);
     if (r) {
       r.is_hidden = hideBool;
+    }
+    const initR = INITIAL_REELS.find(item => item.content_id === contentId);
+    if (initR) {
+      initR.is_hidden = hideBool;
     }
 
     try {
@@ -724,14 +830,21 @@ export function setBatchVideosVisibility(idList, isHidden) {
     const hideBool = !!isHidden;
     const idSet = new Set(idList);
 
-    const hiddenIds = getHiddenReelIds();
+    const rawSet = getHiddenReelIds();
+    const hiddenIds = rawSet || new Set();
     idList.forEach(id => {
+      recordVisibilityOverride(id, hideBool);
       if (hideBool) hiddenIds.add(id);
       else hiddenIds.delete(id);
     });
     saveHiddenReelIds(hiddenIds);
 
     REELS_DATA.forEach(r => {
+      if (idSet.has(r.content_id)) {
+        r.is_hidden = hideBool;
+      }
+    });
+    INITIAL_REELS.forEach(r => {
       if (idSet.has(r.content_id)) {
         r.is_hidden = hideBool;
       }
