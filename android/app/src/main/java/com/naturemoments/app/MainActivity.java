@@ -54,7 +54,7 @@ import com.google.android.gms.ads.LoadAdError;
 
 public class MainActivity extends Activity {
     private static final String TAG = "NatureMomentsApp";
-    public static final String ONLINE_URL = "https://nature-moments-app.vercel.app";
+    public static final String ONLINE_URL = "https://gulshanyadaav8810-svg.github.io/terra-nova-nature";
     public static final String OFFLINE_FALLBACK_URL = "https://appassets.androidplatform.net/assets/index.html";
 
     // Production AdMob Banner ID (Provided by user - will automatically show live banner ad once approved)
@@ -89,7 +89,7 @@ public class MainActivity extends Activity {
         public void openPrivacyPolicy() {
             mActivity.runOnUiThread(() -> {
                 try {
-                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://nature-moments-app.vercel.app/privacy-policy"));
+                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://gulshanyadaav8810-svg.github.io/terra-nova-nature/privacy-policy.html"));
                     mActivity.startActivity(browserIntent);
                 } catch (Exception e) {
                     Log.e(TAG, "Cannot launch external browser for privacy policy", e);

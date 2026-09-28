@@ -86,14 +86,16 @@ export class VideoPlayer {
         this.video.load();
         this.video.play().catch(() => {});
         return;
-      } else if (cur.includes('nature-moments-app.vercel.app') || cur.startsWith('/uploads/')) {
-        const fn = cur.split('/uploads/')[1];
-        const fallback = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${fn}`;
-        console.log('[VideoPlayer] Vercel edge error, switching to jsDelivr CDN fallback in 0ms:', fallback);
-        this.video.src = fallback;
-        this.video.load();
-        this.video.play().catch(() => {});
-        return;
+      } else if (cur.startsWith('/uploads/') || cur.includes('github.io/terra-nova-nature/uploads/')) {
+        const fn = cur.includes('/uploads/') ? cur.split('/uploads/')[1] : '';
+        if (fn) {
+          const fallback = `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/uploads/${fn}`;
+          console.log('[VideoPlayer] Upload error, switching to jsDelivr CDN fallback in 0ms:', fallback);
+          this.video.src = fallback;
+          this.video.load();
+          this.video.play().catch(() => {});
+          return;
+        }
       }
       this.spinner.classList.remove('loading');
       console.warn('Video playback error', e);

@@ -173,7 +173,7 @@ class NatureMomentsApp {
       onOpenFeedback: () => this.modals.openFeedback(),
       onOpenRate: () => this.modals.openRate(),
       onOpenPrivacy: () => {
-        const url = 'https://nature-moments-app.vercel.app/privacy-policy';
+        const url = 'https://gulshanyadaav8810-svg.github.io/terra-nova-nature/privacy-policy.html';
         if (window.AndroidBridge && typeof window.AndroidBridge.openPrivacyPolicy === 'function') {
           window.AndroidBridge.openPrivacyPolicy();
         } else {

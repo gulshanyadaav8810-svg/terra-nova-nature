@@ -1457,21 +1457,6 @@ class AdminStudio {
       console.warn('GitHub direct thumb upload failed:', err);
     }
 
-    // 2. Fallback: /api/reels serverless function on Vercel
-    try {
-      const res = await fetch('https://nature-moments-app.vercel.app/api/reels', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'upload_image', filename, base64 })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.cdn_url || data.url) return data.cdn_url || data.url;
-      }
-    } catch (e) {
-      console.warn('Vercel API thumb upload error:', e);
-    }
-
     return '';
   }
 
@@ -2937,25 +2922,7 @@ class AdminStudio {
       } catch (e) {}
     }
 
-    // 3. Primary Cloud Sync: Call /api/reels on Vercel or local
-    try {
-      const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-      const apiEndpoint = isLocal ? '/api/reels' : 'https://nature-moments-app.vercel.app/api/reels';
-
-      const apiRes = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'sync_all', fullList: reels })
-      });
-      if (apiRes.ok) {
-        console.log('[AdminStudio] reels.json synced via /api/reels to Cloud & GitHub ✅');
-        return true;
-      }
-    } catch (apiErr) {
-      console.warn('[AdminStudio] /api/reels sync failed, attempting direct GitHub commit:', apiErr.message);
-    }
-
-    // 4. Secondary Fallback: Direct GitHub API with computed SHA
+    // 3. Primary Cloud Sync: Direct GitHub Commit with SHA computation (Zero Vercel Dependency)
     const token = ['gho', '1GPNxaibxc8szdwIeLClPWkKfnkC8b3nBF3y'].join('_');
     const repo = 'gulshanyadaav8810-svg/terra-nova-nature';
     const path = 'data/reels.json';

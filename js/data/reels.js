@@ -349,17 +349,16 @@ export function loadAllReels() {
 // Initial load
 loadAllReels();
 
-// Cloud API Base URL (dynamic for local vs production)
-const isLocalEnv = typeof window !== 'undefined' && window.location && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-const CLOUD_API_URL = isLocalEnv ? '/api/reels' : 'https://nature-moments-app.vercel.app/api/reels';
+// Direct GitHub & High-Speed CDN Endpoints (100% Serverless, Zero Vercel Dependency)
+const GITHUB_REPO = 'gulshanyadaav8810-svg/terra-nova-nature';
 
-// Remote fetch function to sync from GitHub & Cloud API
+// Remote fetch function to sync directly from GitHub & jsDelivr CDN
 export async function syncRemoteReels() {
   const urls = [
-    `${CLOUD_API_URL}?t=${Date.now()}`,
-    `https://raw.githubusercontent.com/gulshanyadaav8810-svg/terra-nova-nature/main/data/reels.json?t=${Date.now()}`,
-    `data/reels.json?t=${Date.now()}`,
-    `https://cdn.jsdelivr.net/gh/gulshanyadaav8810-svg/terra-nova-nature@main/data/reels.json?t=${Date.now()}`
+    `https://raw.githubusercontent.com/${GITHUB_REPO}/main/data/reels.json?t=${Date.now()}`,
+    `https://cdn.jsdelivr.net/gh/${GITHUB_REPO}@main/data/reels.json?t=${Date.now()}`,
+    `https://gulshanyadaav8810-svg.github.io/terra-nova-nature/data/reels.json?t=${Date.now()}`,
+    `data/reels.json?t=${Date.now()}`
   ];
 
   // Load deleted IDs tombstone including demo reels
