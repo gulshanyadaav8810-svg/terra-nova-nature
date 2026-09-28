@@ -211,6 +211,17 @@ export function getReelsFingerprint(list) {
   return list.map(r => `${r.content_id}#${r.thumbnail_url}#${r.video_url}#${r.title}#${r.category_id}#${r.is_trending ? 1 : 0}#${(r.is_hidden || r.hidden) ? 1 : 0}`).join('|');
 }
 
+// One-time global unhide reset to clear all stale hidden IDs on every device
+if (typeof localStorage !== 'undefined') {
+  try {
+    if (localStorage.getItem('nature_unhide_all_v2') !== 'done') {
+      localStorage.removeItem('nature_hidden_reels');
+      localStorage.removeItem('nature_vis_overrides');
+      localStorage.setItem('nature_unhide_all_v2', 'done');
+    }
+  } catch (e) {}
+}
+
 // Dynamic merge function: Remote dataset is authoritative
 export function loadAllReels() {
   const mergedMap = new Map();
@@ -229,7 +240,6 @@ export function loadAllReels() {
 
   // 1.2 Get persistent hidden IDs
   const rawSet = getHiddenReelIds();
-  const isFirstBoot = (rawSet === null);
   const hiddenIds = rawSet || new Set();
 
   function determineVisibility(r) {
@@ -239,15 +249,12 @@ export function loadAllReels() {
       else hiddenIds.delete(r.content_id);
       return override;
     }
-    if (r.is_hidden === false || r.hidden === false) {
-      hiddenIds.delete(r.content_id);
-      return false;
-    }
     if (r.is_hidden === true || r.hidden === true) {
       hiddenIds.add(r.content_id);
       return true;
     }
-    return hiddenIds.has(r.content_id);
+    hiddenIds.delete(r.content_id);
+    return false;
   }
   
   // 1.5 Seed with bundled INITIAL_REELS (guarantees offline availability of all 31+ reels)
@@ -290,9 +297,6 @@ export function loadAllReels() {
     console.warn('Error reading nature_remote_reels from localStorage:', e);
   }
 
-  if (isFirstBoot) {
-    saveHiddenReelIds(hiddenIds);
-  }
 
   // 3. Load custom / locally published reels (available in both Admin and User App)
   try {
@@ -374,8 +378,9 @@ export async function syncRemoteReels() {
     try {
       const res = await fetch(url);
       if (res.ok) {
-        const remoteReels = await res.json();
-        if (Array.isArray(remoteReels)) {
+        const rawData = await res.json();
+        const remoteReels = Array.isArray(rawData) ? rawData : (rawData && Array.isArray(rawData.reels) ? rawData.reels : null);
+        if (remoteReels && Array.isArray(remoteReels) && remoteReels.length > 0) {
           // Filter out demo reels and deleted tombstones
           const cleanRemote = remoteReels.filter(r => !isDemoReel(r) && !deletedIds.has(r.content_id));
 
@@ -418,15 +423,12 @@ export async function syncRemoteReels() {
               else hiddenIds.delete(r.content_id);
               return override;
             }
-            if (r.is_hidden === false || r.hidden === false) {
-              hiddenIds.delete(r.content_id);
-              return false;
-            }
             if (r.is_hidden === true || r.hidden === true) {
               hiddenIds.add(r.content_id);
               return true;
             }
-            return hiddenIds.has(r.content_id);
+            hiddenIds.delete(r.content_id);
+            return false;
           }
 
           // 1. Add valid remote reels first (AUTHORITATIVE: contains newest thumbnails, titles, and visibility)
