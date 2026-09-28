@@ -175,8 +175,8 @@ export class ModalsManager {
     if (playStoreBtn) {
       playStoreBtn.addEventListener('click', () => {
         // Direct Play Store URL or intent
-        const playUrl = 'market://details?id=com.naturemoments.app';
-        const webUrl = 'https://play.google.com/store/apps/details?id=com.naturemoments.app';
+        const playUrl = 'market://details?id=com.gulshan.fullhdstatus';
+        const webUrl = 'https://play.google.com/store/apps/details?id=com.gulshan.fullhdstatus';
         try {
           window.open(playUrl, '_blank');
         } catch (e) {

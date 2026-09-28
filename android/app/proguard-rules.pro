@@ -6,7 +6,7 @@
     @android.webkit.JavascriptInterface <methods>;
 }
 
--keep class com.naturemoments.app.** { *; }
+-keep class com.gulshan.fullhdstatus.** { *; }
 
 # Google Mobile Ads (AdMob)
 -keep public class com.google.android.gms.ads.** {

@@ -3,7 +3,7 @@ GOOGLE PLAY CONSOLE — CATEGORY, TAGS & APP DETAILS
 ====================================================================
 
 Application Name: Nature Moments: Peaceful Reels
-Package Name: com.naturemoments.app
+Package Name: com.gulshan.fullhdstatus
 Version Code: 1
 Version Name: 1.0.0
 

@@ -3,14 +3,14 @@ plugins {
 }
 
 android {
-    namespace 'com.naturemoments.app'
+    namespace 'com.gulshan.fullhdstatus'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.naturemoments.app"
+        applicationId "com.gulshan.fullhdstatus"
         minSdk 24
         targetSdk 34
-        versionCode 33
+        versionCode 34
         versionName "3.1.0"
     }
 

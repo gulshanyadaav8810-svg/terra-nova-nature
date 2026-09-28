@@ -1,4 +1,4 @@
-package com.naturemoments.app;
+package com.gulshan.fullhdstatus;
 
 import android.app.Activity;
 import android.app.DownloadManager;
