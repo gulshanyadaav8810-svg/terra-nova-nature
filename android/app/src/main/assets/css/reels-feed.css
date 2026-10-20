@@ -156,11 +156,11 @@ video::-webkit-media-controls-play-button {
   left: 0;
   right: 0;
   z-index: 30;
-  padding: 10px 14px 8px 14px;
+  padding: max(calc(env(safe-area-inset-top, 0px) + 14px), 42px) 14px 8px 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: linear-gradient(180deg, rgba(8, 20, 16, 0.96) 0%, rgba(8, 20, 16, 0.85) 75%, rgba(8, 20, 16, 0) 100%);
+  background: linear-gradient(180deg, rgba(8, 20, 16, 0.98) 0%, rgba(8, 20, 16, 0.88) 70%, rgba(8, 20, 16, 0) 100%);
   pointer-events: none;
 }
 

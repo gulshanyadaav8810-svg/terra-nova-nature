@@ -33,7 +33,7 @@
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(28px) saturate(200%);
   -webkit-backdrop-filter: blur(28px) saturate(200%);
-  padding: 14px 16px 10px 16px;
+  padding: max(calc(env(safe-area-inset-top, 0px) + 14px), 42px) 16px 10px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -835,7 +835,7 @@
   background: rgba(250, 247, 242, 0.92);
   backdrop-filter: blur(24px) saturate(190%);
   -webkit-backdrop-filter: blur(24px) saturate(190%);
-  padding: 16px 16px 14px 16px;
+  padding: max(calc(env(safe-area-inset-top, 0px) + 14px), 42px) 16px 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 14px;
