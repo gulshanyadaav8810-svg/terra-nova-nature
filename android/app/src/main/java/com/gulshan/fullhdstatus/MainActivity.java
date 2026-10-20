@@ -51,6 +51,10 @@ import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.AdError;
 
 public class MainActivity extends Activity {
     private static final String TAG = "NatureMomentsApp";
@@ -63,6 +67,12 @@ public class MainActivity extends Activity {
     // Google Official Sample Test Banner ID (Automatic immediate fallback before Play Store review approval)
     public static final String TEST_BANNER_ID = "ca-app-pub-3940256099942544/6300978111";
 
+    // Production AdMob Interstitial ID
+    public static final String ADMOB_INTERSTITIAL_ID = "ca-app-pub-3199277482182252/6776418993";
+
+    // Google Official Sample Test Interstitial ID
+    public static final String TEST_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/1033173712";
+
     private FrameLayout rootContainer;
     private FrameLayout splashOverlay;
     private LinearLayout rootLayout;
@@ -72,6 +82,11 @@ public class MainActivity extends Activity {
     private boolean isBannerUsingTestId = false;
     private boolean isBannerLoaded = false;
     private boolean isBannerEnabledByJs = true;
+
+    private InterstitialAd mInterstitialAd;
+    private boolean isInterstitialLoading = false;
+    private long lastInterstitialShownTime = 0;
+    private static final long INTERSTITIAL_MIN_INTERVAL_MS = 20000;
 
     public class WebAppInterface {
         Activity mActivity;
@@ -224,7 +239,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void showInterstitialAd(String triggerReason) {
-            // Disabled: video interstitial ads removed per user request, only bottom banner ad active
+            triggerInterstitialAd(triggerReason);
         }
 
         @JavascriptInterface
@@ -518,10 +533,13 @@ public class MainActivity extends Activity {
             dismissNativeSplash();
         }, 1600);
 
-        // Initialize Google Mobile Ads SDK for Banner Ad only
+        // Initialize Google Mobile Ads SDK for Banner & Interstitial Ads
         MobileAds.initialize(this, initializationStatus -> {
             Log.d(TAG, "Google Mobile Ads SDK Initialized");
-            runOnUiThread(() -> setupBannerAd());
+            runOnUiThread(() -> {
+                setupBannerAd();
+                loadInterstitialAd(false);
+            });
         });
 
         // Clean up any stale partial video cache files to ensure pure clean direct playback
@@ -841,6 +859,76 @@ public class MainActivity extends Activity {
             boolean shouldShow = isBannerLoaded && isBannerEnabledByJs;
             adContainer.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
         }
+    }
+
+    private void loadInterstitialAd(boolean useFallbackTest) {
+        if (isInterstitialLoading) return;
+        isInterstitialLoading = true;
+
+        String unitId = useFallbackTest ? TEST_INTERSTITIAL_ID : ADMOB_INTERSTITIAL_ID;
+        AdRequest adRequest = new AdRequest.Builder().build();
+
+        InterstitialAd.load(this, unitId, adRequest, new InterstitialAdLoadCallback() {
+            @Override
+            public void onAdLoaded(InterstitialAd interstitialAd) {
+                mInterstitialAd = interstitialAd;
+                isInterstitialLoading = false;
+                Log.d(TAG, "AdMob Interstitial Ad loaded successfully (" + unitId + ")");
+
+                mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                    @Override
+                    public void onAdDismissedFullScreenContent() {
+                        mInterstitialAd = null;
+                        lastInterstitialShownTime = System.currentTimeMillis();
+                        if (webView != null) {
+                            webView.evaluateJavascript("if (window.natureAppInstance && window.natureAppInstance.reelsFeed) { window.natureAppInstance.reelsFeed.resumeActive(); }", null);
+                        }
+                        loadInterstitialAd(false);
+                    }
+
+                    @Override
+                    public void onAdFailedToShowFullScreenContent(AdError adError) {
+                        mInterstitialAd = null;
+                        loadInterstitialAd(false);
+                    }
+
+                    @Override
+                    public void onAdShowedFullScreenContent() {
+                        if (webView != null) {
+                            webView.evaluateJavascript("if (typeof window.pauseAllMedia === 'function') { window.pauseAllMedia(); }", null);
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onAdFailedToLoad(LoadAdError loadAdError) {
+                isInterstitialLoading = false;
+                Log.w(TAG, "Interstitial failed to load (" + unitId + "): " + loadAdError.getMessage());
+                if (!useFallbackTest) {
+                    Log.d(TAG, "Retrying with official Google Test Interstitial unit...");
+                    runOnUiThread(() -> loadInterstitialAd(true));
+                }
+            }
+        });
+    }
+
+    public void triggerInterstitialAd(String triggerReason) {
+        runOnUiThread(() -> {
+            long now = System.currentTimeMillis();
+            if (now - lastInterstitialShownTime < INTERSTITIAL_MIN_INTERVAL_MS) {
+                Log.d(TAG, "Interstitial skipped: cooldown active (" + triggerReason + ")");
+                return;
+            }
+
+            if (mInterstitialAd != null) {
+                Log.d(TAG, "Showing Interstitial Ad: " + triggerReason);
+                mInterstitialAd.show(MainActivity.this);
+            } else {
+                Log.d(TAG, "Interstitial not ready yet, preloading for next opportunity...");
+                loadInterstitialAd(false);
+            }
+        });
     }
 
     @Override

@@ -364,6 +364,9 @@ export class ReelsFeed {
       const dlBtn = e.target.closest('.feed-download-btn');
       if (dlBtn) {
         e.stopPropagation();
+        if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === 'function') {
+          window.AndroidBridge.showInterstitialAd('download');
+        }
         trackEngagement(reel.content_id, 'download');
         this.showToast(i18n.t('download_started'), '⬇️');
         downloader.downloadReel(
@@ -756,6 +759,15 @@ export class ReelsFeed {
       this.activeItem.classList.remove('active-playing', 'is-buffering');
       const oldVinyl = this.activeItem.querySelector('.dock-vinyl-disc');
       if (oldVinyl) oldVinyl.classList.add('paused');
+
+      // Trigger Interstitial Ad after every 3 reels
+      this._reelsCountSinceAd = (this._reelsCountSinceAd || 0) + 1;
+      if (this._reelsCountSinceAd >= 3) {
+        this._reelsCountSinceAd = 0;
+        if (window.AndroidBridge && typeof window.AndroidBridge.showInterstitialAd === 'function') {
+          window.AndroidBridge.showInterstitialAd('reels_scroll');
+        }
+      }
     }
 
     this.activeItem = targetItem;
